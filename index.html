@@ -935,77 +935,95 @@
     const ws = wb.addWorksheet(appalto);
 
     const totalCols = tecnici.length + 2;
+    const FONT = 'Segoe UI';
+    const COL_DARK  = 'FF1A2B3C';
+    const COL_MID   = 'FF2C3E50';
+    const COL_WHITE = 'FFFFFFFF';
+    const COL_GRAY  = 'FFB0BEC5'; // testo vuoto/zero
+    const COL_BLACK = 'FF1A1A1A'; // testo valore presente
+    const COL_ZEBRA = 'FFF8F9FA';
+    const COL_ACCENT= 'FF1A5276'; // TOT font
 
-    // ── LARGHEZZE COLONNE ──
-    ws.getColumn(1).width = 38;
-    for (let i = 2; i <= tecnici.length + 1; i++) ws.getColumn(i).width = 13;
-    ws.getColumn(tecnici.length + 2).width = 10;
+    const borderH = { // solo bordi orizzontali — stile moderno
+      top:    { style: 'thin', color: { argb: 'FFE0E0E0' } },
+      bottom: { style: 'thin', color: { argb: 'FFE0E0E0' } },
+    };
+
+    // ── LARGHEZZE ──
+    ws.getColumn(1).width = 40;
+    for (let i = 2; i <= tecnici.length + 1; i++) ws.getColumn(i).width = 14;
+    ws.getColumn(tecnici.length + 2).width = 11;
 
     // ── RIGA 1: Titolo ──
     const r1 = ws.addRow(['TECHNICALWORK — BUONO RICHIESTA MATERIALE']);
     ws.mergeCells(1, 1, 1, totalCols);
-    r1.height = 26;
+    r1.height = 30;
     const c1 = r1.getCell(1);
-    c1.font = { name: 'Calibri', size: 13, bold: true, color: { argb: 'FFFFFFFF' } };
-    c1.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A2B3C' } };
+    c1.font = { name: FONT, size: 13, bold: true, color: { argb: COL_WHITE } };
+    c1.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COL_DARK } };
     c1.alignment = { horizontal: 'center', vertical: 'middle' };
 
     // ── RIGA 2: Appalto + Data ──
     const r2 = ws.addRow([`${appalto.toUpperCase()}   ·   ${today}`]);
     ws.mergeCells(2, 1, 2, totalCols);
-    r2.height = 20;
+    r2.height = 22;
     const c2 = r2.getCell(1);
-    c2.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
-    c2.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2C3E50' } };
+    c2.font = { name: FONT, size: 10, bold: false, color: { argb: 'FFAABCCC' } };
+    c2.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COL_DARK } };
     c2.alignment = { horizontal: 'center', vertical: 'middle' };
 
     // ── RIGA 3: spaziatura ──
     const r3 = ws.addRow([]);
     ws.mergeCells(3, 1, 3, totalCols);
-    r3.height = 6;
+    r3.height = 8;
+    r3.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COL_WHITE } };
 
     // ── RIGA 4: Intestazioni ──
     const headers = ['MATERIALE', ...tecnici.map(t => (t.tecnico || t.id).toUpperCase()), 'TOT'];
     const r4 = ws.addRow(headers);
-    r4.height = 20;
+    r4.height = 22;
     r4.eachCell((cell, colNum) => {
-      cell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
-      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2C3E50' } };
+      const isTot = colNum === totalCols;
+      cell.font = { name: FONT, size: 9, bold: true, color: { argb: isTot ? COL_ACCENT : COL_WHITE } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: isTot ? COL_WHITE : COL_MID } };
       cell.alignment = { horizontal: colNum === 1 ? 'left' : 'center', vertical: 'middle' };
       cell.border = {
-        top: { style: 'thin', color: { argb: 'FF4A6278' } },
-        bottom: { style: 'thin', color: { argb: 'FF4A6278' } },
-        left: { style: 'thin', color: { argb: 'FF4A6278' } },
-        right: { style: 'thin', color: { argb: 'FF4A6278' } },
+        bottom: { style: 'medium', color: { argb: isTot ? 'FF90CAF9' : 'FF4A6278' } },
       };
     });
 
     // ── RIGHE MATERIALI ──
     materialsOnly.forEach((mat, idx) => {
       const isZebraB = idx % 2 === 1;
-      const bgColor = isZebraB ? 'FFF4F6F8' : 'FFFFFFFF';
+      const bgColor = isZebraB ? COL_ZEBRA : COL_WHITE;
       const rowData = [mat, ...tecnici.map(t => (t.materiali && t.materiali[mat]) || ''), ''];
       const row = ws.addRow(rowData);
-      row.height = 16;
+      row.height = 20; // più aria
 
       row.eachCell({ includeEmpty: true }, (cell, colNum) => {
         const isTot = colNum === totalCols;
-        cell.fill = {
-          type: 'pattern', pattern: 'solid',
-          fgColor: { argb: isTot ? 'FFEAF0FB' : bgColor }
-        };
+        const val = cell.value ? String(cell.value).trim() : '';
+        const isEmpty = val === '' || val === '0';
+
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgColor } };
         cell.alignment = { horizontal: colNum === 1 ? 'left' : 'center', vertical: 'middle' };
-        cell.font = {
-          name: 'Calibri', size: 10,
-          bold: colNum === 1 ? false : false,
-          color: { argb: isTot ? 'FF1A5276' : 'FF1A1A1A' }
-        };
-        cell.border = {
-          top: { style: 'thin', color: { argb: 'FFD5D8DC' } },
-          bottom: { style: 'thin', color: { argb: 'FFD5D8DC' } },
-          left: { style: 'thin', color: { argb: 'FFD5D8DC' } },
-          right: { style: 'thin', color: { argb: 'FFD5D8DC' } },
-        };
+        cell.border = borderH;
+
+        if (colNum === 1) {
+          // Nome materiale
+          cell.font = { name: FONT, size: 9, color: { argb: COL_BLACK } };
+        } else if (isTot) {
+          // TOT: font blu scuro bold su sfondo bianco
+          cell.font = { name: FONT, size: 9, bold: true, color: { argb: COL_ACCENT } };
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgColor } };
+        } else {
+          // Valori: nero bold se presente, grigio se vuoto/zero
+          cell.font = {
+            name: FONT, size: 9,
+            bold: !isEmpty,
+            color: { argb: isEmpty ? COL_GRAY : COL_BLACK }
+          };
+        }
       });
     });
 
