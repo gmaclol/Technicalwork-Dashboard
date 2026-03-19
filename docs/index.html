@@ -976,17 +976,20 @@
   function relativeTime(timeStr) {
     if (!timeStr || timeStr === '—') return '—';
     try {
-      // formato: "HH:mm dd/MM/yyyy"
       const [time, date] = timeStr.split(' ');
       const [hh, mm] = time.split(':');
       const [dd, mo, yyyy] = date.split('/');
       const then = new Date(yyyy, mo - 1, dd, hh, mm);
-      const diff = (Date.now() - then.getTime()) / 1000 / 60; // minuti
+      const diff = (Date.now() - then.getTime()) / 1000 / 60;
+      const days = ['Dom', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab'];
+      const dayName = days[then.getDay()];
+
       if (diff < 2) return 'adesso';
       if (diff < 60) return `${Math.round(diff)} min fa`;
       if (diff < 60 * 24) return `${Math.round(diff / 60)} ore fa`;
-      if (diff < 60 * 24 * 2) return 'ieri';
-      return `${Math.round(diff / 60 / 24)} giorni fa`;
+      if (diff < 60 * 48) return `ieri ${hh}:${mm}`;
+      if (diff < 60 * 24 * 7) return `${dayName} ${dd}/${mo}`;
+      return 'tempo fa';
     } catch { return timeStr; }
   }
 
