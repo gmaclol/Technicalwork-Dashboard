@@ -987,7 +987,6 @@
       if (diff < 2) return 'adesso';
       if (diff < 60) return `${Math.round(diff)} min fa`;
       if (diff < 60 * 24) return `${Math.round(diff / 60)} ore fa`;
-      if (diff < 60 * 48) return `ieri ${hh}:${mm}`;
       if (diff < 60 * 24 * 7) return `${dayName} ${dd}/${mo}`;
       return 'tempo fa';
     } catch { return timeStr; }
