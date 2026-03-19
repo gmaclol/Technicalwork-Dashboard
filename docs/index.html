@@ -985,7 +985,7 @@
         return;
       }
 
-      renderTable(appalto, tecnici, content, dateKey);
+      renderTable(appalto, tecnici, content, dateKey, allDocs);
 
     } catch (e) {
       content.innerHTML = `
@@ -1159,7 +1159,7 @@
   window.exportToExcel = exportToExcel;
 
   // ── RENDER TABLE ──
-  function renderTable(appalto, tecnici, container, dateKey = 'live') {
+  function renderTable(appalto, tecnici, container, dateKey = 'live', allDocs = []) {
     // Usa il campo "ordine" del primo tecnico che ce l'ha come ordine base
     // poi aggiunge eventuali materiali extra non presenti nell'ordine (in cima)
     const ordineBase = tecnici.find(t => t.ordine && t.ordine.length > 0)?.ordine || [];
@@ -1196,10 +1196,16 @@
       t.materiali && Object.values(t.materiali).some(v => v !== '')
     ).length;
 
-    // Build date dropdown options
-    const dates = getAvailableDates();
+    // Build date dropdown — solo date con snapshot reali
+    const allIds = allDocs.map(d => d.id);
+    const snapshotDates = [...new Set(
+      allIds
+        .map(id => { const m = id.match(/_(\d{4}-\d{2}-\d{2})$/); return m ? m[1] : null; })
+        .filter(Boolean)
+    )].sort().reverse().slice(0, 7); // max 7, dal più recente
+
     const dateOptions = [`<option value="live" ${dateKey === 'live' ? 'selected' : ''}>📡 Oggi (live)</option>`];
-    dates.forEach(d => {
+    snapshotDates.forEach(d => {
       dateOptions.push(`<option value="${d}" ${dateKey === d ? 'selected' : ''}>${formatDateLabel(d)}</option>`);
     });
 
@@ -1229,7 +1235,7 @@
       let locationHtml = '';
       if (isAdmin && hasLocation) {
         const mapsUrl = `https://www.google.com/maps?q=${t.lat},${t.lng}`;
-        locationHtml = `<a class="tech-location" href="${mapsUrl}" target="_blank" id="loc-${t.id}">⊙ caricamento...</a>`;
+        locationHtml = `<a class="tech-location" href="${mapsUrl}" target="_blank" id="loc-${t.id}" onclick="loadGeo(event,'${t.id}',${t.lat},${t.lng})">⊙ mostra posizione</a>`;
       }
 
       html += `
@@ -1276,27 +1282,33 @@
     // Salva riferimenti per export
     window._lastTecnici = tecnici;
     window._lastMaterials = allMaterials;
+  }
 
-    // Reverse geocoding per admin
-    if (currentUser && currentUser.role === 'admin') {
-      tecnici.forEach(async t => {
-        if (!t.lat || !t.lng) return;
-        const el = document.getElementById('loc-' + t.id);
-        if (!el) return;
-        try {
-          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${t.lat}&lon=${t.lng}&format=json`);
-          const json = await res.json();
-          const addr = json.address;
-          const label = addr.road
-            ? `${addr.road}${addr.house_number ? ' ' + addr.house_number : ''}, ${addr.city || addr.town || addr.village || ''}`
-            : json.display_name.split(',').slice(0,2).join(',');
-          el.textContent = '⊙ ' + label.trim();
-        } catch {
-          el.textContent = `⊙ ${t.lat.toFixed(4)}, ${t.lng.toFixed(4)}`;
-        }
-      });
+  // ── GEOCODING ON-DEMAND ──
+  async function loadGeo(event, techId, lat, lng) {
+    event.preventDefault();
+    const el = document.getElementById('loc-' + techId);
+    if (!el || el.dataset.loaded) {
+      // già caricato — vai su Maps
+      window.open(el.href, '_blank');
+      return;
+    }
+    el.textContent = '⊙ caricamento...';
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`);
+      const json = await res.json();
+      const addr = json.address;
+      const label = addr.road
+        ? `${addr.road}${addr.house_number ? ' ' + addr.house_number : ''}, ${addr.city || addr.town || addr.village || ''}`
+        : json.display_name.split(',').slice(0, 2).join(',');
+      el.textContent = '⊙ ' + label.trim();
+      el.dataset.loaded = '1';
+    } catch {
+      el.textContent = `⊙ ${Number(lat).toFixed(4)}, ${Number(lng).toFixed(4)}`;
+      el.dataset.loaded = '1';
     }
   }
+  window.loadGeo = loadGeo;
 </script>
 
 </body>
