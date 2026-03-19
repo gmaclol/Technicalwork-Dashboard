@@ -828,7 +828,33 @@
     const appEl = document.getElementById('app');
     appEl.style.display = 'flex';
     document.getElementById('tb-user').textContent = currentUser.name + ' — Esci';
+    preloadCounts();
     selectAppalto('Elecnor', document.getElementById('nav-Elecnor'));
+  }
+
+  // ── PRELOAD COUNTS ──
+  async function preloadCounts() {
+    const appalti = ['Elecnor', 'Sertori', 'Sirti'];
+    appalti.forEach(async appalto => {
+      try {
+        if (!window._dbReady) {
+          // Riprova dopo che Firebase è pronto
+          await new Promise(resolve => {
+            const check = setInterval(() => {
+              if (window._dbReady) { clearInterval(check); resolve(); }
+            }, 100);
+          });
+        }
+        const snap = await window._getDocs(window._collection(window._db, appalto));
+        const live = snap.docs.filter(d => !/_\d{4}-\d{2}-\d{2}$/.test(d.id));
+        const cnt = document.getElementById('cnt-' + appalto);
+        if (cnt) {
+          cnt.textContent = live.length;
+          // Colora il badge se ci sono tecnici
+          if (live.length > 0) cnt.style.color = 'var(--accent)';
+        }
+      } catch { /* silenzioso */ }
+    });
   }
 
   document.addEventListener('keydown', e => {
