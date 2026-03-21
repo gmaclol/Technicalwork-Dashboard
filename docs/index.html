@@ -285,17 +285,54 @@
     .td-value { background: transparent !important; color: black !important; border-radius: 0 !important; }
   }
 
+  /* ── MENU TOGGLE & OVERLAY ── */
+  .menu-toggle {
+    display: none; background: transparent; border: none; color: var(--text); cursor: pointer; padding: 8px; border-radius: var(--radius); transition: all var(--transition-fast);
+  }
+  .menu-toggle:hover { background: rgba(255,255,255,0.1); }
+  
+  .menu-close {
+    display: none; background: transparent; border: none; color: var(--text-muted); cursor: pointer; padding: 4px; border-radius: 50%; transition: all var(--transition-fast);
+  }
+  .menu-close:hover { background: rgba(255,255,255,0.1); color: var(--text); }
+
+  .sidebar-header-mobile { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+  .sidebar-header-mobile .sidebar-label { margin-bottom: 0; }
+
+  .sidebar-overlay {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+    z-index: 90; opacity: 0; pointer-events: none; transition: opacity var(--transition);
+  }
+  .sidebar-overlay.show { opacity: 1; pointer-events: auto; }
+
   /* ── MOBILE ── */
   @media (max-width: 900px) {
-    #app { padding: 16px; flex-direction: column; overflow-y: auto; display: flex; height: 100vh; }
-    .main-layout { flex-direction: column; overflow: visible; gap: 16px; }
-    .sidebar { width: 100%; padding: 24px; height: auto; }
-    .sidebar-label { margin-bottom: 16px; }
-    .topbar { padding: 0 20px; height: 64px; }
-    .content { overflow: visible; }
-    .content-header { padding: 24px; flex-direction: column; align-items: flex-start; gap: 16px; }
+    #app { padding: 0; flex-direction: column; overflow: hidden; display: flex; height: 100vh; }
+    .main-layout { flex-direction: column; overflow: hidden; gap: 0; margin: 0; padding: 16px; flex: 1; }
+    
+    .topbar { margin: 16px 16px 0 16px; border-radius: var(--radius-lg); height: 64px; padding: 0 16px; gap: 12px; }
+    .topbar-brand { font-size: 13px; }
+    .topbar-user { padding: 8px 12px; font-size: 13px; }
+    .menu-toggle { display: flex; }
+    .menu-close { display: flex; }
+
+    .sidebar {
+      position: fixed; top: 0; bottom: 0; left: 0; width: 280px; height: 100%; border-radius: 0;
+      z-index: 100; transform: translateX(-100%); transition: transform var(--transition);
+      border-right: 1px solid var(--border); border-left: none; border-top: none; border-bottom: none;
+      padding: 24px;
+    }
+    .sidebar.open { transform: translateX(0); box-shadow: 20px 0 40px rgba(0,0,0,0.5); }
+
+    .content { overflow: visible; border-radius: var(--radius-lg); }
+    .content-header { padding: 24px 20px; flex-direction: column; align-items: flex-start; gap: 16px; }
     .content-actions { margin-left: 0; width: 100%; flex-wrap: wrap; }
-    .table-scroll { overflow-x: auto; padding: 24px; }
+    
+    .table-scroll { overflow-x: auto; padding: 0 20px 24px 20px; }
+    .td-material, .th-material { position: sticky; left: 0; z-index: 10; }
+    .th-material { z-index: 11; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); box-shadow: 1px 0 0 var(--border-strong); }
+    .td-material { box-shadow: 1px 0 0 var(--border); }
+    
     .login-box { width: calc(100% - 32px); padding: 48px 24px; }
   }
 </style>
@@ -325,6 +362,9 @@
 
   <!-- TOPBAR -->
   <div class="topbar">
+    <button class="menu-toggle" onclick="toggleDrawer()">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+    </button>
     <div class="topbar-brand">
       <span class="text-gradient">TW</span> // Dashboard
     </div>
@@ -338,12 +378,19 @@
     <div class="topbar-user" id="tb-user" onclick="doLogout()">Esci</div>
   </div>
 
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeDrawer()"></div>
+
   <!-- MAIN -->
   <div class="main-layout">
 
     <!-- SIDEBAR -->
     <div class="sidebar">
-      <div class="sidebar-label">Appalti</div>
+      <div class="sidebar-header-mobile">
+        <div class="sidebar-label">Appalti</div>
+        <button class="menu-close" onclick="closeDrawer()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
       
       <div class="sidebar-item active" onclick="selectAppalto('Elecnor', this)" id="nav-Elecnor">
         <div class="sidebar-item-left">
@@ -513,7 +560,7 @@
     } catch { localStorage.removeItem('tw_session'); }
   })();
 
-  // ── NAVIGATION ──
+  // ── NAVIGATION & DRAWER ──
   function selectAppalto(name, el) {
     document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
     el.classList.add('active');
@@ -521,8 +568,29 @@
     currentDate = 'live'; // reset to live on appalto change
     document.getElementById('tb-appalto').textContent = name;
     loadAppalto(name, 'live');
+    closeDrawer(); // chiude su mobile se aperto
   }
   window.selectAppalto = selectAppalto;
+
+  function toggleDrawer() {
+    const sb = document.querySelector('.sidebar');
+    const ov = document.getElementById('sidebar-overlay');
+    if (sb.classList.contains('open')) {
+      closeDrawer();
+    } else {
+      sb.classList.add('open');
+      ov.classList.add('show');
+    }
+  }
+  window.toggleDrawer = toggleDrawer;
+
+  function closeDrawer() {
+    const sb = document.querySelector('.sidebar');
+    const ov = document.getElementById('sidebar-overlay');
+    if (sb) sb.classList.remove('open');
+    if (ov) ov.classList.remove('show');
+  }
+  window.closeDrawer = closeDrawer;
 
   // ── DATE HELPERS ──
   function getAvailableDates() {
@@ -933,61 +1001,73 @@
     let rows = '';
     materialsOnly.forEach((mat, idx) => {
       const bg = idx % 2 === 1 ? '#F8F9FA' : '#FFFFFF';
-      let cells = `<td style="padding:3px 6px;font-weight:600;font-size:10px;border:1px solid #DEE2E6;background:${bg};white-space:nowrap">${mat}</td>`;
+      let cells = `<td style="padding:4px 6px;font-weight:600;font-size:10px;border:1px solid #DEE2E6;background:${bg};white-space:nowrap">${mat}</td>`;
       tecnici.forEach(t => {
         const val = (t.materiali && t.materiali[mat]) || '';
         const isEmpty = val === '' || val === '0';
-        cells += `<td style="padding:3px 6px;text-align:center;font-size:10px;border:1px solid #DEE2E6;background:${bg};color:${isEmpty ? '#ADB5BD' : '#212529'};font-weight:${isEmpty ? 'normal' : '600'};white-space:nowrap">${val || '·'}</td>`;
+        cells += `<td style="padding:4px 6px;text-align:center;font-size:10px;border:1px solid #DEE2E6;background:${bg};color:${isEmpty ? '#ADB5BD' : '#212529'};font-weight:${isEmpty ? 'normal' : '600'};white-space:nowrap">${val || '·'}</td>`;
       });
-      cells += `<td style="padding:3px 6px;text-align:center;border:1px solid #DEE2E6;background:#E7F1FF;min-width:35px"></td>`;
+      cells += `<td style="padding:4px 6px;text-align:center;border:1px solid #DEE2E6;background:#E7F1FF;min-width:35px"></td>`;
       rows += `<tr>${cells}</tr>`;
     });
 
-    let headers = `<th style="padding:4px 6px;text-align:left;background:#2C3E50;color:white;font-size:9px;border:1px solid #4A6278">MATERIALE</th>`;
+    let headers = `<th style="padding:6px 6px;text-align:left;background:#2C3E50;color:white;font-size:10px;border:1px solid #4A6278">MATERIALE</th>`;
     tecnici.forEach(t => {
-      headers += `<th style="padding:4px 6px;text-align:center;background:#2C3E50;color:white;font-size:9px;border:1px solid #4A6278;white-space:nowrap">${(t.tecnico || t.id).toUpperCase()}</th>`;
+      headers += `<th style="padding:6px 6px;text-align:center;background:#2C3E50;color:white;font-size:10px;border:1px solid #4A6278;white-space:nowrap">${(t.tecnico || t.id).toUpperCase()}</th>`;
     });
-    headers += `<th style="padding:4px 6px;text-align:center;background:#E7F1FF;color:#0D6EFD;font-size:9px;border:1px solid #B6D4FE">TOT</th>`;
+    headers += `<th style="padding:6px 6px;text-align:center;background:#E7F1FF;color:#0D6EFD;font-size:10px;border:1px solid #B6D4FE">TOT</th>`;
 
     const html = `
       <!DOCTYPE html><html><head><meta charset="UTF-8">
       <title>TechnicalWork — ${appalto}</title>
       <style>
-        @page { size: auto; margin: 5mm; }
-        body { font-family: 'Segoe UI', sans-serif; margin: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        /* Eliminando i margini @page togliamo intestazioni e piè di pagina del browser (URL, date) che rubano spazio */
+        @page { size: A4 landscape; margin: 0; }
+        body { 
+          font-family: 'Segoe UI', sans-serif; 
+          margin: 10mm; /* Aggiungiamo noi il margine fisico */
+          -webkit-print-color-adjust: exact; print-color-adjust: exact; 
+        }
         #hint { background: #FFF3CD; color: #856404; text-align: center; padding: 6px; font-size: 11px; font-weight: 600; }
+        #print-content { width: fit-content; }
         @media print { #hint { display: none; } }
       </style>
       </head><body>
       <div id="hint">⚠ Seleziona <b>Orizzontale</b> nelle impostazioni di stampa del browser, poi stampa.</div>
       <div id="print-content">
-        <div style="background:#1A2B3C;color:white;padding:4px 10px;text-align:center;font-size:11px;font-weight:700;margin-bottom:0">
+        <div style="background:#1A2B3C;color:white;padding:6px 12px;text-align:center;font-size:12px;font-weight:700;margin-bottom:0">
           TECHNICALWORK — LISTA MODEM
         </div>
-        <div style="background:#2C3E50;color:#AABCCC;padding:3px 10px;text-align:center;font-size:9px;margin-bottom:4px">
+        <div style="background:#2C3E50;color:#AABCCC;padding:4px 12px;text-align:center;font-size:10px;margin-bottom:6px">
           ${appalto.toUpperCase()}   ·   ${today}
         </div>
-        <table style="border-collapse:collapse;font-size:10px">
+        <table style="border-collapse:collapse;font-size:11px">
           <thead><tr>${headers}</tr></thead>
           <tbody>${rows}</tbody>
         </table>
       </div>
       <script>
         window.onload = function() {
-          // A4 landscape printable area: 287mm x 200mm → px at 96dpi
-          var pageW = 287 * (96 / 25.4); // ≈1085px
-          var pageH = 200 * (96 / 25.4); // ≈756px
+          // A4 dimension: 297mm x 210mm
+          // Margine 10mm per lato -> area stampabile sicura: 277mm x 190mm
+          var dpiRatio = 96 / 25.4;
+          var safeAreaW = 277 * dpiRatio; // ~1046px
+          var safeAreaH = 190 * dpiRatio; // ~718px
+          
           var el = document.getElementById('print-content');
           var contentW = el.scrollWidth;
           var contentH = el.scrollHeight;
-          // Calculate zoom to fit both dimensions
-          var zoomX = pageW / contentW;
-          var zoomY = pageH / contentH;
-          var zoom = Math.min(zoomX, zoomY, 1); // never zoom > 100%
-          // Chromium respects CSS zoom in print context
+          
+          var zoomX = safeAreaW / contentW;
+          var zoomY = safeAreaH / contentH;
+          
+          // Applichiamo il moltiplicatore 0.98 come tolleranza/buffer infallibile 
+          // per impedire che l'arrotondamento dei pixel forzi una seconda pagina.
+          var zoom = Math.min(zoomX, zoomY, 1) * 0.98;
+          
           el.style.zoom = zoom;
-          // Auto-print after a short delay
-          setTimeout(function(){ window.print(); }, 300);
+          
+          setTimeout(function(){ window.print(); }, 400);
           window.onafterprint = function(){ window.close(); };
         };
       <\/script>
