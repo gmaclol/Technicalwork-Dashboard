@@ -946,7 +946,7 @@
       }
 
       html += `
-              <th>
+              <th onclick="if(window.innerWidth <= 900) this.scrollIntoView({ inline: 'center', behavior: 'smooth', block: 'nearest' })" style="cursor: pointer;">
                 <div class="th-inner th-tech">
                   <span class="tech-name"><span class="${status}"></span>${name}</span>
                   <span class="tech-time" title="${time}">${relTime}</span>
