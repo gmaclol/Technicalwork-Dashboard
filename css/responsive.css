@@ -39,7 +39,7 @@
   .content-header { padding: 24px 20px; flex-direction: column; align-items: flex-start; gap: 16px; }
   .content-actions { margin-left: 0; width: 100%; flex-wrap: wrap; }
 
-  .table-scroll { overflow-x: auto; padding: 0 20px 24px 20px; -webkit-overflow-scrolling: touch; }
+  .table-scroll { overflow-x: auto; padding: 0 20px 24px 20px; -webkit-overflow-scrolling: touch; flex: none; height: auto; }
   .td-material, .th-material { position: sticky; left: 0; z-index: 10; }
   .th-material { z-index: 11; background: rgba(15, 23, 42, 0.98); box-shadow: 1px 0 0 var(--border-strong); }
   .td-material { box-shadow: 1px 0 0 var(--border); }
