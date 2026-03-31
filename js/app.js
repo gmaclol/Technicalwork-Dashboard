@@ -43,23 +43,6 @@ function updateOnlineStatus() {
 window.addEventListener('online',  updateOnlineStatus);
 window.addEventListener('offline', updateOnlineStatus);
 
-// ── PWA SERVICE WORKER (Step 11) ──
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').then(reg => {
-      // Check for updates every 60 seconds
-      setInterval(() => reg.update(), 60000);
-    }).catch(() => {});
-  });
-
-  // Listen for SW update notifications
-  navigator.serviceWorker.addEventListener('message', event => {
-    if (event.data?.type === 'SW_UPDATED') {
-      showToast('Nuova versione disponibile — ricarica la pagina', 'info', 8000);
-    }
-  });
-}
-
 // ── BUILD SIDEBAR ON DOM READY ──
 document.addEventListener('DOMContentLoaded', () => {
   const sbContainer = document.getElementById('sidebar-appalti');
