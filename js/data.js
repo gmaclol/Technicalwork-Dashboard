@@ -120,7 +120,10 @@ export function closeDrawer() {
 }
 
 // ── FETCH MASTER LIST ──
+const _masterListCache = {};
+
 async function fetchRawMasterList(appalto) {
+  if (_masterListCache[appalto]) return _masterListCache[appalto];
   const HARDCODED_FALLBACK = [
     ":: MATERIALE ACCESSORIO ::",
     "PTE / MU", "ROE / ROEL", "CAVO DROP (MT)", "MINIPRESA / BORCHIA", "MODEM / ONT",
@@ -137,7 +140,8 @@ async function fetchRawMasterList(appalto) {
     if (!res.ok) return HARDCODED_FALLBACK;
     const text = await res.text();
     const list = text.split(/\r?\n/).map(l => l.trim()).filter(l => l !== '');
-    return list.length > 0 ? list : HARDCODED_FALLBACK;
+    _masterListCache[appalto] = list.length > 0 ? list : HARDCODED_FALLBACK;
+    return _masterListCache[appalto];
   } catch (e) {
     console.error("Fetch raw list error:", e);
     return HARDCODED_FALLBACK;
@@ -305,8 +309,8 @@ export async function loadAppalto(appalto, dateKey = 'live') {
           else cnt.style.color = '';
         }
 
+        const rawMaterials = await fetchRawMasterList(appalto);
         if (tecnici.length === 0) {
-          const rawMaterials = await fetchRawMasterList(appalto);
           if (rawMaterials.length === 0) {
             content.innerHTML = `
               <div class="state-box fade-in">
@@ -320,7 +324,7 @@ export async function loadAppalto(appalto, dateKey = 'live') {
           return;
         }
 
-        renderTable(appalto, tecnici, content, dateKey, allDocs);
+        renderTable(appalto, tecnici, content, dateKey, allDocs, rawMaterials);
       }, e => {
         console.error(e);
         content.innerHTML = `<div class="state-box fade-in"><p>Errore connessione Live.</p></div>`;
@@ -338,13 +342,14 @@ export async function loadAppalto(appalto, dateKey = 'live') {
         tecnico: d.tecnico || d.id.replace('_' + dateKey, '')
       })).filter(d => !hidden.includes(d.tecnico || d.id));
 
+      const rawMaterials = await fetchRawMasterList(appalto);
+
       if (tecnici.length === 0) {
-        const rawMaterials = await fetchRawMasterList(appalto);
         renderTable(appalto, [], content, dateKey, allDocs, rawMaterials);
         return;
       }
 
-      renderTable(appalto, tecnici, content, dateKey, allDocs);
+      renderTable(appalto, tecnici, content, dateKey, allDocs, rawMaterials);
     }
   } catch (e) {
     content.innerHTML = `
@@ -358,22 +363,34 @@ export async function loadAppalto(appalto, dateKey = 'live') {
 
 // ── RENDER TABLE ──
 function renderTable(appalto, tecnici, container, dateKey = 'live', allDocs = [], fallbackMaterials = []) {
-  const ordineBase = tecnici.find(t => t.ordine && t.ordine.length > 0)?.ordine || [];
+  const ordineBase = (fallbackMaterials && fallbackMaterials.length > 0) 
+    ? fallbackMaterials 
+    : (tecnici.find(t => t.ordine && t.ordine.length > 0)?.ordine || []);
+    
   const ordineSet = new Set(ordineBase);
   const extra = [];
   const extraSeen = new Set();
+  const extraInfo = new Map();
   tecnici.forEach(t => {
     if (t.materiali) {
       Object.keys(t.materiali).forEach(m => {
-        if (!ordineSet.has(m) && !extraSeen.has(m)) {
-          extraSeen.add(m);
-          extra.push(m);
+        if (!ordineSet.has(m)) {
+          if (!extraSeen.has(m)) {
+            extraSeen.add(m);
+            extra.push(m);
+          }
+          if (!extraInfo.has(m)) extraInfo.set(m, new Set());
+          extraInfo.get(m).add(t.tecnico || t.id);
         }
       });
     }
   });
 
   let allMaterials = [...extra, ...ordineBase];
+  // Rimuovi completamente i separatori app-only dalla visualizzazione in dashboard
+  allMaterials = allMaterials.filter(m => !/^::.*::$/.test(m.trim()) && !/^;;.*;;$/.test(m.trim()));
+
+  const extraSet = new Set(extra);
   if (tecnici.length === 0 && fallbackMaterials && fallbackMaterials.length > 0) {
     allMaterials = fallbackMaterials;
   }
@@ -393,7 +410,8 @@ function renderTable(appalto, tecnici, container, dateKey = 'live', allDocs = []
   const canIncrement = _lastRenderedKey === renderKey
     && tecNames.length === _lastRenderedTecNames.length
     && tecNames.every((n, i) => n === _lastRenderedTecNames[i])
-    && container.querySelector('table');
+    && container.querySelector('table')
+    && window._lastMaterials && window._lastMaterials.length === allMaterials.length;
 
   if (canIncrement) {
     // Incremental update — only change cells that differ
@@ -602,7 +620,15 @@ function renderTable(appalto, tecnici, container, dateKey = 'live', allDocs = []
         return;
       }
 
-      html += `<tr data-material="${escapeHtml(mat.toLowerCase())}"><td class="td-material">${mat}</td>`;
+      const isExtra = extraSet.has(mat) && !isSep;
+      const rowClass = isExtra ? ' class="extra-row"' : '';
+      let titleAttr = '';
+      if (isExtra && extraInfo.has(mat)) {
+        const owners = Array.from(extraInfo.get(mat)).join(', ');
+        titleAttr = ` title="Inserito da: ${escapeHtml(owners)}"`;
+      }
+
+      html += `<tr data-material="${escapeHtml(mat.toLowerCase())}"${rowClass}><td class="td-material"${titleAttr}>${mat}</td>`;
       tecnici.forEach(t => {
         const raw = (t.materiali && t.materiali[mat]) || '';
         const val = (raw === '0' || raw === 0) ? '' : raw;

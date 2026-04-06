@@ -20,6 +20,10 @@
 [data-theme="light"] .td-material { background: #ffffff; color: #0f172a; }
 [data-theme="light"] tbody tr:hover .td-material { background: #f8fafc; }
 [data-theme="light"] tbody tr:hover { background: rgba(15,23,42,0.02); }
+[data-theme="light"] tbody tr.extra-row { background: rgba(245, 158, 11, 0.08); }
+[data-theme="light"] tbody tr.extra-row:hover { background: rgba(245, 158, 11, 0.12); }
+[data-theme="light"] tbody tr.extra-row .td-material { background: #fffcf0; color: #b45309; border-left-color: #f59e0b; }
+[data-theme="light"] tbody tr.extra-row:hover .td-material { background: #fef3c7; }
 [data-theme="light"] td { border-bottom-color: rgba(15,23,42,0.06); }
 [data-theme="light"] .separator-row td { background: rgba(99,102,241,0.08) !important; color: #4338ca; }
 [data-theme="light"] .login-box { background: rgba(255,255,255,0.94); }
