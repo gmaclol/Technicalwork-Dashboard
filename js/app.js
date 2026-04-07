@@ -9,7 +9,7 @@ import {
   loadAppalto, selectAppalto, toggleDrawer, closeDrawer,
   onDateChange, closeSnapshotDropdown, toggleSnapshotDropdown, pickSnapshotDate,
   filterMaterials, scrollCellIntoViewCenter, scrollTechHeaderNeighbor, loadGeo,
-  preloadCounts
+  preloadCounts, forceListUpdateFromGithub
 } from './data.js';
 import { showTecnici, deleteTecnico, renameTecnico, toggleTecnico } from './tecnici.js';
 import { showPfsDashboard, toggleAllPfs, updatePfsToolbar, deletePfsItem, deleteSelectedPfs } from './pfs.js';
@@ -167,3 +167,11 @@ window.updatePfsToolbar = updatePfsToolbar;
 window.deletePfsItem = deletePfsItem;
 window.deleteSelectedPfs = deleteSelectedPfs;
 window.showToast = showToast;
+window.forceUpdateLists = async () => {
+  if (confirm("Vuoi forzare l'aggiornamento delle liste di tutti gli appalti da GitHub? L'operazione ripulirà la cache locale.")) {
+    const btn = document.getElementById('btn-update-lists');
+    if (btn) btn.innerHTML = '<div class="loader-spinner" style="width:14px;height:14px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:6px"></div> Attendere...';
+    await forceListUpdateFromGithub();
+    window.location.reload();
+  }
+};

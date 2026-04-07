@@ -1,5 +1,5 @@
 // ── Data loading, rendering, navigation ──
-import { db, collection, getDocs, doc, setDoc, getDoc, onSnapshot } from './firebase.js';
+import { db, doc, collection, getDocs, onSnapshot, getDoc, setDoc } from './firebase.js';
 import { APPALTI, currentUser, currentAppalto, currentDate, setCurrentAppalto, setCurrentDate } from './state.js';
 import { escapeHtml, isToday, relativeTime, techStatus, formatDateLabel, parseTimestamp, showToast } from './utils.js';
 import { exportToExcel, printTable } from './export.js';
@@ -122,30 +122,93 @@ export function closeDrawer() {
 // ── FETCH MASTER LIST ──
 const _masterListCache = {};
 
+export async function forceListUpdateFromGithub() {
+  const keys = ['lista', 'elecnor', 'sertori', 'sirti'].map(a => a.toLowerCase());
+  for (const k of keys) {
+    localStorage.removeItem(`tw_list_${k}`);
+    localStorage.removeItem(`tw_list_time_${k}`);
+    delete _masterListCache[k];
+  }
+  // Scrivi su Firestore per invalidare le cache degli altri manager connessi se vuoi
+  try {
+    const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    await setDoc(doc(db, 'settings', 'dashboard'), { forceListUpdate: Date.now() }, { merge: true });
+  } catch(e) {}
+}
+
 async function fetchRawMasterList(appalto) {
-  if (_masterListCache[appalto]) return _masterListCache[appalto];
+  const normApp = appalto.toLowerCase();
+  if (_masterListCache[normApp]) return _masterListCache[normApp];
+
+  const cacheKey = `tw_list_${normApp}`;
+  const timeKey = `tw_list_time_${normApp}`;
+  const cachedData = localStorage.getItem(cacheKey);
+  const cachedTime = localStorage.getItem(timeKey);
+  const now = Date.now();
+
+  let globalTimestamp = 0;
+  // Legge attivamente da Firebase il timestamp globale impostato dal bottone dell'admin
+  try {
+    const snap = await getDoc(doc(db, 'settings', 'dashboard'));
+    if (snap.exists()) {
+      globalTimestamp = snap.data().forceListUpdate || 0;
+    }
+  } catch(e) {}
+  
+  // 24 hours = 86400000ms
+  const isExpired = !cachedTime || (now - parseInt(cachedTime) > 86400000);
+  const isInvalidated = parseInt(cachedTime || 0) < globalTimestamp;
+
+  if (cachedData && !isExpired && !isInvalidated) {
+    try {
+      _masterListCache[normApp] = JSON.parse(cachedData);
+      return _masterListCache[normApp];
+    } catch(e) { }
+  }
+
   const HARDCODED_FALLBACK = [
     ":: MATERIALE ACCESSORIO ::",
     "PTE / MU", "ROE / ROEL", "CAVO DROP (MT)", "MINIPRESA / BORCHIA", "MODEM / ONT",
     ":: ALTRO ::",
     "RIFLETTORE", "SISTEMAZIONE LOCALI"
   ];
+  
+  let listToReturn = null;
+
   try {
     let url = `https://raw.githubusercontent.com/gmaclol/Technicalwork-Materiali/master/lists/${appalto}.txt`;
     let res = await fetch(url);
-    if (!res.ok) {
+    
+    if (res.status === 404) {
+      // 404: L'appalto non ha un file dedicato (es. Sertori). Fallback a lista.txt
       url = `https://raw.githubusercontent.com/gmaclol/Technicalwork-Materiali/master/lists/lista.txt`;
       res = await fetch(url);
     }
-    if (!res.ok) return HARDCODED_FALLBACK;
-    const text = await res.text();
-    const list = text.split(/\r?\n/).map(l => l.trim()).filter(l => l !== '');
-    _masterListCache[appalto] = list.length > 0 ? list : HARDCODED_FALLBACK;
-    return _masterListCache[appalto];
+    
+    if (res.status === 200) {
+      const text = await res.text();
+      const list = text.split(/\r?\n/).map(l => l.trim()).filter(l => l !== '');
+      if (list.length > 0) {
+        listToReturn = list;
+        localStorage.setItem(cacheKey, JSON.stringify(list));
+        localStorage.setItem(timeKey, now.toString());
+      }
+    } else {
+      console.warn("GitHub risponde con errore", res.status, "su", appalto);
+    }
   } catch (e) {
-    console.error("Fetch raw list error:", e);
-    return HARDCODED_FALLBACK;
+    console.error("Errore di rete o CORS nel fetch della raw list:", e);
   }
+
+  if (!listToReturn && cachedData) {
+    try {
+      listToReturn = JSON.parse(cachedData);
+      console.log("Rete o GitHub bloccati, ripiego sulla cache locale di 24h.");
+    } catch(e) {}
+  }
+
+  _masterListCache[normApp] = listToReturn || HARDCODED_FALLBACK;
+  return _masterListCache[normApp];
 }
 
 // ── GEOCODING ──
@@ -374,6 +437,11 @@ function renderTable(appalto, tecnici, container, dateKey = 'live', allDocs = []
   tecnici.forEach(t => {
     if (t.materiali) {
       Object.keys(t.materiali).forEach(m => {
+        const raw = t.materiali[m];
+        const val = (raw === '0' || raw === 0) ? '' : String(raw);
+        // Ignora i materiali fuori lista (ghost keys storiche) se il tecnico non ha realmente un valore numerico o testo effettivo
+        if (val === '') return;
+
         if (!ordineSet.has(m)) {
           if (!extraSeen.has(m)) {
             extraSeen.add(m);

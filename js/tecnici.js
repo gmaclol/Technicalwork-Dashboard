@@ -128,9 +128,10 @@ export async function showTecnici() {
       </div>`;
     }
     content.innerHTML = `<div class="tecnici-panel fade-in">
-      <div class="tecnici-header">
+      <div class="tecnici-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
         <div class="content-title">Tecnici</div>
-        <div class="tecnici-note">⚠ I tecnici disattivati vengono nascosti dalla tabella e dai conteggi. Il loro sync continua normalmente.</div>
+        <button id="btn-update-lists" class="btn-outline" style="font-size:0.85em; display:flex; align-items:center;" onclick="window.forceUpdateLists()">🔄 Aggiorna Liste da GitHub</button>
+        <div class="tecnici-note" style="width:100%;">⚠ I tecnici disattivati vengono nascosti dalla tabella e dai conteggi. Il loro sync continua normalmente.</div>
       </div>${cards}</div>`;
   } catch(e) { content.innerHTML = `<div class="state-box fade-in"><p>Errore caricamento tecnici.</p></div>`; console.error(e); }
 }
@@ -180,7 +181,7 @@ export async function renameTecnico(oldName, docIdsJsonStr) {
     const docIds = JSON.parse(docIdsJsonStr.replace(/&#39;/g, "'").replace(/&quot;/g, '"'));
     if (Object.keys(docIds).length > 0) {
       const deviceId = Object.values(docIds)[0];
-      try { await setDoc(doc(db, 'settings', 'devices_names'), { [deviceId]: trimmed }, { merge: true }); } catch(e) {}
+      try { await setDoc(doc(db, 'settings', 'devices_names'), { [deviceId]: { name: trimmed, updatedAt: Date.now() } }, { merge: true }); } catch(e) {}
     }
     for (const [appalto, docId] of Object.entries(docIds)) {
       await updateDoc(doc(db, appalto, docId), { tecnico: trimmed });
