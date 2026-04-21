@@ -4,6 +4,34 @@ import { escapeHtml, showToast, showConfirm } from './utils.js';
 
 import { currentUser } from './state.js';
 
+// Parse "HH:mm dd/MM/yyyy" → Date timestamp (cross-day safe sort)
+function parseOrario(str) {
+  if (!str) return 0;
+  try {
+    const s = String(str).trim();
+    const parts = s.split(/\s+/);
+    if (parts.length < 2) return 0;
+    
+    let timePart, datePart;
+    if (parts[0].includes(':')) {
+       timePart = parts[0];
+       datePart = parts[1];
+    } else {
+       datePart = parts[0];
+       timePart = parts[1];
+    }
+
+    const [hh, mm, ss] = timePart.split(':');
+    const [dd, mo, yyyy] = datePart.split('/');
+    
+    const dateObj = new Date(yyyy, mo - 1, dd, hh, mm, ss || 0);
+    const time = dateObj.getTime();
+    return isNaN(time) ? 0 : time;
+  } catch { 
+    return 0; 
+  }
+}
+
 export async function showPfsDashboard() {
   document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
   const el = document.getElementById('nav-pfs');
@@ -20,9 +48,9 @@ export async function showPfsDashboard() {
     const snapLogs = await getDocs(collection(db, 'pfs_logs'));
 
     const signals = snapSignals.docs.map(d => ({ id: d.id, ...d.data() }))
-                    .sort((a,b) => (b.orario || "").localeCompare(a.orario || ""));
+                    .sort((a,b) => parseOrario(b.orario) - parseOrario(a.orario));
     const logs = snapLogs.docs.map(d => ({ id: d.id, ...d.data() }))
-                 .sort((a,b) => (b.orario || "").localeCompare(a.orario || ""));
+                 .sort((a,b) => parseOrario(b.orario) - parseOrario(a.orario));
 
     let html = `<div class="tecnici-panel fade-in">
       <div class="content-header" style="padding:0; margin-bottom: 32px; background:transparent; border:none">

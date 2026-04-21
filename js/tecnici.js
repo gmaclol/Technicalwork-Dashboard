@@ -130,7 +130,6 @@ export async function showTecnici() {
     content.innerHTML = `<div class="tecnici-panel fade-in">
       <div class="tecnici-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
         <div class="content-title">Tecnici</div>
-        <button id="btn-update-lists" class="btn-outline" style="font-size:0.85em; display:flex; align-items:center;" onclick="window.forceUpdateLists()">🔄 Aggiorna Liste da GitHub</button>
         <div class="tecnici-note" style="width:100%;">⚠ I tecnici disattivati vengono nascosti dalla tabella e dai conteggi. Il loro sync continua normalmente.</div>
       </div>${cards}</div>`;
   } catch(e) { content.innerHTML = `<div class="state-box fade-in"><p>Errore caricamento tecnici.</p></div>`; console.error(e); }

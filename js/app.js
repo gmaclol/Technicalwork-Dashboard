@@ -1,7 +1,7 @@
 // ── App Entry Point ──
 // Imports all modules and wires up global event handlers
 
-import { APPALTI } from './state.js';
+import { APPALTI, loadConfig, invalidateConfigCache } from './state.js';
 import { currentAppalto, currentDate, setCurrentAppalto, setCurrentDate } from './state.js';
 import { showToast } from './utils.js';
 import { doLogin, doLogout, checkSession } from './auth.js';
@@ -43,8 +43,9 @@ function updateOnlineStatus() {
 window.addEventListener('online',  updateOnlineStatus);
 window.addEventListener('offline', updateOnlineStatus);
 
-// ── BUILD SIDEBAR ON DOM READY ──
-document.addEventListener('DOMContentLoaded', () => {
+// ── BUILD SIDEBAR (after config load) ──
+async function buildSidebar() {
+  await loadConfig();
   const sbContainer = document.getElementById('sidebar-appalti');
   if (sbContainer) {
     sbContainer.innerHTML = APPALTI.map((a, idx) => `
@@ -57,7 +58,12 @@ document.addEventListener('DOMContentLoaded', () => {
       </a>
     `).join('');
   }
-});
+  // Preload counts e trigger primo routing
+  preloadCounts();
+  handleHashChange();
+}
+
+document.addEventListener('DOMContentLoaded', () => buildSidebar());
 
 // ── HASH ROUTER (Step 3) ──
 function handleHashChange() {
@@ -171,6 +177,7 @@ window.forceUpdateLists = async () => {
   if (confirm("Vuoi forzare l'aggiornamento delle liste di tutti gli appalti da GitHub? L'operazione ripulirà la cache locale.")) {
     const btn = document.getElementById('btn-update-lists');
     if (btn) btn.innerHTML = '<div class="loader-spinner" style="width:14px;height:14px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:6px"></div> Attendere...';
+    invalidateConfigCache();
     await forceListUpdateFromGithub();
     window.location.reload();
   }

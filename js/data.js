@@ -4,6 +4,58 @@ import { APPALTI, currentUser, currentAppalto, currentDate, setCurrentAppalto, s
 import { escapeHtml, isToday, relativeTime, techStatus, formatDateLabel, parseTimestamp, showToast } from './utils.js';
 import { exportToExcel, printTable } from './export.js';
 
+// ── STALE HASH HELPERS ──
+function simpleHash(obj) {
+  const str = JSON.stringify(obj, Object.keys(obj).sort());
+  let h = 0;
+  for (let i = 0; i < str.length; i++) {
+    h = ((h << 5) - h + str.charCodeAt(i)) | 0;
+  }
+  return h.toString(36);
+}
+
+let _staleCache = null;
+
+async function checkStaleHashes(appalto, tecnici) {
+  const todayYMD = new Date().toISOString().slice(0, 10);
+  const staleMap = new Map(); // techId → stale_since date string
+
+  try {
+    // Leggi hash correnti da Firestore
+    const staleDocRef = doc(db, 'settings', 'stale_hashes');
+    const snap = await getDoc(staleDocRef);
+    const allData = snap.exists() ? snap.data() : {};
+    const appaltoData = allData[appalto] || {};
+    let changed = false;
+
+    for (const t of tecnici) {
+      const key = t.id;
+      const currentHash = simpleHash(t.materiali || {});
+      const saved = appaltoData[key];
+
+      if (saved && saved.hash === currentHash) {
+        // Hash invariato — mantieni stale_since
+        if (saved.stale_since && saved.stale_since !== todayYMD) {
+          staleMap.set(key, saved.stale_since);
+        }
+      } else {
+        // Hash cambiato o nuovo — aggiorna
+        appaltoData[key] = { hash: currentHash, stale_since: todayYMD };
+        changed = true;
+      }
+    }
+
+    if (changed) {
+      allData[appalto] = appaltoData;
+      await setDoc(staleDocRef, allData, { merge: true });
+    }
+  } catch(e) {
+    console.warn('Stale check error:', e);
+  }
+
+  return staleMap;
+}
+
 // ── HIDDEN TECNICI ──
 let _hiddenCache = null;
 
@@ -383,11 +435,14 @@ export async function loadAppalto(appalto, dateKey = 'live') {
             return;
           }
           _lastRenderedKey = null; // force full render
-          renderTable(appalto, [], content, dateKey, allDocs, rawMaterials);
+          renderTable(appalto, [], content, dateKey, allDocs, rawMaterials, new Map());
           return;
         }
 
-        renderTable(appalto, tecnici, content, dateKey, allDocs, rawMaterials);
+        // Stale detection
+        const staleMap = await checkStaleHashes(appalto, tecnici);
+
+        renderTable(appalto, tecnici, content, dateKey, allDocs, rawMaterials, staleMap);
       }, e => {
         console.error(e);
         content.innerHTML = `<div class="state-box fade-in"><p>Errore connessione Live.</p></div>`;
@@ -408,11 +463,11 @@ export async function loadAppalto(appalto, dateKey = 'live') {
       const rawMaterials = await fetchRawMasterList(appalto);
 
       if (tecnici.length === 0) {
-        renderTable(appalto, [], content, dateKey, allDocs, rawMaterials);
+        renderTable(appalto, [], content, dateKey, allDocs, rawMaterials, new Map());
         return;
       }
 
-      renderTable(appalto, tecnici, content, dateKey, allDocs, rawMaterials);
+      renderTable(appalto, tecnici, content, dateKey, allDocs, rawMaterials, new Map());
     }
   } catch (e) {
     content.innerHTML = `
@@ -425,7 +480,7 @@ export async function loadAppalto(appalto, dateKey = 'live') {
 }
 
 // ── RENDER TABLE ──
-function renderTable(appalto, tecnici, container, dateKey = 'live', allDocs = [], fallbackMaterials = []) {
+function renderTable(appalto, tecnici, container, dateKey = 'live', allDocs = [], fallbackMaterials = [], staleMap = new Map()) {
   const ordineBase = (fallbackMaterials && fallbackMaterials.length > 0) 
     ? fallbackMaterials 
     : (tecnici.find(t => t.ordine && t.ordine.length > 0)?.ordine || []);
@@ -659,6 +714,14 @@ function renderTable(appalto, tecnici, container, dateKey = 'live', allDocs = []
         locationHtml = `<a class="tech-location" href="${mapsUrl}" target="_blank" id="loc-${t.id}" onclick="loadGeo(event,'${t.id}',${t.lat},${t.lng})">⊙ mostra posizione</a>`;
       }
 
+      // Stale badge
+      let staleHtml = '';
+      const staleSince = staleMap.get(t.id);
+      if (staleSince) {
+        const [sy, sm, sd] = staleSince.split('-');
+        staleHtml = `<span class="stale-badge" title="Lista materiali invariata dal ${sd}/${sm}/${sy}">⚠ Invariata dal ${sd}/${sm}</span>`;
+      }
+
       html += `
             <th onclick="if(window.innerWidth <= 900) scrollCellIntoViewCenter(this)" style="cursor: pointer;">
               <div class="th-inner th-tech">
@@ -667,6 +730,7 @@ function renderTable(appalto, tecnici, container, dateKey = 'live', allDocs = []
                   ${statusHtml}${name}
                 </span>
                 <span class="tech-time" title="${time}">${timeDisplay}</span>
+                ${staleHtml}
                 ${locationHtml}
               </div>
             </th>`;

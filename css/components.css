@@ -297,8 +297,8 @@ tbody tr:hover .td-material { background: #1e293b; }
 /* ── DELETE TOOLBAR ── */
 .btn-delete-row {
   background: rgba(255,255,255,0.03); border: 1px solid var(--border); color: var(--text-muted);
-  cursor: pointer; padding: 6px; border-radius: 8px; transition: all var(--transition-fast);
-  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; padding: 10px; border-radius: 8px; transition: all var(--transition-fast);
+  display: flex; align-items: center; justify-content: center; min-height: 40px; min-width: 40px;
 }
 .btn-delete-row:hover { color: var(--red); background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3); transform: scale(1.1); }
 
@@ -474,3 +474,40 @@ tbody tr:hover .td-material { background: #1e293b; }
   text-transform: uppercase;
   letter-spacing: 0.1em;
 }
+
+/* ── STALE BADGE ── */
+.stale-badge {
+  display: inline-block;
+  margin-top: 5px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--yellow);
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  padding: 3px 10px;
+  border-radius: 99px;
+  white-space: nowrap;
+  animation: stalePulse 3s ease-in-out infinite;
+}
+@keyframes stalePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+/* ANIMATIONS */
+@keyframes slideUpFade {
+  0% { opacity: 0; transform: translateY(10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+tbody tr {
+  animation: slideUpFade 0.4s ease-out forwards;
+  opacity: 0;
+}
+tbody tr:nth-child(1) { animation-delay: 0.05s; }
+tbody tr:nth-child(2) { animation-delay: 0.10s; }
+tbody tr:nth-child(3) { animation-delay: 0.15s; }
+tbody tr:nth-child(4) { animation-delay: 0.20s; }
+tbody tr:nth-child(5) { animation-delay: 0.25s; }
+tbody tr:nth-child(n+6) { animation-delay: 0.30s; }

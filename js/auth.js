@@ -31,10 +31,13 @@ export function showApp() {
   document.getElementById('tb-user').textContent = currentUser.name + ' — Esci';
   
   const navAdmin = document.getElementById('nav-tecnici-wrapper');
+  const btnUpdateSidebar = document.getElementById('btn-update-lists-sidebar');
   if (currentUser.role === 'admin') {
     navAdmin.style.display = 'block';
+    if (btnUpdateSidebar) btnUpdateSidebar.style.display = 'flex';
   } else {
     navAdmin.style.display = 'none';
+    if (btnUpdateSidebar) btnUpdateSidebar.style.display = 'none';
   }
 
   preloadCounts();

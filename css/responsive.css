@@ -48,13 +48,42 @@
 
   .search-wrap { padding: 0 20px; }
   .search-input { max-width: 100%; }
-  #toast-container { bottom: 16px; right: 16px; left: 16px; }
+  #toast-container { bottom: calc(16px + env(safe-area-inset-bottom)); right: 16px; left: 16px; }
   .toast { min-width: unset; }
 
   .kpi-grid { padding: 0 20px; }
 
   .tech-name { justify-content: flex-start; }
-  .tech-nav-left { margin-right: 8px; display: inline-flex; align-items: center; }
+  .tech-nav-left { margin-right: 8px; display: inline-flex; align-items: center; min-height: 44px; min-width: 44px; justify-content: center; }
+
+  /* ── NATIVE BOTTOM SHEETS (PWA) ── */
+  #confirm-overlay, #rename-overlay {
+    align-items: flex-end; /* Sposta il modale in basso */
+    padding: 0;
+  }
+  .confirm-box {
+    width: 100%;
+    max-width: 100%;
+    border-radius: 24px 24px 0 0; /* Arrotonda solo sopra */
+    border-bottom: none;
+    padding: 32px 24px calc(24px + env(safe-area-inset-bottom)) 24px;
+    animation: slideUpSheet 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  @keyframes slideUpSheet {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+
+  /* ── TOUCH TARGETS & PREVENT SELECTION ── */
+  .btn-tecnico-action, .sidebar-item, .snapshot-trigger, .menu-toggle, .menu-close, .btn-bulk-delete, .pfs-check-wrapper, .confirm-btn-cancel, .confirm-btn-ok {
+    min-height: 44px; /* iOS/Android standard touch target */
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  
+  .sidebar { padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
+  .table-scroll { padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
 }
 
 /* ── LIGHT MODE MOBILE OVERRIDES ── */
