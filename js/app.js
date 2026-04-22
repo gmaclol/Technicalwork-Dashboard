@@ -3,7 +3,7 @@
 
 import { APPALTI, loadConfig, invalidateConfigCache } from './state.js';
 import { currentAppalto, currentDate, setCurrentAppalto, setCurrentDate } from './state.js';
-import { showToast } from './utils.js';
+import { showToast, showConfirm } from './utils.js';
 import { doLogin, doLogout, checkSession } from './auth.js';
 import {
   loadAppalto, selectAppalto, toggleDrawer, closeDrawer,
@@ -174,8 +174,15 @@ window.deletePfsItem = deletePfsItem;
 window.deleteSelectedPfs = deleteSelectedPfs;
 window.showToast = showToast;
 window.forceUpdateLists = async () => {
-  if (confirm("Vuoi forzare l'aggiornamento delle liste di tutti gli appalti da GitHub? L'operazione ripulirà la cache locale.")) {
-    const btn = document.getElementById('btn-update-lists');
+  const confirmed = await showConfirm({
+    title: 'Forza Aggiornamento',
+    msg: "Vuoi forzare l'aggiornamento delle liste di tutti gli appalti da GitHub? L'operazione ripulirà la cache locale.",
+    icon: '🔄',
+    okLabel: 'Forza Aggiornamento',
+    okAccent: true
+  });
+  if (confirmed) {
+    const btn = document.getElementById('btn-update-lists-sidebar');
     if (btn) btn.innerHTML = '<div class="loader-spinner" style="width:14px;height:14px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:6px"></div> Attendere...';
     invalidateConfigCache();
     await forceListUpdateFromGithub();
