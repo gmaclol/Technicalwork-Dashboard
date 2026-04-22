@@ -13,10 +13,7 @@ export default defineConfig({
     cssCodeSplit: true, // Spezza il CSS per caricarlo più velocemente
     rollupOptions: {
       output: {
-        manualChunks: {
-          // Separazione Firebase dal resto del codice per velocizzare l'avvio
-          'vendor-firebase': ['firebase/app', 'firebase/firestore'],
-        }
+        // manualChunks rimosso perché Firebase viene caricato via CDN/URL
       }
     }
   },
