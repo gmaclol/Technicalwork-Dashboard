@@ -1,10 +1,10 @@
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   base: './', // Fundamental for GitHub Pages relative paths
   esbuild: {
-    drop: ['console', 'debugger'], // Rimuove i log in produzione
+    drop: mode === 'production' ? ['console', 'debugger'] : [], // Rimuove i log solo in produzione
   },
   build: {
     outDir: 'docs',
@@ -18,7 +18,8 @@ export default defineConfig({
     }
   },
   server: {
-    port: 8000
+    port: 8000,
+    strictPort: true
   },
   plugins: [
     VitePWA({
@@ -58,11 +59,13 @@ export default defineConfig({
         "background_color": "#09090b",
         "theme_color": "#09090b",
         "icons": [
-          { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-          { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+          { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+          { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+          { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+          { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
         ],
         "apple_touch_icon": "icons/icon-192.png"
       }
     })
   ]
-});
+}));

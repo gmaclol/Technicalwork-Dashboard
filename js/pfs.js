@@ -64,118 +64,92 @@ export async function showPfsDashboard() {
         <button class="btn-bulk-delete" onclick="deleteSelectedPfs()">Elimina Selezionati</button>
       </div>`;
 
-    // Table 1: Signals
+    // ── Section 1: Signals ──
     html += `<div style="margin-bottom:48px">
-      <h3 style="margin-bottom:16px; color:var(--red); font-size:18px; display:flex; align-items:center; gap:10px">
-        <span style="width:8px; height:8px; border-radius:50%; background:var(--red)"></span>
+      <h3 class="pfs-section-title pfs-section-red">
+        <span class="pfs-section-dot" style="background:var(--red)"></span>
         Nuovi Indirizzi
-      </h3>
-      <div class="table-scroll" style="padding:0; margin-top:0">
-        <table style="font-size:13px">
-          <thead>
-            <tr>
-              <th style="width:50px; padding:12px">
-                <label class="pfs-check-wrapper">
-                  <input type="checkbox" onclick="toggleAllPfs('sig', this.checked)">
-                  <span class="pfs-check-custom"></span>
-                </label>
-              </th>
-              <th class="th-inner">PFS / Indirizzo</th>
-              <th class="th-inner">Tecnico</th>
-              <th class="th-inner">Orario</th>
-              <th class="th-inner" style="text-align:right">Azioni</th>
-            </tr>
-          </thead>
-          <tbody id="pfs-sig-body">`;
+        <span class="pfs-badge">${signals.length}</span>
+        ${signals.length > 0 ? `<label class="pfs-check-wrapper" style="margin-left:8px" title="Seleziona tutti">
+          <input type="checkbox" onclick="toggleAllPfs('sig', this.checked)">
+          <span class="pfs-check-custom"></span>
+        </label>` : ''}
+      </h3>`;
 
     if (signals.length === 0) {
-      html += `<tr><td colspan="5" style="text-align:center; padding:40px; color:var(--text-muted)">Nessuna segnalazione.</td></tr>`;
+      html += `<div class="pfs-empty">Nessuna segnalazione.</div>`;
     } else {
       signals.forEach(s => {
         const mapUrl = s.lat && s.lng ? `https://www.google.com/maps?q=${s.lat},${s.lng}` : null;
-        html += `<tr data-id="${escapeHtml(s.id)}" data-coll="pfs_segnalati">
-          <td style="padding:12px">
+        html += `<div class="pfs-card" data-id="${escapeHtml(s.id)}" data-coll="pfs_segnalati">
+          <div class="pfs-card-check">
             <label class="pfs-check-wrapper">
               <input type="checkbox" class="sig-check" onclick="updatePfsToolbar()">
               <span class="pfs-check-custom"></span>
             </label>
-          </td>
-          <td class="td-material">
-            <div style="font-weight:700">${escapeHtml(s.nome_pfs)}</div>
-            <div style="font-size:11px; opacity:0.7; font-weight:400">${escapeHtml(s.nuovo_indirizzo)}</div>
-          </td>
-          <td>${escapeHtml(s.tecnico)}</td>
-          <td style="font-family:var(--font-mono); font-size:11px">${escapeHtml(s.orario)}</td>
-          <td style="text-align:right">
-            <div style="display:flex; justify-content:flex-end; gap:8px">
-              ${mapUrl ? `<a href="${mapUrl}" target="_blank" rel="noopener noreferrer" class="tech-location" title="Mappa" style="background:var(--accent-glow)">📍</a>` : ''}
-              <button class="btn-delete-row" onclick="deletePfsItem('${escapeHtml(s.id)}', 'pfs_segnalati')" title="Elimina">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
-              </button>
+          </div>
+          <div class="pfs-card-body">
+            <div class="pfs-card-title">${escapeHtml(s.nome_pfs)}</div>
+            <div class="pfs-card-sub">${escapeHtml(s.nuovo_indirizzo)}</div>
+            <div class="pfs-card-meta">
+              <span class="pfs-meta-item">👷 ${escapeHtml(s.tecnico)}</span>
+              <span class="pfs-meta-item pfs-meta-time">🕐 ${escapeHtml(s.orario)}</span>
             </div>
-          </td>
-        </tr>`;
+          </div>
+          <div class="pfs-card-actions">
+            ${mapUrl ? `<a href="${mapUrl}" target="_blank" rel="noopener noreferrer" class="pfs-action-btn pfs-action-map" title="Mappa">📍</a>` : ''}
+            <button class="pfs-action-btn pfs-action-del" onclick="deletePfsItem('${escapeHtml(s.id)}', 'pfs_segnalati')" title="Elimina">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+            </button>
+          </div>
+        </div>`;
       });
     }
-    html += `</tbody></table></div></div>`;
+    html += `</div>`;
 
-    // Table 2: Logs
+    // ── Section 2: Logs ──
     html += `<div>
-      <h3 style="margin-bottom:16px; color:var(--accent); font-size:18px; display:flex; align-items:center; gap:10px">
-        <span style="width:8px; height:8px; border-radius:50%; background:var(--accent)"></span>
+      <h3 class="pfs-section-title pfs-section-accent">
+        <span class="pfs-section-dot" style="background:var(--accent)"></span>
         Log Accessi (Accuracy)
-      </h3>
-      <div class="table-scroll" style="padding:0; margin-top:0">
-        <table style="font-size:12px">
-          <thead>
-            <tr>
-              <th style="width:50px; padding:12px">
-                <label class="pfs-check-wrapper">
-                  <input type="checkbox" onclick="toggleAllPfs('log', this.checked)">
-                  <span class="pfs-check-custom"></span>
-                </label>
-              </th>
-              <th class="th-inner">Log PFS</th>
-              <th class="th-inner">Posizione Rilevata</th>
-              <th class="th-inner">Tecnico / Orario</th>
-              <th class="th-inner" style="text-align:right">Azioni</th>
-            </tr>
-          </thead>
-          <tbody id="pfs-log-body">`;
+        <span class="pfs-badge">${logs.length}</span>
+        ${logs.length > 0 ? `<label class="pfs-check-wrapper" style="margin-left:8px" title="Seleziona tutti">
+          <input type="checkbox" onclick="toggleAllPfs('log', this.checked)">
+          <span class="pfs-check-custom"></span>
+        </label>` : ''}
+      </h3>`;
 
     if (logs.length === 0) {
-      html += `<tr><td colspan="5" style="text-align:center; padding:40px; color:var(--text-muted)">Nessun log.</td></tr>`;
+      html += `<div class="pfs-empty">Nessun log.</div>`;
     } else {
       logs.slice(0, 100).forEach(l => {
         const mapUrl = `https://www.google.com/maps?q=${l.lat},${l.lng}`;
-        html += `<tr data-id="${escapeHtml(l.id)}" data-coll="pfs_logs">
-          <td style="padding:12px">
+        html += `<div class="pfs-card" data-id="${escapeHtml(l.id)}" data-coll="pfs_logs">
+          <div class="pfs-card-check">
             <label class="pfs-check-wrapper">
               <input type="checkbox" class="log-check" onclick="updatePfsToolbar()">
               <span class="pfs-check-custom"></span>
             </label>
-          </td>
-          <td class="td-material">
-            <div style="font-weight:700">${escapeHtml(l.nome_pfs)}</div>
-            <div style="font-size:10px; opacity:0.6">${escapeHtml(l.indirizzo_pfs || '')}</div>
-          </td>
-          <td style="color:var(--text-muted)">${l.lat.toFixed(5)}, ${l.lng.toFixed(5)}</td>
-          <td>
-            <div style="font-weight:600">${escapeHtml(l.tecnico)}</div>
-            <div style="font-size:10px; opacity:0.6">${escapeHtml(l.orario)}</div>
-          </td>
-          <td style="text-align:right">
-             <div style="display:flex; justify-content:flex-end; gap:8px">
-              <a href="${mapUrl}" target="_blank" rel="noopener noreferrer" class="tech-location" style="background:var(--accent-glow)" title="Controlla">📍</a>
-              <button class="btn-delete-row" onclick="deletePfsItem('${escapeHtml(l.id)}', 'pfs_logs')" title="Elimina">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
-              </button>
+          </div>
+          <div class="pfs-card-body">
+            <div class="pfs-card-title">${escapeHtml(l.nome_pfs)}</div>
+            <div class="pfs-card-sub">${escapeHtml(l.indirizzo_pfs || '')}</div>
+            <div class="pfs-card-meta">
+              <span class="pfs-meta-item">👷 ${escapeHtml(l.tecnico)}</span>
+              <span class="pfs-meta-item pfs-meta-time">🕐 ${escapeHtml(l.orario)}</span>
+              <span class="pfs-meta-item pfs-meta-coords">📌 ${l.lat.toFixed(5)}, ${l.lng.toFixed(5)}</span>
             </div>
-          </td>
-        </tr>`;
+          </div>
+          <div class="pfs-card-actions">
+            <a href="${mapUrl}" target="_blank" rel="noopener noreferrer" class="pfs-action-btn pfs-action-map" title="Controlla">📍</a>
+            <button class="pfs-action-btn pfs-action-del" onclick="deletePfsItem('${escapeHtml(l.id)}', 'pfs_logs')" title="Elimina">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+            </button>
+          </div>
+        </div>`;
       });
     }
-    html += `</tbody></table></div></div></div>`;
+    html += `</div></div>`;
 
     content.innerHTML = html;
   } catch (e) {
@@ -235,9 +209,9 @@ export async function deleteSelectedPfs() {
   try {
     const promises = [];
     selected.forEach(cb => {
-      const row = cb.closest('tr');
-      const id = row.dataset.id;
-      const coll = row.dataset.coll;
+      const card = cb.closest('.pfs-card');
+      const id = card.dataset.id;
+      const coll = card.dataset.coll;
       promises.push(deleteDoc(doc(db, coll, id)));
     });
     await Promise.all(promises);

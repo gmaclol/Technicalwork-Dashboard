@@ -2,7 +2,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {
   getFirestore, collection, getDocs, doc, setDoc,
-  getDoc, onSnapshot, deleteDoc, updateDoc
+  getDoc, onSnapshot, deleteDoc, updateDoc, deleteField
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -17,4 +17,4 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 
-export { collection, getDocs, doc, setDoc, getDoc, onSnapshot, deleteDoc, updateDoc };
+export { collection, getDocs, doc, setDoc, getDoc, onSnapshot, deleteDoc, updateDoc, deleteField };

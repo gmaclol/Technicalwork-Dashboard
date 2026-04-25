@@ -7,15 +7,19 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="description" content="Dashboard di gestione materiali e tecnici per cantieri FTTH — TechnicalWork.">
+<meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#020617">
 <title>TechnicalWork — Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <script type="module" crossorigin src="./assets/index-D4qbv_xT.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-D4d9NKO6.css">
+  <script type="module" crossorigin src="./assets/index-D06Ak-52.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-B1ejp08V.css">
 <link rel="manifest" href="./manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="./registerSW.js"></script></head>
 <body>
+
+<!-- SKIP NAV -->
+<a href="#content" class="visually-hidden" id="skip-link">Vai al contenuto principale</a>
 
 <!-- TOAST CONTAINER -->
 <div id="toast-container" aria-live="polite" aria-atomic="false"></div>
@@ -58,7 +62,7 @@
     </div>
     <div class="login-field">
       <label for="inp-pass">Password</label>
-      <input type="password" id="inp-pass" placeholder="••••••••">
+      <input type="password" id="inp-pass" placeholder="••••••••" autocomplete="current-password">
     </div>
     <button class="login-btn" onclick="doLogin()">Accedi</button>
     <div class="login-error" id="login-error">Credenziali non valide.</div>
@@ -67,6 +71,7 @@
 
 <!-- APP -->
 <div id="app" style="display:none;">
+  <h1 class="visually-hidden">TechnicalWork Dashboard — Gestione Materiali e Tecnici</h1>
 
   <!-- OFFLINE BANNER -->
   <div id="offline-banner">
@@ -76,8 +81,8 @@
 
   <!-- TOPBAR -->
   <header class="topbar">
-    <button class="menu-toggle" onclick="toggleDrawer()">
-      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+    <button class="menu-toggle" onclick="toggleDrawer()" aria-label="Apri menu navigazione">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
     </button>
     <div class="topbar-brand">
       <span class="text-gradient">TW</span><span class="topbar-brand-sub"> // Dashboard</span>
@@ -102,12 +107,34 @@
     <nav class="sidebar" aria-label="Navigazione appalti">
       <div class="sidebar-header-mobile">
         <div class="sidebar-label">Appalti</div>
-        <button class="menu-close" onclick="closeDrawer()">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        <button class="menu-close" onclick="closeDrawer()" aria-label="Chiudi menu">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
         </button>
       </div>
       
       <div id="sidebar-appalti"></div>
+
+      <div id="nav-tecnici-wrapper" style="display:none; margin-top:16px; border-top:1px solid var(--border); padding-top:16px;">
+        <div class="sidebar-label" style="margin-bottom:12px">Gestione</div>
+        <a href="#/admin/tecnici" class="sidebar-item" onclick="closeDrawer()" id="nav-Tecnici">
+          <div class="sidebar-item-left">
+            <div class="dot-indicator"></div>
+            Tecnici
+          </div>
+        </a>
+        <a href="#/admin/pfs" class="sidebar-item" onclick="closeDrawer()" id="nav-pfs">
+          <div class="sidebar-item-left">
+            <div class="dot-indicator"></div>
+            Segnalazioni PFS
+          </div>
+        </a>
+        <a href="#/admin/aree" class="sidebar-item" onclick="closeDrawer()" id="nav-aree">
+          <div class="sidebar-item-left">
+            <div class="dot-indicator"></div>
+            Aree Preferite
+          </div>
+        </a>
+      </div>
 
       <div class="sidebar-footer" style="display:flex; flex-direction:column; gap:8px;">
         <button class="btn-outline" onclick="refreshData()">
@@ -118,22 +145,6 @@
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
           Forza Liste/Appalti
         </button>
-      </div>
-
-      <div id="nav-tecnici-wrapper" style="display:none; margin-top:8px; border-top:1px solid var(--border); padding-top:16px;">
-        <div class="sidebar-label" style="margin-bottom:12px">Gestione</div>
-        <a href="#/admin/tecnici" class="sidebar-item" onclick="closeDrawer()" id="nav-Tecnici" role="button" tabindex="0">
-          <div class="sidebar-item-left">
-            <div class="dot-indicator"></div>
-            Tecnici
-          </div>
-        </a>
-        <a href="#/admin/pfs" class="sidebar-item" onclick="closeDrawer()" id="nav-pfs" role="button" tabindex="0">
-          <div class="sidebar-item-left">
-            <div class="dot-indicator"></div>
-            Segnalazioni PFS
-          </div>
-        </a>
       </div>
     </nav>
 

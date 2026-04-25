@@ -8,7 +8,10 @@ echo   AVVIO TECHNICALWORK DASHBOARD (Vite)
 echo ===========================================
 echo.
 
-echo 1. Avvio server locale Vite su porta 8000...
+echo 1. Chiusura di eventuali server rimasti aperti...
+FOR /F "tokens=5" %%a IN ('netstat -aon ^| find "8000" ^| find "LISTENING"') DO taskkill /F /PID %%a >nul 2>&1
+
+echo 2. Avvio server locale Vite su porta 8000...
 :: Avvia il server Vite in una nuova finestra
 start "TW_Server" cmd /k "title Server Dashboard (Chiudi per spegnere) && npm run dev"
 

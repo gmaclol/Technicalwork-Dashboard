@@ -66,3 +66,78 @@ body::after { bottom: -20%; right: -10%; background: radial-gradient(circle, rgb
   -webkit-background-clip: text; background-clip: text;
   color: transparent; padding-bottom: 2px;
 }
+
+/* ── ACCESSIBILITY ── */
+
+/* Visually hidden — visible to screen readers only */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Skip navigation link */
+#skip-link:focus {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 99999;
+  width: auto;
+  height: auto;
+  padding: 14px 28px;
+  margin: 0;
+  overflow: visible;
+  clip: auto;
+  white-space: nowrap;
+  background: var(--accent-gradient);
+  color: white;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 700;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  text-decoration: none;
+}
+
+/* Focus-visible — keyboard-only focus indicators */
+:focus {
+  outline: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+button:focus-visible,
+.btn-outline:focus-visible,
+.btn-icon-text:focus-visible,
+.login-btn:focus-visible {
+  box-shadow: 0 0 0 4px var(--accent-glow);
+  outline: none;
+}
+
+.sidebar-item:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--accent);
+  outline: none;
+}
+
+/* ── REDUCED MOTION ── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

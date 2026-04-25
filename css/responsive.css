@@ -99,3 +99,62 @@
     border-right: 1px solid rgba(15, 23, 42, 0.08) !important;
   }
 }
+
+/* ── PFS / AREE MOBILE ── */
+@media (max-width: 900px) {
+  .tecnici-panel {
+    padding: 20px 16px;
+  }
+
+  .pfs-card {
+    padding: 14px;
+    gap: 10px;
+  }
+  .pfs-card-actions {
+    flex-direction: row;
+    gap: 6px;
+  }
+  .pfs-action-btn {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .pfs-card-meta {
+    flex-direction: column;
+    gap: 4px;
+  }
+  .pfs-section-title {
+    font-size: 16px;
+  }
+  .pfs-badge {
+    font-size: 11px;
+    padding: 3px 10px;
+  }
+
+  /* Aree Preferite — mobile */
+  .toggle-wrap {
+    padding: 14px;
+    gap: 10px;
+  }
+  .toggle-wrap .btn-outline {
+    width: 100%;
+    min-height: 44px;
+  }
+  .rename-field {
+    font-size: 16px; /* previene zoom su iOS */
+    padding: 14px;
+  }
+
+  /* Delete toolbar mobile */
+  .delete-toolbar {
+    flex-direction: column;
+    gap: 12px;
+    text-align: center;
+    padding: 16px;
+  }
+  .btn-bulk-delete {
+    width: 100%;
+    min-height: 44px;
+  }
+}

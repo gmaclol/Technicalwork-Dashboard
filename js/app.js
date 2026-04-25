@@ -13,6 +13,7 @@ import {
 } from './data.js';
 import { showTecnici, deleteTecnico, renameTecnico, toggleTecnico } from './tecnici.js';
 import { showPfsDashboard, toggleAllPfs, updatePfsToolbar, deletePfsItem, deleteSelectedPfs } from './pfs.js';
+import { showAreeDashboard, savePfsAreas, deleteDeviceAreas } from './aree.js';
 import { exportToExcel, printTable } from './export.js';
 
 // ── THEME ──
@@ -83,6 +84,7 @@ function handleHashChange() {
     const sub = parts[1];
     if (sub === 'tecnici') showTecnici();
     else if (sub === 'pfs') showPfsDashboard();
+    else if (sub === 'aree') showAreeDashboard();
   } else if (route === 'appalti') {
     const appaltoName = parts[1] || APPALTI[0];
     const dateKey = parts[2] || 'live';
@@ -168,6 +170,9 @@ window.deleteTecnico = deleteTecnico;
 window.renameTecnico = renameTecnico;
 window.toggleTecnico = toggleTecnico;
 window.showPfsDashboard = showPfsDashboard;
+window.showAreeDashboard = showAreeDashboard;
+window.savePfsAreas = savePfsAreas;
+window.deleteDeviceAreas = deleteDeviceAreas;
 window.toggleAllPfs = toggleAllPfs;
 window.updatePfsToolbar = updatePfsToolbar;
 window.deletePfsItem = deletePfsItem;

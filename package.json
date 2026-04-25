@@ -2,7 +2,7 @@
   "name": "tchwrk2",
   "version": "1.0.0",
   "description": "",
-  "main": "sw.js",
+
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -11,7 +11,7 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
+  "type": "module",
   "devDependencies": {
     "vite": "^8.0.3",
     "vite-plugin-pwa": "^1.2.0"
