@@ -165,7 +165,16 @@ function initPresence() {
         if (!isOnline) return null;
         const deviceName = _deviceNamesCache && _deviceNamesCache[k] ? (_deviceNamesCache[k].name || _deviceNamesCache[k].baseName || k) : k;
         const info = _deviceNamesCache && _deviceNamesCache[k] ? _deviceNamesCache[k] : {};
-        const icon = info.type === 'web' ? '🖥' : '📱';
+        const isWeb = info.type === 'web' || k.startsWith('WEB-');
+        let icon = '📱';
+        if (isWeb) {
+          const os = (info.os || '').toLowerCase();
+          if (os.includes('android') || os.includes('ios')) {
+            icon = '📱';
+          } else {
+            icon = '💻';
+          }
+        }
         return { id: k, name: deviceName, icon };
       }).filter(Boolean);
 

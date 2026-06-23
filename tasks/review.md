@@ -374,6 +374,31 @@
 **Rischi residui:**
 - Nessuno. I componenti mantengono le logiche isolate e native esistenti.
 
+---
+
+## 2026-06-23 — Sessione Accessibilità PWA, Gestione Scroll-Lock e Icone Dispositivo
+
+**Cosa è stato fatto:**
+- **Migliorato click-to-close del Drawer**: Aggiunto un listener per l'evento `pointerdown` sull'overlay del drawer (`#sidebar-overlay`) per garantire la chiusura istantanea della barra laterale su touch screen mobili senza delay.
+- **Introdotto Scroll-Lock Incrementale**: Creata un'utilità per contare e tracciare le richieste di blocco dello scroll (`window.lockScroll` / `window.unlockScroll`) che applica la classe CSS `.scroll-locked` al `body`.
+- **Blocco dello scroll sui Modali**: Configurato il blocco dello scroll di sfondo durante la visualizzazione dei modal di conferma e di rinomina.
+- **Escape Key sui Modali**: Spostato l'ascolto dell'evento `Escape` al livello globale (`document`) sia per il modal di conferma che per quello di rinomina, permettendo la chiusura reattiva dei modali a prescindere dal focus dell'elemento attivo.
+- **Emoji Dispositivo in Presenza Online**: Riprogettato il mapping dell'indicatore di presenza utenti online per gli amministratori in `js/app.js`. Adesso:
+  - I client web da PC (Windows, macOS, Linux) mostrano l'emoji `💻`.
+  - I client web da dispositivi mobili (iOS, Android) mostrano l'emoji `📱`.
+  - I client nativi (App Android) mostrano l'emoji `📱`.
+- **Build di Produzione**: Ricompilato il bundle con `npm run build` ed aggiornato il grafo della conoscenza.
+
+**Perché:**
+- Offrire una navigazione nativa e fluida su touch target mobili, prevenendo lo scroll dello sfondo al di sotto dei popup aperti (Drawer, Conferma, Rinomina).
+- Distinguere graficamente a colpo d'occhio nel pannello degli utenti connessi in tempo reale chi sta operando da una postazione PC rispetto a chi utilizza uno smartphone.
+
+**File modificati:**
+- `js/app.js` (aggiunta utilità `lockScroll`/`unlockScroll`, listener pointerdown sul drawer overlay, e aggiornato mapping icone presenza)
+- `js/utils.js` (richiamo blocco scroll e ascoltatore Escape globale su `showConfirm` e `showRenameModal`)
+- `css/components.css` (definizione stile `body.scroll-locked`)
+
+
 
 
 

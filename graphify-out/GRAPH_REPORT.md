@@ -1,13 +1,18 @@
 # Graph Report - tchwrk2  (2026-06-23)
 
 ## Corpus Check
-- 44 files · ~398,677 words
+- 44 files · ~399,105 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 835 nodes · 1402 edges · 50 communities (47 shown, 3 thin omitted)
+- 837 nodes · 1404 edges · 50 communities (47 shown, 3 thin omitted)
 - Extraction: 95% EXTRACTED · 5% INFERRED · 0% AMBIGUOUS · INFERRED: 65 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
+
+## Graph Freshness
+- Built from commit: `d2607e04`
+- Run `git rev-parse HEAD` and compare to check if the graph is stale.
+- Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
 - [[_COMMUNITY_Community 1|Community 1]]
@@ -66,20 +71,20 @@
 6. `Workflow Operativo AI-Assisted per Progetti Software` - 21 edges
 7. `handleHashChange()` - 19 edges
 8. `showConfirm()` - 16 edges
-9. `get()` - 15 edges
-10. `review.md — Dashboard (tchwrk2)` - 15 edges
+9. `review.md — Dashboard (tchwrk2)` - 16 edges
+10. `get()` - 15 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `n()` --calls--> `y()`  [INFERRED]
-  docs/assets/index-C8A31MG6.js → docs/workbox-4b126c97.js
+  docs/assets/index-CNvjf687.js → docs/workbox-4b126c97.js
 - `ae()` --calls--> `s`  [INFERRED]
-  docs/assets/index-C8A31MG6.js → docs/workbox-4b126c97.js
+  docs/assets/index-CNvjf687.js → docs/workbox-4b126c97.js
 - `je()` --calls--> `s`  [INFERRED]
-  docs/assets/index-C8A31MG6.js → docs/workbox-4b126c97.js
+  docs/assets/index-CNvjf687.js → docs/workbox-4b126c97.js
 - `ze()` --calls--> `s`  [INFERRED]
-  docs/assets/index-C8A31MG6.js → docs/workbox-4b126c97.js
+  docs/assets/index-CNvjf687.js → docs/workbox-4b126c97.js
 - `h()` --calls--> `c()`  [INFERRED]
-  docs/workbox-4b126c97.js → docs/assets/index-C8A31MG6.js
+  docs/workbox-4b126c97.js → docs/assets/index-CNvjf687.js
 
 ## Import Cycles
 - None detected.
@@ -180,7 +185,7 @@ Nodes (12): 1. Architettura Generale, 2. Flussi Dati Principali, 3. Mappa dei Fi
 
 ### Community 24 - "Community 24"
 Cohesion: 0.12
-Nodes (15): 2026-05-13 — Sessione Aggiornamento Real-Time & Notifiche, 2026-05-13 — Sessione Ricerca PFS Sidebar & Web Users Sync, 2026-05-15 — Fix PWA iOS Safari Crash e Accessibilità (a11y), 2026-05-15 — Ottimizzazione Firebase: Risoluzione Spike Reads e Writes, 2026-05-16 — Audit e Fix Write Firestore Eccessive, 2026-05-16 — Ottimizzazione Caching e Sincronizzazione Real-Time, 2026-05-17 — Sessione Ottimizzazione PWA iOS Safari (Pagine DOM), 2026-05-28 — Scansione Completa Codebase e Popolamento struttura.md (+7 more)
+Nodes (16): 2026-05-13 — Sessione Aggiornamento Real-Time & Notifiche, 2026-05-13 — Sessione Ricerca PFS Sidebar & Web Users Sync, 2026-05-15 — Fix PWA iOS Safari Crash e Accessibilità (a11y), 2026-05-15 — Ottimizzazione Firebase: Risoluzione Spike Reads e Writes, 2026-05-16 — Audit e Fix Write Firestore Eccessive, 2026-05-16 — Ottimizzazione Caching e Sincronizzazione Real-Time, 2026-05-17 — Sessione Ottimizzazione PWA iOS Safari (Pagine DOM), 2026-05-28 — Scansione Completa Codebase e Popolamento struttura.md (+8 more)
 
 ### Community 25 - "Community 25"
 Cohesion: 0.17
@@ -215,8 +220,8 @@ Cohesion: 0.29
 Nodes (7): Contesto Minimo Necessario, Gestione Chiavi e Segreti, Non Aggiungere Nulla di Non Richiesto, Principi Fondamentali, Quando Chiedere vs Quando Procedere, Semplicità Prima di Tutto, Standard Senior
 
 ### Community 33 - "Community 33"
-Cohesion: 0.18
-Nodes (10): 2026-05-28 — Sessione Precedente, 2026-05-31 — Sessione Corrente, 2026-06-20 — Sessione Corrente, 2026-06-22 — Sessione 2, 2026-06-22 — Sessione Corrente, 2026-06-23 — Sessione Correzione Bug Router (DeepSeek Regressions), 2026-06-23 — Sessione PWA Bugfix (Theme Switcher, Online Count, Routing e Tooltip), 2026-06-23 — Sessione Revisione Sicurezza e Bug Critici (+2 more)
+Cohesion: 0.17
+Nodes (11): 2026-05-28 — Sessione Precedente, 2026-05-31 — Sessione Corrente, 2026-06-20 — Sessione Corrente, 2026-06-22 — Sessione 2, 2026-06-22 — Sessione Corrente, 2026-06-23 — Sessione Accessibilità PWA, Gestione Scroll-Lock e Icone Dispositivo, 2026-06-23 — Sessione Correzione Bug Router (DeepSeek Regressions), 2026-06-23 — Sessione PWA Bugfix (Theme Switcher, Online Count, Routing e Tooltip) (+3 more)
 
 ### Community 34 - "Community 34"
 Cohesion: 0.33
@@ -259,7 +264,7 @@ Cohesion: 0.10
 Nodes (11): $(), et, G(), get(), j, k(), L(), st() (+3 more)
 
 ## Knowledge Gaps
-- **398 isolated node(s):** `_deviceNamesCache`, `_staleCacheMap`, `_lastAllDocs`, `_countListeners`, `_liveCounts` (+393 more)
+- **400 isolated node(s):** `_deviceNamesCache`, `_staleCacheMap`, `_lastAllDocs`, `_countListeners`, `_liveCounts` (+395 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **3 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
@@ -275,7 +280,7 @@ _Questions this graph is uniquely positioned to answer:_
 - **Are the 7 inferred relationships involving `t()` (e.g. with `.cacheMatch()` and `.cachePut()`) actually correct?**
   _`t()` has 7 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `_deviceNamesCache`, `_staleCacheMap`, `_lastAllDocs` to the rest of the system?**
-  _398 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _400 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 2` be split into smaller, more focused modules?**
   _Cohesion score 0.04081632653061224 - nodes in this community are weakly interconnected._
 - **Should `Community 3` be split into smaller, more focused modules?**

@@ -91,4 +91,12 @@
 - [x] **Uniformità e Allineamento Topbar:** Ridimensionato il pulsante cambia tema a `36px` per allinearsi perfettamente con le dimensioni del pulsante logout su mobile.
 - [x] **Build di Produzione:** Ricompilata l'applicazione (`npm run build`) per rigenerare la cartella `docs/` e aggiornato il grafo della conoscenza.
 
+## 2026-06-23 — Sessione Accessibilità PWA, Gestione Scroll-Lock e Icone Dispositivo
+- [x] **Riparato click-to-close del Drawer:** Associato evento `pointerdown` su `#sidebar-overlay` per chiudere istantaneamente il drawer su mobile senza ritardi.
+- [x] **Scroll Lock sui Modali:** Configurato il blocco dello scroll del body all'apertura dei modali di conferma e rinomina, oltre che del Drawer.
+- [x] **Tasto Escape (Esc) globale sui Modali:** Abilitata la chiusura dei modali alla pressione di `Escape` indipendentemente dall'elemento attualmente a fuoco.
+- [x] **Emoji di Presenza:** Configurato l'indicatore di presenza online per distinguere PC (`💻`) e smartphone (`📱`).
+- [x] **Build di Produzione:** Rigenerato il bundle pre-compilato nella cartella `docs/` ed allineato il grafo.
+
+
 
