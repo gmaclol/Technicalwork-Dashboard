@@ -138,4 +138,10 @@ Un numero eccessivo di letture (20k+) e scritture sono state generate dalla web 
 3. Su mobile/PWA, per i componenti informativi complessi, evitare di basarsi sull'attributo HTML nativo `title` (non visualizzabile al tocco/hold). Creare un tooltip HTML dedicato all'interno del DOM e controllarlo via JavaScript con eventi `pointerdown` (chiamando anche `e.preventDefault()` su `contextmenu` per prevenire menu contestuali nativi dell'OS), `pointerup` e `pointerleave`.
 4. Evitare l'utilizzo dell'oggetto globale `window` per invocare metodi di moduli diversi in un'applicazione basata su ES Modules. Importare sempre in modo esplicito le funzioni necessarie in cima ai moduli JavaScript che le consumano e invocarle direttamente.
 
-
+## Errore: Rimozione o modifica di righe materiali standard (Modem / ONT, ecc.)
+**Causa:** L'amministratore poteva rinominare o eliminare per errore le righe di materiali standard dell'appalto definiti nella master list (da `lista.txt` o `Nomeappalto.txt` scaricate da GitHub), creando incoerenze nel tracciamento dei cantieri. Inoltre, il modal di conferma (`showConfirm`) utilizzava internamente `.textContent` su `confirm-msg` troncando qualsiasi elemento HTML inserito come parte del messaggio (come la select del tecnico).
+**Regola:** 
+1. I materiali standard non devono essere modificabili o eliminabili. Verificare sempre se il materiale appartiene al master list scaricato e bloccare l'operazione restituendo un errore se necessario. Mostrare le azioni di edit/delete nella tabella materiali solo ed esclusivamente per i materiali custom (`isExtra = true`).
+2. Nei componenti modali condizionali, consentire esplicitamente il rendering di HTML (es. tramite un flag `asHtml`) quando è necessario inserire controlli interattivi all'interno dei messaggi, e leggere questi controlli prima del reset/cleanup del DOM del modale.
+3. Eseguire in parallelo (`Promise.all`) gli aggiornamenti di Firestore su più documenti tecnici per abbattere i tempi di risposta rispetto a cicli asincroni sequenziali.
+4. Sincronizzare la presenza degli utenti web utilizzando Firebase Realtime Database (RTDB) invece di affidarsi solo al timestamp di aggiornamento di Firestore (`updatedAt`), garantendo una visualizzazione accurata in tempo reale dell'utente attivo ("🟢 Online ora") o dell'ultimo accesso logico.

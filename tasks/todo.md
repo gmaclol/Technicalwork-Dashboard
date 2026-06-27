@@ -98,5 +98,15 @@
 - [x] **Emoji di Presenza:** Configurato l'indicatore di presenza online per distinguere PC (`💻`) e smartphone (`📱`).
 - [x] **Build di Produzione:** Rigenerato il bundle pre-compilato nella cartella `docs/` ed allineato il grafo.
 
-
-
+## 2026-06-27 — Sessione Overhaul Sistema Aggiunta/Modifica/Eliminazione Materiali
+- [x] **Supporto HTML nei Confirm Dialogs:** Aggiunto il parametro `asHtml: true` a `showConfirm` per supportare il rendering di tag HTML (come il dropdown `<select>` dei tecnici) ed evitare che venisse renderizzato come testo semplice per via di `.textContent`.
+- [x] **Overhaul addMaterialRow, editMaterialRow, deleteMaterialRow:**
+  - Letto l'elemento di selezione del tecnico PRIMA della chiusura del modale per evitare race condition ed elementi persi.
+  - Implementata la validazione dei nomi dei materiali inseriti dall'utente (no stringhe vuote, lunghezza massima 120 caratteri, e divieto di caratteri speciali non ammessi da Firestore quali `.` `/` `[` `]` `~` `*`).
+  - Ottimizzate le scritture Firestore rendendole parallele tramite `Promise.all` invece di cicli sequenziali lenti.
+- [x] **Prevenzione Modifica Materiali Standard:**
+  - Integrata una restrizione per impedire modifiche o eliminazioni dei materiali standard dell'appalto (come modems/ONT, drop cable, ecc., contenuti nelle liste `lista.txt` o `Nomeappalto.txt` scaricate da GitHub).
+  - Rimossi i pulsanti delle azioni rapide per i materiali standard dalla visualizzazione della tabella materiali, lasciandoli attivi solo per i materiali custom (extra).
+- [x] **Refactoring Import Dinamici Redondanti:** Rimossi gli import dinamici non necessari all'interno di `js/tecnici.js` per risolvere i warning `[INEFFECTIVE_DYNAMIC_IMPORT]` di Vite e rendere il bundle di produzione più pulito.
+- [x] **Tracciamento Ultima Sessione Utenti Web:** Nella tab dei Tecnici, sotto la sezione "Dashboard Web", lo stato di presenza online e l'ultima sessione attiva vengono ora letti in real-time da Firebase Realtime Database (RTDB) e visualizzati esplicitamente (con etichetta "Ultima sessione: [data]" o "🟢 Online ora").
+- [x] **Build di Produzione:** Rigenerata la build di produzione (`npm run build`) in `docs/` e service worker.

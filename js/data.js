@@ -484,15 +484,59 @@ export function filterMaterials(query) {
   if (lastSepRow) lastSepRow.style.display = lastSepHasVisible ? '' : 'none';
 }
 
-// ── EDIT & DELETE MATERIAL ROW FUNCTIONS ──
 // ── ADD MATERIAL ROW ──
+// Caratteri vietati nelle chiavi Firestore
+const FIRESTORE_FORBIDDEN = /[.\/\[\]~*]/;
+
+function validateMaterialName(name) {
+  if (!name || !name.trim()) return 'Il nome del materiale non può essere vuoto.';
+  if (FIRESTORE_FORBIDDEN.test(name)) return 'Il nome contiene caratteri non consentiti (. / [ ] ~ *).';
+  if (name.length > 120) return 'Il nome è troppo lungo (max 120 caratteri).';
+  return null;
+}
+
 export async function addMaterialRow() {
+  // 1. Recupera la master list per suggerimenti e verifica duplicati
+  const rawMaterials = await fetchRawMasterList(currentAppalto);
+  const existingMaterials = new Set();
+  // Raccoglie anche i materiali custom già presenti nei documenti Firestore
+  _lastAllDocs
+    .filter(d => !/_\d{4}-\d{2}-\d{2}$/.test(d.id))
+    .forEach(d => {
+      if (d.materiali) Object.keys(d.materiali).forEach(m => existingMaterials.add(m.toLowerCase()));
+    });
+  rawMaterials.forEach(m => {
+    if (!/^::.*::$/.test(m.trim()) && !/^;;.*;;$/.test(m.trim())) {
+      existingMaterials.add(m.toLowerCase());
+    }
+  });
+
   const newName = await showRenameModal({
     title: 'Aggiungi materiale',
     defaultValue: '',
     icon: '➕'
   });
   if (!newName) return;
+
+  // 2. Validazione nome
+  const validationError = validateMaterialName(newName);
+  if (validationError) {
+    showToast(validationError, 'warning');
+    return;
+  }
+
+  // 3. Avviso se il materiale esiste già nella griglia (non blocca, solo warning)
+  if (existingMaterials.has(newName.toLowerCase())) {
+    const goAhead = await showConfirm({
+      title: 'Materiale già presente',
+      msg: `"${escapeHtml(newName)}" esiste già nella lista. Vuoi aggiungerlo comunque?`,
+      icon: '⚠️',
+      okLabel: 'Aggiungi comunque',
+      okAccent: true,
+      asHtml: true
+    });
+    if (!goAhead) return;
+  }
 
   try {
     showToast('Recupero tecnici...', 'info');
@@ -508,8 +552,12 @@ export async function addMaterialRow() {
       return;
     }
 
-    const optionsHtml = activeTechs.map(t => `<option value="${t.id}">${escapeHtml(t.tecnico || t.id)}</option>`).join('');
-    const selectHtml = `
+    const optionsHtml = activeTechs.map(t =>
+      `<option value="${escapeHtml(t.id)}">${escapeHtml(t.tecnico || t.id)}</option>`
+    ).join('');
+
+    const msgHtml = `
+      <p>${escapeHtml(`Vuoi aggiungere "${newName}" a tutti i tecnici o solo a uno di essi?`)}</p>
       <div style="margin-top:14px; text-align:left;">
         <label for="confirm-select-tech" style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:6px;">Seleziona tecnico (se vuoi aggiungere solo a uno):</label>
         <select id="confirm-select-tech" class="select-fancy" style="width:100%; box-sizing:border-box;">
@@ -518,19 +566,25 @@ export async function addMaterialRow() {
       </div>
     `;
 
+    // Cattura il valore del select PRIMA che il modale venga chiuso
+    let selectedTechId = null;
+    const _origClose = null; // sarà gestito dal flusso sottostante
+
     const choice = await showConfirm({
       title: 'Aggiungi materiale',
-      msg: `Vuoi aggiungere "${newName}" a tutti i tecnici o solo a uno di essi?` + selectHtml,
+      msg: msgHtml,
       icon: '➕',
       okLabel: 'Aggiungi per tutti',
       okAccent: true,
-      extraLabel: 'Solo per selezionato'
+      extraLabel: 'Solo per selezionato',
+      asHtml: true
     });
 
-    let selectedTechId = null;
+    // Leggi il select PRIMA del cleanup (il modale è ancora nel DOM)
     const selectEl = document.getElementById('confirm-select-tech');
     if (selectEl) selectedTechId = selectEl.value;
 
+    // Cleanup del contenuto modale
     const msgEl = document.getElementById('confirm-msg');
     if (msgEl) msgEl.innerHTML = '';
 
@@ -550,19 +604,20 @@ export async function addMaterialRow() {
         updatedCount = 1;
       }
     } else if (choice === true) {
-      for (const t of activeTechs) {
-        await updateDoc(doc(db, currentAppalto, t.id), {
+      // Write parallele per velocità
+      await Promise.all(activeTechs.map(t =>
+        updateDoc(doc(db, currentAppalto, t.id), {
           [`materiali.${newName}`]: '1',
           last_updated_at: Date.now(),
           last_updated_by: 'admin'
-        });
-        updatedCount++;
-      }
+        })
+      ));
+      updatedCount = activeTechs.length;
     }
 
     // ⚡ Optimistic DOM update: add a row immediately
     const tbody = document.querySelector('tbody');
-    if (tbody && choice === true) {
+    if (tbody && updatedCount > 0) {
       const tr = document.createElement('tr');
       tr.dataset.material = newName.toLowerCase();
       const td = document.createElement('td');
@@ -573,7 +628,9 @@ export async function addMaterialRow() {
       for (let i = 0; i < cols; i++) {
         const cell = document.createElement('td');
         cell.className = 'td-value has-value';
-        cell.textContent = '1';
+        cell.textContent = choice === true ? '1' : (i === activeTechs.findIndex(t => t.id === selectedTechId) ? '1' : '·');
+        cell.classList.toggle('empty', cell.textContent === '·');
+        if (cell.textContent === '·') cell.classList.remove('has-value');
         tr.appendChild(cell);
       }
       const firstRow = tbody.querySelector('tr');
@@ -584,7 +641,7 @@ export async function addMaterialRow() {
       }
     }
     _lastRenderedKey = null;
-    showToast(`✅ Aggiunto "${newName}" a ${updatedCount} tecnico/i.`, 'success');
+    showToast(`✅ Aggiunto "${escapeHtml(newName)}" a ${updatedCount} tecnico/i.`, 'success', 3500, true);
   } catch (e) {
     showToast('Errore durante l\'aggiunta: ' + e.message, 'error', 5000);
     console.error(e);
@@ -592,12 +649,30 @@ export async function addMaterialRow() {
 }
 
 export async function editMaterialRow(oldName) {
+  // 1. Impedisci la modifica di materiali standard presenti nella master list
+  const rawMaterials = await fetchRawMasterList(currentAppalto);
+  const isStandard = rawMaterials.some(m => {
+    const cleanM = m.trim();
+    return !/^::.*::$/.test(cleanM) && !/^;;.*;;$/.test(cleanM) && cleanM.toLowerCase() === oldName.toLowerCase();
+  });
+  if (isStandard) {
+    showToast(`Non puoi modificare un materiale standard dell'appalto (${oldName}).`, 'error');
+    return;
+  }
+
   const newName = await showRenameModal({
     title: `Modifica nome materiale`,
     defaultValue: oldName,
     icon: '✏️'
   });
   if (!newName || newName === oldName) return;
+
+  // Validazione input
+  const validationError = validateMaterialName(newName);
+  if (validationError) {
+    showToast(validationError, 'warning');
+    return;
+  }
 
   try {
     showToast('Recupero tecnici...', 'info');
@@ -613,9 +688,12 @@ export async function editMaterialRow(oldName) {
       return;
     }
 
-    // Costruiamo una select HTML da inserire nel messaggio per scegliere il tecnico singolo
-    const optionsHtml = activeTechs.map(t => `<option value="${t.id}">${escapeHtml(t.tecnico || t.id)}</option>`).join('');
-    const selectHtml = `
+    const optionsHtml = activeTechs.map(t =>
+      `<option value="${escapeHtml(t.id)}">${escapeHtml(t.tecnico || t.id)}</option>`
+    ).join('');
+
+    const msgHtml = `
+      <p>${escapeHtml(`Vuoi rinominare "${oldName}" in "${newName}" per tutti i tecnici o solo per uno di essi?`)}</p>
       <div style="margin-top:14px; text-align:left;">
         <label for="confirm-select-tech" style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:6px;">Seleziona tecnico (se vuoi modificare solo uno):</label>
         <select id="confirm-select-tech" class="select-fancy" style="width:100%; box-sizing:border-box;">
@@ -624,23 +702,23 @@ export async function editMaterialRow(oldName) {
       </div>
     `;
 
+    let selectedTechId = null;
+
     const choice = await showConfirm({
       title: 'Modifica materiale',
-      msg: `Vuoi rinominare "${oldName}" in "${newName}" per tutti i tecnici o solo per uno di essi?` + selectHtml,
+      msg: msgHtml,
       icon: '✏️',
       okLabel: 'Modifica per tutti',
       okAccent: true,
-      extraLabel: 'Solo per selezionato'
+      extraLabel: 'Solo per selezionato',
+      asHtml: true
     });
 
-    // Leggi il valore selezionato prima di chiudere se si è cliccato extra
-    let selectedTechId = null;
     const selectEl = document.getElementById('confirm-select-tech');
     if (selectEl) {
       selectedTechId = selectEl.value;
     }
 
-    // Reimposta il contenuto del messaggio e nasconde la select
     const msgEl = document.getElementById('confirm-msg');
     if (msgEl) {
       msgEl.innerHTML = '';
@@ -652,7 +730,6 @@ export async function editMaterialRow(oldName) {
     
     let updatedCount = 0;
     if (choice === 'extra' && selectedTechId) {
-      // Modifica solo per il tecnico selezionato
       const targetTech = activeTechs.find(t => t.id === selectedTechId);
       if (targetTech) {
         const val = targetTech.materiali[oldName];
@@ -668,20 +745,20 @@ export async function editMaterialRow(oldName) {
         updatedCount = 1;
       }
     } else if (choice === true) {
-      // Modifica per tutti
-      for (const t of activeTechs) {
+      // Esecuzione parallela
+      await Promise.all(activeTechs.map(t => {
         const val = t.materiali[oldName];
         const newMateriali = { ...t.materiali };
         delete newMateriali[oldName];
         newMateriali[newName] = val;
 
-        await updateDoc(doc(db, currentAppalto, t.id), {
+        return updateDoc(doc(db, currentAppalto, t.id), {
           materiali: newMateriali,
           last_updated_at: Date.now(),
           last_updated_by: 'admin'
         });
-        updatedCount++;
-      }
+      }));
+      updatedCount = activeTechs.length;
     }
 
     // ⚡ Optimistic DOM update: rename the row immediately so the user sees the change
@@ -708,7 +785,6 @@ export async function editMaterialRow(oldName) {
           if (techIdx > 0) {
             const cell = row.children[techIdx];
             if (cell) { cell.textContent = '·'; cell.className = 'td-value empty'; }
-            // If a row for the new name already exists, add the value there
             const newRow = document.querySelector(`tr[data-material="${CSS.escape(newName.toLowerCase())}"]`);
             if (newRow && techIdx < newRow.children.length) {
               const newCell = newRow.children[techIdx];
@@ -719,7 +795,6 @@ export async function editMaterialRow(oldName) {
         }
       }
     }
-    // Forza full re-render: l'onSnapshot che scatta subito dopo la write
     _lastRenderedKey = null;
     showToast(`✅ Ridenominato con successo per ${updatedCount} tecnico/i.`, 'success');
   } catch (e) {
@@ -729,6 +804,17 @@ export async function editMaterialRow(oldName) {
 }
 
 export async function deleteMaterialRow(materialName) {
+  // 1. Impedisci l'eliminazione di materiali standard presenti nella master list
+  const rawMaterials = await fetchRawMasterList(currentAppalto);
+  const isStandard = rawMaterials.some(m => {
+    const cleanM = m.trim();
+    return !/^::.*::$/.test(cleanM) && !/^;;.*;;$/.test(cleanM) && cleanM.toLowerCase() === materialName.toLowerCase();
+  });
+  if (isStandard) {
+    showToast(`Non puoi eliminare un materiale standard dell'appalto (${materialName}).`, 'error');
+    return;
+  }
+
   try {
     showToast('Recupero tecnici...', 'info');
     const snap = await getDocs(collection(db, currentAppalto));
@@ -743,8 +829,12 @@ export async function deleteMaterialRow(materialName) {
       return;
     }
 
-    const optionsHtml = activeTechs.map(t => `<option value="${t.id}">${escapeHtml(t.tecnico || t.id)}</option>`).join('');
-    const selectHtml = `
+    const optionsHtml = activeTechs.map(t =>
+      `<option value="${escapeHtml(t.id)}">${escapeHtml(t.tecnico || t.id)}</option>`
+    ).join('');
+
+    const msgHtml = `
+      <p>${escapeHtml(`Vuoi eliminare definitivamente "${materialName}" da tutti i tecnici o solo da uno di essi?`)}</p>
       <div style="margin-top:14px; text-align:left;">
         <label for="confirm-select-tech" style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:6px;">Seleziona tecnico (se vuoi eliminare solo da uno):</label>
         <select id="confirm-select-tech" class="select-fancy" style="width:100%; box-sizing:border-box;">
@@ -753,16 +843,18 @@ export async function deleteMaterialRow(materialName) {
       </div>
     `;
 
+    let selectedTechId = null;
+
     const choice = await showConfirm({
       title: 'Elimina materiale',
-      msg: `Vuoi eliminare definitivamente "${materialName}" da tutti i tecnici o solo da uno di essi?` + selectHtml,
+      msg: msgHtml,
       icon: '🗑️',
       okLabel: 'Elimina per tutti',
       okAccent: false,
-      extraLabel: 'Solo per selezionato'
+      extraLabel: 'Solo per selezionato',
+      asHtml: true
     });
 
-    let selectedTechId = null;
     const selectEl = document.getElementById('confirm-select-tech');
     if (selectEl) selectedTechId = selectEl.value;
 
@@ -787,16 +879,17 @@ export async function deleteMaterialRow(materialName) {
         updatedCount = 1;
       }
     } else if (choice === true) {
-      for (const t of activeTechs) {
+      // Esecuzione parallela
+      await Promise.all(activeTechs.map(t => {
         const newMateriali = { ...t.materiali };
         delete newMateriali[materialName];
-        await updateDoc(doc(db, currentAppalto, t.id), {
+        return updateDoc(doc(db, currentAppalto, t.id), {
           materiali: newMateriali,
           last_updated_at: Date.now(),
           last_updated_by: 'admin'
         });
-        updatedCount++;
-      }
+      }));
+      updatedCount = activeTechs.length;
     }
 
     // ⚡ Optimistic DOM update
@@ -1295,7 +1388,7 @@ function renderTable(appalto, tecnici, container, dateKey = 'live', allDocs = []
 
       // Action buttons for Admin role to visually edit/delete material row directly
       let adminActionsHtml = '';
-      if (isAdmin && dateKey === 'live') {
+      if (isAdmin && dateKey === 'live' && isExtra) {
         adminActionsHtml = `
           <span class="material-row-actions">
             <button class="btn-mat-action btn-mat-edit" data-material="${escapeHtml(mat)}" onclick="editMaterialRow(this.dataset.material)" title="Modifica nome materiale">✏️</button>

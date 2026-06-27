@@ -147,13 +147,17 @@ export function trapFocus(container) {
 }
 
 // ── CONFIRM MODAL ──
-export function showConfirm({ title, msg, icon = '⚠️', okLabel = 'Conferma', okAccent = false, extraLabel = null } = {}) {
+export function showConfirm({ title, msg, icon = '⚠️', okLabel = 'Conferma', okAccent = false, extraLabel = null, asHtml = false } = {}) {
   return new Promise(resolve => {
     document.getElementById('confirm-icon').textContent = icon;
     document.getElementById('confirm-title').textContent = title || '';
     const msgEl = document.getElementById('confirm-msg');
     if (msg) {
-      msgEl.textContent = msg;
+      if (asHtml) {
+        msgEl.innerHTML = msg;
+      } else {
+        msgEl.textContent = msg;
+      }
     } else {
       msgEl.textContent = '';
     }

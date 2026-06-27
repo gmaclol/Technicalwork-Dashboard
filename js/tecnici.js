@@ -1,5 +1,5 @@
 // ── Tecnici management ──
-import { db, collection, getDocs, doc, setDoc, deleteDoc, updateDoc, onSnapshot } from './firebase.js';
+import { db, collection, getDocs, doc, setDoc, deleteDoc, updateDoc, onSnapshot, deleteField, rtdb, ref, onValue } from './firebase.js';
 import { APPALTI, currentAppalto, currentDate, currentUser } from './state.js';
 import { escapeHtml, showToast, showConfirm, showRenameModal } from './utils.js';
 import { getHiddenTecnici, saveHiddenTecnici, resetHiddenCache, preloadCounts, getCountListeners, loadAppalto, setHiddenCache, getHiddenTecniciSync, resetLastRenderedKey } from './data.js';
@@ -108,6 +108,7 @@ export async function showTecnici() {
 
   let appaltiData  = {};
   let webDevices   = {}; // from settings/devices_names (type:'web')
+  let statusData   = {}; // from RTDB /status
   let loadedCount  = 0;
 
   async function renderTecnici() {
@@ -159,25 +160,38 @@ export async function showTecnici() {
       const bannedDeviceIds = Object.keys(webDevices).filter(id => webDevices[id]?.banned);
       
       const androidTecnici = [...allTecnici.entries()].filter(([, info]) => info.type !== 'web' && !bannedDeviceIds.includes(info.deviceId));
-      // Web users come directly from webDevices (settings/devices_names)
+      // Web users come directly from webDevices (settings/devices_names) e integrano RTDB presence
       const webTecniciEntries = Object.entries(webDevices)
         .filter(([, info]) => (info?.type === 'web' || info?.os || info?.browser) && !info?.banned)
-        .map(([deviceId, info]) => [deviceId, {
-          docIds:      {},
-          dispositivo: '—',
-          versione:    '',
-          appalti:     info.pfsAreas || [],
-          ultimo:      info.updatedAt
-            ? new Date(info.updatedAt).toLocaleString('it-IT', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})
-            : '—',
-          type:    'web',
-          os:      info.os || null,
-          browser: info.browser || null,
-          cores:   info.cores || null,
-          memory:  info.memory || null,
-          webName: info.name || info.baseName || deviceId, // display name (renameable)
-          deviceId,
-        }]);
+        .map(([deviceId, info]) => {
+          const status = statusData[deviceId] || {};
+          const isOnline = status.state === 'online' || (status.connections && Object.keys(status.connections).length > 0);
+          
+          let lastSessionStr = '—';
+          if (isOnline) {
+            lastSessionStr = '<span style="color: var(--green); font-weight: bold;">🟢 Online ora</span>';
+          } else if (status.last_changed) {
+            lastSessionStr = new Date(status.last_changed).toLocaleString('it-IT', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+          } else if (info.updatedAt) {
+            lastSessionStr = new Date(info.updatedAt).toLocaleString('it-IT', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+          }
+
+          return [deviceId, {
+            docIds:      {},
+            dispositivo: '—',
+            versione:    '',
+            appalti:     info.pfsAreas || [],
+            ultimo:      lastSessionStr,
+            type:    'web',
+            os:      info.os || null,
+            browser: info.browser || null,
+            cores:   info.cores || null,
+            memory:  info.memory || null,
+            webName: info.name || info.baseName || deviceId, // display name (renameable)
+            deviceId,
+            isOnline
+          }];
+        });
 
       async function buildCard([name, info]) {
         const visible      = !hidden.some(h => h.toLowerCase() === name.toLowerCase());
@@ -201,7 +215,7 @@ export async function showTecnici() {
         return `<div class="toggle-wrap">
           <div class="toggle-info">
             <span class="toggle-name">${name} ${typeBadge}</span>
-            <span class="toggle-device">${deviceIcon} ${friendlyDevice}${versionBadge}${telemetryStr}${info.appalti.length ? ' · ' + info.appalti.join(', ') : ''} · ${info.ultimo}</span>
+            <span class="toggle-device">${deviceIcon} ${friendlyDevice}${versionBadge}${telemetryStr}${info.appalti.length ? ' · ' + info.appalti.join(', ') : ''} · Ultimo sync: ${info.ultimo}</span>
           </div>
           <div class="tecnici-actions">
             <button class="btn-tecnico-action btn-rename" onclick="renameTecnico('${escapedName}', '${docIdsJson}')" title="Rinomina">✏️ Rinomina</button>
@@ -250,10 +264,12 @@ export async function showTecnici() {
     const displayName = info.webName || info.baseName || deviceId;
     const escapedId   = deviceId.replace(/'/g, "\\'");
     const escapedDisplayName = displayName.replace(/'/g, "\\'");
+    const statusLabel = info.isOnline ? info.ultimo : `Ultima sessione: ${info.ultimo}`;
+
     return `<div class="toggle-wrap">
       <div class="toggle-info">
         <span class="toggle-name">${displayName} ${typeBadge}</span>
-        <span class="toggle-device">🖥️ ${details || 'Web Dashboard'} · PFS: ${info.appalti.length ? info.appalti.join(', ') : 'nessuna stella'} · ${info.ultimo}</span>
+        <span class="toggle-device">🖥️ ${details || 'Web Dashboard'} · PFS: ${info.appalti.length ? info.appalti.join(', ') : 'nessuna stella'} · ${statusLabel}</span>
         <span style="font-size:10px; color:var(--text-muted); font-family:var(--font-mono)">${deviceId}</span>
       </div>
       <div class="tecnici-actions">
@@ -278,6 +294,15 @@ export async function showTecnici() {
     });
     _tecniciListeners.push(unsub);
   });
+
+  // Listen to presence status from Realtime Database
+  const unsubStatus = onValue(ref(rtdb, '/status'), (snap) => {
+    statusData = snap.val() || {};
+    renderTecnici();
+  }, (e) => {
+    console.error("Errore caricamento status presenza:", e);
+  });
+  _tecniciListeners.push(unsubStatus);
 
   // Listen to web users from devices_names
   const unsubWeb = onSnapshot(doc(db, 'settings', 'devices_names'), (snap) => {
@@ -338,7 +363,6 @@ export async function renameWebTecnico(deviceId, currentName) {
 
 // ── DELETE WEB TECNICO ──
 export async function deleteWebTecnico(deviceId) {
-  const { deleteField } = await import('./firebase.js');
   const ok = await showConfirm({
     title: `Rimuovere "${deviceId}"?`,
     msg: 'Questo utente web verrà rimosso dal registro. Potrà ri-registrarsi al prossimo login.',
@@ -523,7 +547,6 @@ window.toggleBanTecnico = async function(deviceId, isBanned) {
   if (!ok) return;
   
   try {
-    const { doc, updateDoc, setDoc } = await import('./firebase.js');
     try {
       await updateDoc(doc(db, 'settings', 'devices_names'), {
         [`${deviceId}.banned`]: isBanned,
@@ -591,7 +614,6 @@ window.renderBannedListWithData = async function(devices) {
 };
 
 window.renderBannedList = async function() {
-  const { doc, getDoc } = await import('./firebase.js');
   const snap = await getDoc(doc(db, 'settings', 'devices_names'));
   const devices = snap.exists() ? snap.data() : {};
   renderBannedListWithData(devices);
@@ -608,9 +630,6 @@ window.deleteBannedData = async function(deviceId, name) {
   if (!ok) return;
   
   try {
-    const { doc, deleteDoc, updateDoc, collection, getDocs } = await import('./firebase.js');
-    const { APPALTI } = await import('./state.js');
-    
     showToast('Rimozione in corso...', 'info');
     
     for (const appalto of APPALTI) {
@@ -647,8 +666,6 @@ window.deleteBannedData = async function(deviceId, name) {
 // Funzione asincrona per contare i documenti di un utente bloccato
 window.countBannedUserDocs = async function(deviceId) {
   try {
-    const { collection, getDocs } = await import('./firebase.js');
-    const { APPALTI } = await import('./state.js');
     let totalDocs = 0;
     let foundAppalti = [];
     let detectedName = null;
