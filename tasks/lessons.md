@@ -145,3 +145,15 @@ Un numero eccessivo di letture (20k+) e scritture sono state generate dalla web 
 2. Nei componenti modali condizionali, consentire esplicitamente il rendering di HTML (es. tramite un flag `asHtml`) quando è necessario inserire controlli interattivi all'interno dei messaggi, e leggere questi controlli prima del reset/cleanup del DOM del modale.
 3. Eseguire in parallelo (`Promise.all`) gli aggiornamenti di Firestore su più documenti tecnici per abbattere i tempi di risposta rispetto a cicli asincroni sequenziali.
 4. Sincronizzare la presenza degli utenti web utilizzando Firebase Realtime Database (RTDB) invece di affidarsi solo al timestamp di aggiornamento di Firestore (`updatedAt`), garantendo una visualizzazione accurata in tempo reale dell'utente attivo ("🟢 Online ora") o dell'ultimo accesso logico.
+
+## Errore: Stato snapshot non persistente tra sessioni e non sincronizzato tra schede
+**Causa:** `currentDate` in `state.js` era una variabile JS in-memory inizializzata sempre a `'live'`. Ad ogni reload o apertura di una nuova scheda/PWA, lo snapshot tornava a `'live'` indipendentemente da cosa l'utente aveva selezionato. Inoltre, le schede aperte simultaneamente erano totalmente ignare dei cambi di snapshot effettuati altrove.
+**Regola:**
+1. Qualsiasi preferenza UI che l'utente imposta esplicitamente (come la data di snapshot) va persistita in `localStorage` con try/catch. La variabile in memoria va inizializzata leggendo `localStorage` all'avvio del modulo.
+2. Per sincronizzare stato tra schede dello stesso dominio, usare il listener `window.addEventListener('storage', ...)` che si attiva su qualsiasi scheda che NON ha fatto la modifica. Aggiornare il router (via hash change) o lo stato locale a seconda della vista corrente.
+3. Gli href della sidebar devono sempre riflettere la data attiva corrente. Creare un helper dedicato (`updateSidebarHrefsAndCounts`) da invocare ad ogni cambio rotta nel router, incluse le viste non-appalto.
+
+## Errore: Ramo snapshot di `loadAppalto` non filtrava tecnici senza materiali
+**Causa:** Il ramo live di `loadAppalto` filtrava i tecnici che non avevano alcun materiale con valore non-vuoto (`Object.values(mats).some(...)`). Il ramo snapshot invece costruiva la lista partendo dai documenti snapshot, filtrando solo gli `isHiddenDoc`, ma non applicava il filtro sui materiali vuoti. Risultato: nel ramo snapshot apparivano colonne di tecnici con tutta la riga vuota, mentre il drawer (che usava `updateSidebarCountsForDate` che aveva il filtro corretto) mostrava il conteggio giusto.
+**Regola:** Qualsiasi filtro applicato al ramo live di `loadAppalto` deve essere applicato identicamente al ramo snapshot. Quando si introduce un nuovo filtro (hidden, materiali vuoti, ecc.), verificare entrambi i rami. Il drawer e la tabella devono sempre mostrare lo stesso conteggio, altrimenti c'è un filtro mancante in uno dei due percorsi.
+

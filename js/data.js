@@ -1056,7 +1056,12 @@ export async function loadAppalto(appalto, dateKey = 'live') {
         ...d,
         id: d.id.replace('_' + dateKey, ''),
         tecnico: d.tecnico || d.id.replace('_' + dateKey, '')
-      })).filter(d => !isHiddenDoc(d, hidden));
+      })).filter(d => {
+        if (isHiddenDoc(d, hidden)) return false;
+        const mats = d.materiali;
+        if (!mats) return false;
+        return Object.values(mats).some(v => v !== '' && v !== '0' && v !== 0);
+      });
 
       const rawMaterials = await fetchRawMasterList(appalto);
 

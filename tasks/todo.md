@@ -104,9 +104,16 @@
   - Letto l'elemento di selezione del tecnico PRIMA della chiusura del modale per evitare race condition ed elementi persi.
   - Implementata la validazione dei nomi dei materiali inseriti dall'utente (no stringhe vuote, lunghezza massima 120 caratteri, e divieto di caratteri speciali non ammessi da Firestore quali `.` `/` `[` `]` `~` `*`).
   - Ottimizzate le scritture Firestore rendendole parallele tramite `Promise.all` invece di cicli sequenziali lenti.
-- [x] **Prevenzione Modifica Materiali Standard:**
-  - Integrata una restrizione per impedire modifiche o eliminazioni dei materiali standard dell'appalto (come modems/ONT, drop cable, ecc., contenuti nelle liste `lista.txt` o `Nomeappalto.txt` scaricate da GitHub).
-  - Rimossi i pulsanti delle azioni rapide per i materiali standard dalla visualizzazione della tabella materiali, lasciandoli attivi solo per i materiali custom (extra).
-- [x] **Refactoring Import Dinamici Redondanti:** Rimossi gli import dinamici non necessari all'interno di `js/tecnici.js` per risolvere i warning `[INEFFECTIVE_DYNAMIC_IMPORT]` di Vite e rendere il bundle di produzione più pulito.
-- [x] **Tracciamento Ultima Sessione Utenti Web:** Nella tab dei Tecnici, sotto la sezione "Dashboard Web", lo stato di presenza online e l'ultima sessione attiva vengono ora letti in real-time da Firebase Realtime Database (RTDB) e visualizzati esplicitamente (con etichetta "Ultima sessione: [data]" o "🟢 Online ora").
-- [x] **Build di Produzione:** Rigenerata la build di produzione (`npm run build`) in `docs/` e service worker.
+- [x] **Prevenzione Modifica Materiali Standard:** Integrata una restrizione per impedire modifiche o eliminazioni dei materiali standard. Rimossi pulsanti azioni rapide per materiali standard dalla tabella.
+- [x] **Refactoring Import Dinamici Redondanti:** Rimossi gli import dinamici non necessari in `js/tecnici.js`.
+- [x] **Tracciamento Ultima Sessione Utenti Web:** Presenza online e ultima sessione da RTDB in real-time nella tab Tecnici.
+- [x] **Build di Produzione:** Rigenerata la build (`npm run build`) in `docs/` e service worker.
+
+## 2026-06-29 — Sessione Sincronizzazione Snapshot + Fix Filtro Tecnici
+- [x] **Persistenza data snapshot tra sessioni (`state.js`):** `currentDate` salvata in `localStorage` (`tw_snapshot_date`) e ripristinata all'avvio. Sopravvive a reload e reinstall PWA.
+- [x] **Sincronizzazione snapshot tra schede/tab (`app.js`):** Listener `storage` su `window`: quando una scheda cambia snapshot, tutte le altre si aggiornano — se in vista appalto cambiano hash, altrimenti aggiornano stato e badge sidebar.
+- [x] **Link sidebar dinamici + badge contatori (`app.js`):** Helper `updateSidebarHrefsAndCounts(dateKey)` aggiorna href di tutti gli appalti e richiama `updateSidebarCountsForDate()`. Chiamato ad ogni cambio rotta.
+- [x] **Router migliorato (`app.js`):** Fallback hash usa `currentAppalto` e `currentDate` invece di valori hardcoded. Sidebar allineata alla data attiva ad ogni navigazione.
+- [x] **Fix Bug Critico: tecnici senza materiali nel ramo snapshot (`data.js`):** Il ramo snapshot di `loadAppalto` non filtrava tecnici con materiali tutti vuoti/zero. Aggiunto filtro identico al ramo live: `Object.values(mats).some(v => v !== '' && v !== '0' && v !== 0)`. Drawer corretto, tabella no — ora allineati.
+- [x] **Build di Produzione:** Rigenerata build (`npm run build`), bundle `docs/` e service worker PWA aggiornati.
+

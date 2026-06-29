@@ -1,6 +1,6 @@
 import { db, rtdb, ref, onValue, set, update, onDisconnect, serverTimestamp, doc, onSnapshot, enableNetwork, disableNetwork } from './firebase.js';
 import { APPALTI, currentUser, currentAppalto, currentDate, setCurrentAppalto, setCurrentDate, loadConfig, invalidateConfigCache } from './state.js';
-import { preloadCounts, loadAppalto, filterMaterials, toggleSnapshotDropdown, pickSnapshotDate, closeSnapshotDropdown, selectAppalto, onDateChange, loadGeo, addMaterialRow, editMaterialRow, deleteMaterialRow, scrollCellIntoViewCenter, scrollTechHeaderNeighbor, forceListUpdateFromGithub, toggleDrawer, closeDrawer } from './data.js';
+import { preloadCounts, loadAppalto, filterMaterials, toggleSnapshotDropdown, pickSnapshotDate, closeSnapshotDropdown, selectAppalto, onDateChange, loadGeo, addMaterialRow, editMaterialRow, deleteMaterialRow, scrollCellIntoViewCenter, scrollTechHeaderNeighbor, forceListUpdateFromGithub, toggleDrawer, closeDrawer, updateSidebarCountsForDate } from './data.js';
 import { escapeHtml, showConfirm, showToast } from './utils.js';
 import { exportToExcel, printTable } from './export.js';
 import { showTecnici, deleteTecnico, renameTecnico, toggleTecnico, renameWebTecnico, deleteWebTecnico, showBanned } from './tecnici.js';
@@ -35,13 +35,24 @@ export function toggleTheme() {
   applyTheme(theme || 'dark');
 })();
 
+// Helper to update sidebar links and count badges for a specific date
+function updateSidebarHrefsAndCounts(dateKey) {
+  APPALTI.forEach(a => {
+    const navEl = document.getElementById('nav-' + a);
+    if (navEl) {
+      navEl.setAttribute('href', `#/appalti/${a}/${dateKey}`);
+    }
+  });
+  updateSidebarCountsForDate(dateKey);
+}
+
 // ── BUILD SIDEBAR (after config load) ──
 async function buildSidebar() {
   await loadConfig();
   const sbContainer = document.getElementById('sidebar-appalti');
   if (sbContainer) {
     sbContainer.innerHTML = APPALTI.map((a, idx) => `
-      <a href="#/appalti/${a}/live" class="sidebar-item" id="nav-${a}" role="button" tabindex="0" onclick="closeDrawer()">
+      <a href="#/appalti/${a}/${currentDate}" class="sidebar-item" id="nav-${a}" role="button" tabindex="0" onclick="closeDrawer()">
         <div class="sidebar-item-left">
           <div class="dot-indicator"></div>
           ${escapeHtml(a)}
@@ -303,7 +314,8 @@ window.unlockScroll = function() {
 
 // ── HASH ROUTER ──
 function handleHashChange() {
-  const hash = window.location.hash || '#/appalti/Sertori/live';
+  const defaultAppalto = currentAppalto || APPALTI[0] || 'Sertori';
+  const hash = window.location.hash || `#/appalti/${defaultAppalto}/${currentDate}`;
   const path = hash.startsWith('#/') ? hash.slice(2) : hash.slice(1);
   const parts = path.split('/');
   const section = parts[0] || 'appalti';
@@ -325,6 +337,7 @@ function handleHashChange() {
     setCurrentDate(dateKey);
     loadAppalto(appalto, dateKey);
     if (tbAppalto) tbAppalto.textContent = appalto;
+    updateSidebarHrefsAndCounts(dateKey);
   } else {
     if (tbAppalto) tbAppalto.textContent = '—';
     if (section === 'admin') {
@@ -342,6 +355,7 @@ function handleHashChange() {
       if (area) pfsLookupSelectArea(decodeURIComponent(area));
       else showPfsRegionBrowser();
     }
+    updateSidebarHrefsAndCounts(currentDate);
   }
 }
 
@@ -467,3 +481,23 @@ if ('serviceWorker' in navigator) {
 // ENTRY POINT
 document.addEventListener('DOMContentLoaded', () => { buildSidebar(); });
 window.addEventListener('hashchange', handleHashChange);
+
+// Synchronize snapshot date selection across tabs/windows via localStorage
+window.addEventListener('storage', (e) => {
+  if (e.key === 'tw_snapshot_date') {
+    const newDate = e.newValue || 'live';
+    if (newDate !== currentDate) {
+      const hash = window.location.hash || '';
+      const path = hash.startsWith('#/') ? hash.slice(2) : hash.slice(1);
+      const parts = path.split('/');
+      const section = parts[0] || 'appalti';
+      if (section === 'appalti') {
+        const appalto = parts[1] || currentAppalto;
+        window.location.hash = `#/appalti/${appalto}/${newDate}`;
+      } else {
+        setCurrentDate(newDate);
+        updateSidebarHrefsAndCounts(newDate);
+      }
+    }
+  }
+});

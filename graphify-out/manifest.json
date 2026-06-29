@@ -1,22 +1,22 @@
 {
   "docs/registerSW.js": {
-    "mtime": 1782577765.2959378,
+    "mtime": 1782767583.7159662,
     "ast_hash": "402b66900e731ca748771b6fc5e7a068",
     "semantic_hash": ""
   },
   "docs/sw.js": {
-    "mtime": 1782577769.8856015,
-    "ast_hash": "69bab8f2b66d9150b908a34bcbc086a6",
+    "mtime": 1782767587.8372092,
+    "ast_hash": "d79791eeb524ddcf23a87ede49b67a84",
     "semantic_hash": ""
   },
   "docs/workbox-4b126c97.js": {
-    "mtime": 1782577769.8908613,
+    "mtime": 1782767587.8372092,
     "ast_hash": "b75e31ea2482a1ee9928e834baa821c7",
     "semantic_hash": ""
   },
   "js/app.js": {
-    "mtime": 1782248594.9052167,
-    "ast_hash": "5dbc980d0dc0b6fb333d7a6d98f78d6e",
+    "mtime": 1782767217.3697455,
+    "ast_hash": "12fd9475bbaef939cfc8b8ed04976311",
     "semantic_hash": ""
   },
   "js/aree.js": {
@@ -30,8 +30,8 @@
     "semantic_hash": ""
   },
   "js/data.js": {
-    "mtime": 1782577457.4196992,
-    "ast_hash": "c1e01ca8ad49eb8704690c6000b2b43e",
+    "mtime": 1782767576.0187378,
+    "ast_hash": "98eb313d9e1b200c0a9df8f23484c15a",
     "semantic_hash": ""
   },
   "js/export.js": {
@@ -55,8 +55,8 @@
     "semantic_hash": ""
   },
   "js/state.js": {
-    "mtime": 1782234519.2355223,
-    "ast_hash": "50056512b712d53905cae43910508278",
+    "mtime": 1782767196.3873663,
+    "ast_hash": "5837b81313d9e8cfbce5e80c08a309e6",
     "semantic_hash": ""
   },
   "js/tecnici.js": {
@@ -180,8 +180,8 @@
     "semantic_hash": ""
   },
   "docs/index.html": {
-    "mtime": 1782577765.2937536,
-    "ast_hash": "7b9f74d2dee267fe6030a53dba8754b7",
+    "mtime": 1782767583.7159662,
+    "ast_hash": "371acc89875407aa1d23d2c9c88dbbf8",
     "semantic_hash": ""
   },
   "index.html": {
@@ -200,8 +200,8 @@
     "semantic_hash": ""
   },
   "tasks/lessons.md": {
-    "mtime": 1782577535.9366486,
-    "ast_hash": "6b75563d0273d4fc7aba83905c9d7b43",
+    "mtime": 1782767984.1075118,
+    "ast_hash": "8a659150e0d2580d14fa575c1ec7eac0",
     "semantic_hash": ""
   },
   "tasks/onboarding.md": {
@@ -225,8 +225,8 @@
     "semantic_hash": ""
   },
   "tasks/todo.md": {
-    "mtime": 1782577529.074043,
-    "ast_hash": "d469c473ffc68a3f8c3fdde7aff195f2",
+    "mtime": 1782767933.3584487,
+    "ast_hash": "42cab50cf8c40b552cd1c4052b5655ca",
     "semantic_hash": ""
   },
   "docs/icons/icon-192.png": {
@@ -264,9 +264,9 @@
     "ast_hash": "67032275007c1e2d635f71607fb200e0",
     "semantic_hash": ""
   },
-  "docs/assets/index-vxM-eTTg.js": {
-    "mtime": 1782577765.288131,
-    "ast_hash": "94bd73a13bdc727b7477c4a333fefa08",
+  "docs/assets/index-BVrlIPZp.js": {
+    "mtime": 1782767583.7159662,
+    "ast_hash": "7e116a158b853c4fed4cb4262fa4f985",
     "semantic_hash": ""
   }
 }

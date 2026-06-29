@@ -8,13 +8,23 @@ export const USERS = {
   'Piero':   { hash: '83e3b78f14e08cc5e0bf037b1668b27bcde446cb05f04f86845deaf7812be71d', role: 'viewer' }
 };
 
+let initialDate = 'live';
+try {
+  initialDate = localStorage.getItem('tw_snapshot_date') || 'live';
+} catch(e) {}
+
 export let currentUser = null;
 export let currentAppalto = APPALTI[0];
-export let currentDate = 'live';
+export let currentDate = initialDate;
 
 export function setCurrentUser(u) { currentUser = u; }
 export function setCurrentAppalto(a) { currentAppalto = a; }
-export function setCurrentDate(d) { currentDate = d; }
+export function setCurrentDate(d) {
+  currentDate = d;
+  try {
+    localStorage.setItem('tw_snapshot_date', d);
+  } catch(e) {}
+}
 
 // ── CONFIG DA GITHUB (come ConfigManager.kt dell'app Android) ──
 const CONFIG_URL = 'https://raw.githubusercontent.com/gmaclol/Technicalwork-Materiali/master/lists/config.json';

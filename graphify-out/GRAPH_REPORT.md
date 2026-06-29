@@ -1,16 +1,16 @@
-# Graph Report - tchwrk2  (2026-06-27)
+# Graph Report - tchwrk2  (2026-06-29)
 
 ## Corpus Check
-- 44 files · ~399,916 words
+- 44 files · ~400,575 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 843 nodes · 1422 edges · 53 communities (47 shown, 6 thin omitted)
-- Extraction: 95% EXTRACTED · 5% INFERRED · 0% AMBIGUOUS · INFERRED: 70 edges (avg confidence: 0.8)
+- 851 nodes · 1434 edges · 52 communities (49 shown, 3 thin omitted)
+- Extraction: 95% EXTRACTED · 5% INFERRED · 0% AMBIGUOUS · INFERRED: 67 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `9a696277`
+- Built from commit: `fed3feb3`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -63,44 +63,43 @@
 - [[_COMMUNITY_Community 49|Community 49]]
 - [[_COMMUNITY_Community 50|Community 50]]
 - [[_COMMUNITY_Community 51|Community 51]]
-- [[_COMMUNITY_Community 52|Community 52]]
 
 ## God Nodes (most connected - your core abstractions)
-1. `$()` - 31 edges
-2. `lessons.md — Dashboard (tchwrk2)` - 31 edges
+1. `lessons.md — Dashboard (tchwrk2)` - 33 edges
+2. `$()` - 31 edges
 3. `showToast()` - 29 edges
 4. `t()` - 21 edges
-5. `k()` - 21 edges
-6. `Workflow Operativo AI-Assisted per Progetti Software` - 21 edges
-7. `handleHashChange()` - 19 edges
+5. `Workflow Operativo AI-Assisted per Progetti Software` - 21 edges
+6. `A()` - 20 edges
+7. `handleHashChange()` - 20 edges
 8. `escapeHtml()` - 16 edges
 9. `showConfirm()` - 16 edges
 10. `review.md — Dashboard (tchwrk2)` - 16 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `oe()` --calls--> `s`  [INFERRED]
-  docs/assets/index-vxM-eTTg.js → docs/workbox-4b126c97.js
+  docs/assets/index-BVrlIPZp.js → docs/workbox-4b126c97.js
 - `le()` --calls--> `s`  [INFERRED]
-  docs/assets/index-vxM-eTTg.js → docs/workbox-4b126c97.js
-- `L()` --calls--> `s`  [INFERRED]
-  docs/assets/index-vxM-eTTg.js → docs/workbox-4b126c97.js
+  docs/assets/index-BVrlIPZp.js → docs/workbox-4b126c97.js
+- `R()` --calls--> `s`  [INFERRED]
+  docs/assets/index-BVrlIPZp.js → docs/workbox-4b126c97.js
 - `h()` --calls--> `c()`  [INFERRED]
-  docs/workbox-4b126c97.js → docs/assets/index-vxM-eTTg.js
-- `vt()` --calls--> `r`  [INFERRED]
-  docs/assets/index-vxM-eTTg.js → docs/workbox-4b126c97.js
+  docs/workbox-4b126c97.js → docs/assets/index-BVrlIPZp.js
+- `on()` --calls--> `s`  [INFERRED]
+  docs/assets/index-BVrlIPZp.js → docs/workbox-4b126c97.js
 
 ## Import Cycles
 - None detected.
 
-## Communities (53 total, 6 thin omitted)
+## Communities (52 total, 3 thin omitted)
 
 ### Community 0 - "Community 0"
-Cohesion: 0.07
-Nodes (78): A(), Ae(), an(), at(), be(), bn(), bt(), c() (+70 more)
+Cohesion: 0.06
+Nodes (80): A(), Ae(), an(), at(), B(), be(), bn(), bt() (+72 more)
 
 ### Community 1 - "Community 1"
-Cohesion: 0.20
-Nodes (3): deleteCacheAndMetadata(), M, P
+Cohesion: 0.19
+Nodes (4): deleteCacheAndMetadata(), L(), M, P
 
 ### Community 2 - "Community 2"
 Cohesion: 0.04
@@ -108,15 +107,15 @@ Nodes (48): 1. Architettura Generale, 2.1 Login e Sessione, 2.2 Navigazione SPA 
 
 ### Community 3 - "Community 3"
 Cohesion: 0.08
-Nodes (45): initPresence(), stopPresence(), _activeRegions, _allAreas, _allPfsParsed, buildPfsItemsHtml(), _cacheArea(), _currentFilteredList (+37 more)
+Nodes (44): initPresence(), stopPresence(), _activeRegions, _allAreas, _allPfsParsed, buildPfsItemsHtml(), _cacheArea(), _currentFilteredList (+36 more)
 
 ### Community 4 - "Community 4"
 Cohesion: 0.05
 Nodes (39): 10. Anti-Patterns to Avoid, 11. Decision Checklist, 1. Framework Selection (2025), 2. Runtime Considerations (2025), 3. Architecture Principles, 4. Error Handling Principles, 5. Async Patterns Principles, 6. Validation Principles (+31 more)
 
 ### Community 5 - "Community 5"
-Cohesion: 0.13
-Nodes (25): checkStaleHashes(), _countListeners, filterMaterials(), forceListUpdateFromGithub(), _geoCache, _lastAllDocs, _lastRenderedTecNames, _lastRenderedValues (+17 more)
+Cohesion: 0.24
+Nodes (12): filterMaterials(), renderTable(), triggerTableRenderWithHidden(), updateKpiCards(), dateOnlyRelativeTime(), formatDateLabel(), formatQuantityTotal(), isToday() (+4 more)
 
 ### Community 6 - "Community 6"
 Cohesion: 0.06
@@ -128,11 +127,11 @@ Nodes (34): Article, Breadcrumbs, Crawlability, Critical, FAQ, Font sizes, Headi
 
 ### Community 8 - "Community 8"
 Cohesion: 0.14
-Nodes (8): $(), et, i, j, L(), r, V, x()
+Nodes (9): $(), ct(), et, ht(), i, j, V, W() (+1 more)
 
 ### Community 9 - "Community 9"
-Cohesion: 0.17
-Nodes (20): deleteDeviceAreas(), renameDevice(), savePfsAreas(), showAreeDashboard(), stopAreeListener(), addMaterialRow(), deleteMaterialRow(), editMaterialRow() (+12 more)
+Cohesion: 0.14
+Nodes (25): buildSidebar(), deleteDeviceAreas(), renameDevice(), savePfsAreas(), showAreeDashboard(), stopAreeListener(), addMaterialRow(), deleteMaterialRow() (+17 more)
 
 ### Community 10 - "Community 10"
 Cohesion: 0.09
@@ -152,15 +151,15 @@ Nodes (16): Buttons, Common ARIA patterns, Error states, Form fields, Level A (m
 
 ### Community 14 - "Community 14"
 Cohesion: 0.06
-Nodes (31): Errore: `100vh` su iOS causa overflow layout, Errore: `appearance: none` senza prefisso iOS, Errore: Async callback dentro `onSnapshot` senza try/catch, Errore Billing Spike Firestore (Reads e Writes), Errore: Crash di WebKit/Safari su iOS con liste DOM massicce (~5000+ nodi), Errore Crash Ricerca iOS e Accessibilità, Errore: `currentAppalto` letto dopo `await` in callback asincrona, Errore Distruzione Listener Globali (+23 more)
+Nodes (33): Errore: `100vh` su iOS causa overflow layout, Errore: `appearance: none` senza prefisso iOS, Errore: Async callback dentro `onSnapshot` senza try/catch, Errore Billing Spike Firestore (Reads e Writes), Errore: Crash di WebKit/Safari su iOS con liste DOM massicce (~5000+ nodi), Errore Crash Ricerca iOS e Accessibilità, Errore: `currentAppalto` letto dopo `await` in callback asincrona, Errore Distruzione Listener Globali (+25 more)
 
 ### Community 15 - "Community 15"
-Cohesion: 0.19
-Nodes (15): getCountListeners(), getHiddenTecnici(), getHiddenTecniciSync(), resetHiddenCache(), resetLastRenderedKey(), saveHiddenTecnici(), setHiddenCache(), _bannedListeners (+7 more)
+Cohesion: 0.18
+Nodes (16): getCountListeners(), getHiddenTecnici(), getHiddenTecniciSync(), resetHiddenCache(), resetLastRenderedKey(), saveHiddenTecnici(), setHiddenCache(), currentDate (+8 more)
 
 ### Community 16 - "Community 16"
-Cohesion: 0.13
-Nodes (27): applyTheme(), buildSidebar(), _deviceNamesCache, handleHashChange(), toggleTheme(), closeDrawer(), closeSnapshotDropdown(), loadAppalto() (+19 more)
+Cohesion: 0.18
+Nodes (18): applyTheme(), _deviceNamesCache, handleHashChange(), toggleTheme(), updateSidebarHrefsAndCounts(), loadAppalto(), loadGeo(), scrollCellIntoViewCenter() (+10 more)
 
 ### Community 17 - "Community 17"
 Cohesion: 0.13
@@ -199,8 +198,8 @@ Cohesion: 0.17
 Nodes (11): API Response Format, Authentication & Authorization, Caching Strategies, Database Patterns, Dependency Injection, DI Container, JWT Authentication, MongoDB with Mongoose (+3 more)
 
 ### Community 26 - "Community 26"
-Cohesion: 0.14
-Nodes (23): checkSession(), doLogin(), doLogout(), hashPassword(), showApp(), finishEdit(), initGlobalHiddenListener(), preloadCounts() (+15 more)
+Cohesion: 0.16
+Nodes (20): checkSession(), doLogin(), doLogout(), hashPassword(), showApp(), initGlobalHiddenListener(), preloadCounts(), clearUnseenPfsCount() (+12 more)
 
 ### Community 27 - "Community 27"
 Cohesion: 0.18
@@ -227,8 +226,8 @@ Cohesion: 0.29
 Nodes (7): Contesto Minimo Necessario, Gestione Chiavi e Segreti, Non Aggiungere Nulla di Non Richiesto, Principi Fondamentali, Quando Chiedere vs Quando Procedere, Semplicità Prima di Tutto, Standard Senior
 
 ### Community 33 - "Community 33"
-Cohesion: 0.15
-Nodes (12): 2026-05-28 — Sessione Precedente, 2026-05-31 — Sessione Corrente, 2026-06-20 — Sessione Corrente, 2026-06-22 — Sessione 2, 2026-06-22 — Sessione Corrente, 2026-06-23 — Sessione Accessibilità PWA, Gestione Scroll-Lock e Icone Dispositivo, 2026-06-23 — Sessione Correzione Bug Router (DeepSeek Regressions), 2026-06-23 — Sessione PWA Bugfix (Theme Switcher, Online Count, Routing e Tooltip) (+4 more)
+Cohesion: 0.14
+Nodes (13): 2026-05-28 — Sessione Precedente, 2026-05-31 — Sessione Corrente, 2026-06-20 — Sessione Corrente, 2026-06-22 — Sessione 2, 2026-06-22 — Sessione Corrente, 2026-06-23 — Sessione Accessibilità PWA, Gestione Scroll-Lock e Icone Dispositivo, 2026-06-23 — Sessione Correzione Bug Router (DeepSeek Regressions), 2026-06-23 — Sessione PWA Bugfix (Theme Switcher, Online Count, Routing e Tooltip) (+5 more)
 
 ### Community 34 - "Community 34"
 Cohesion: 0.33
@@ -262,29 +261,37 @@ Nodes (3): 8. Correzione Autonoma Bug, Procedura, Vietato
 Cohesion: 0.67
 Nodes (3): 9. Verifica Prima del Completamento, Domanda Finale, Verifiche obbligatorie
 
+### Community 49 - "Community 49"
+Cohesion: 0.20
+Nodes (3): h(), r, s
+
 ### Community 50 - "Community 50"
-Cohesion: 0.25
-Nodes (6): ct(), F, ht(), s, W(), loadGeo()
+Cohesion: 0.29
+Nodes (4): F, y(), loadBrandModels(), resolveDeviceName()
+
+### Community 51 - "Community 51"
+Cohesion: 0.12
+Nodes (23): checkStaleHashes(), closeDrawer(), closeSnapshotDropdown(), _countListeners, forceListUpdateFromGithub(), _geoCache, _lastAllDocs, _lastRenderedTecNames (+15 more)
 
 ## Knowledge Gaps
-- **402 isolated node(s):** `_deviceNamesCache`, `_staleCacheMap`, `_lastAllDocs`, `_countListeners`, `_liveCounts` (+397 more)
+- **405 isolated node(s):** `_deviceNamesCache`, `_staleCacheMap`, `_lastAllDocs`, `_countListeners`, `_liveCounts` (+400 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **6 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **3 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `$()` connect `Community 8` to `Community 0`, `Community 1`, `Community 12`, `Community 48`, `Community 49`, `Community 50`, `Community 51`?**
+- **Why does `$()` connect `Community 8` to `Community 0`, `Community 1`, `Community 12`, `Community 48`, `Community 49`, `Community 50`?**
   _High betweenness centrality (0.031) - this node is a cross-community bridge._
-- **Why does `loadGeo()` connect `Community 50` to `Community 16`, `Community 5`?**
-  _High betweenness centrality (0.024) - this node is a cross-community bridge._
+- **Why does `loadGeo()` connect `Community 16` to `Community 50`, `Community 51`?**
+  _High betweenness centrality (0.025) - this node is a cross-community bridge._
 - **Why does `t()` connect `Community 0` to `Community 1`, `Community 50`?**
-  _High betweenness centrality (0.018) - this node is a cross-community bridge._
+  _High betweenness centrality (0.019) - this node is a cross-community bridge._
 - **Are the 7 inferred relationships involving `t()` (e.g. with `.cacheMatch()` and `.cachePut()`) actually correct?**
   _`t()` has 7 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `_deviceNamesCache`, `_staleCacheMap`, `_lastAllDocs` to the rest of the system?**
-  _402 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _405 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
-  _Cohesion score 0.06556948798328109 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.06227106227106227 - nodes in this community are weakly interconnected._
 - **Should `Community 2` be split into smaller, more focused modules?**
   _Cohesion score 0.04081632653061224 - nodes in this community are weakly interconnected._
