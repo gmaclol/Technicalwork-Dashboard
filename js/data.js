@@ -1,5 +1,5 @@
 // ── Data loading, rendering, navigation ──
-import { db, doc, collection, getDocs, onSnapshot, getDoc, setDoc, updateDoc, deleteField } from './firebase.js';
+import { db, doc, collection, getDocs, onSnapshot, getDoc, setDoc, updateDoc, deleteField, FieldPath } from './firebase.js';
 import { APPALTI, currentUser, currentAppalto, currentDate, setCurrentAppalto, setCurrentDate, invalidateConfigCache } from './state.js';
 import { escapeHtml, isToday, relativeTime, dateOnlyRelativeTime, techStatus, formatDateLabel, parseTimestamp, showToast, parseQuantity, formatQuantityTotal, showConfirm, showRenameModal } from './utils.js';
 import { exportToExcel, printTable } from './export.js';
@@ -13,6 +13,7 @@ function simpleHash(obj) {
   }
   return h.toString(36);
 }
+
 
 let _staleCache = null;
 let _staleCheckedForAppalto = null;
@@ -485,163 +486,238 @@ export function filterMaterials(query) {
 }
 
 // ── ADD MATERIAL ROW ──
-// Caratteri vietati nelle chiavi Firestore
-const FIRESTORE_FORBIDDEN = /[.\/\[\]~*]/;
+// Caratteri vietati nelle chiavi Firestore (punto consentito tramite FieldPath)
+const FIRESTORE_FORBIDDEN = /[\/\[\]~*]/;
 
 function validateMaterialName(name) {
   if (!name || !name.trim()) return 'Il nome del materiale non può essere vuoto.';
-  if (FIRESTORE_FORBIDDEN.test(name)) return 'Il nome contiene caratteri non consentiti (. / [ ] ~ *).';
+  if (FIRESTORE_FORBIDDEN.test(name)) return 'Il nome contiene caratteri non consentiti (/ [ ] ~ *).';
   if (name.length > 120) return 'Il nome è troppo lungo (max 120 caratteri).';
   return null;
 }
 
 export async function addMaterialRow() {
-  // 1. Recupera la master list per suggerimenti e verifica duplicati
-  const rawMaterials = await fetchRawMasterList(currentAppalto);
-  const existingMaterials = new Set();
-  // Raccoglie anche i materiali custom già presenti nei documenti Firestore
-  _lastAllDocs
-    .filter(d => !/_\d{4}-\d{2}-\d{2}$/.test(d.id))
-    .forEach(d => {
-      if (d.materiali) Object.keys(d.materiali).forEach(m => existingMaterials.add(m.toLowerCase()));
-    });
-  rawMaterials.forEach(m => {
-    if (!/^::.*::$/.test(m.trim()) && !/^;;.*;;$/.test(m.trim())) {
-      existingMaterials.add(m.toLowerCase());
-    }
-  });
-
-  const newName = await showRenameModal({
-    title: 'Aggiungi materiale',
-    defaultValue: '',
-    icon: '➕'
-  });
-  if (!newName) return;
-
-  // 2. Validazione nome
-  const validationError = validateMaterialName(newName);
-  if (validationError) {
-    showToast(validationError, 'warning');
-    return;
-  }
-
-  // 3. Avviso se il materiale esiste già nella griglia (non blocca, solo warning)
-  if (existingMaterials.has(newName.toLowerCase())) {
-    const goAhead = await showConfirm({
-      title: 'Materiale già presente',
-      msg: `"${escapeHtml(newName)}" esiste già nella lista. Vuoi aggiungerlo comunque?`,
-      icon: '⚠️',
-      okLabel: 'Aggiungi comunque',
-      okAccent: true,
-      asHtml: true
-    });
-    if (!goAhead) return;
-  }
-
   try {
-    showToast('Recupero tecnici...', 'info');
+    showToast('Recupero tecnici e materiali...', 'info');
 
+    // 1. Recupera materiali esistenti per la tendina
+    const rawMaterials = await fetchRawMasterList(currentAppalto);
+    const existingMaterials = new Set();
+    _lastAllDocs.forEach(d => {
+      if (d.materiali) Object.keys(d.materiali).forEach(m => existingMaterials.add(m));
+    });
+    rawMaterials.forEach(m => {
+      if (!/^::.*::$/.test(m.trim()) && !/^;;.*;;$/.test(m.trim())) {
+        existingMaterials.add(m);
+      }
+    });
+    const sortedMaterials = Array.from(existingMaterials).sort((a, b) => a.localeCompare(b));
+
+    // 2. Recupera tecnici globali e locali per individuare tutti quelli noti e chi non è attivo oggi
     const snap = await getDocs(collection(db, currentAppalto));
-    const allDocs = snap.docs.filter(d => !/_\d{4}-\d{2}-\d{2}$/.test(d.id));
-    const activeTechs = allDocs
-      .map(d => ({ id: d.id, ...d.data() }))
-      .filter(t => t.materiali);
+    const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    const liveDocs = docs.filter(d => !/_\d{4}-\d{2}-\d{2}$/.test(d.id));
+    const histDocs = docs.filter(d => /_\d{4}-\d{2}-\d{2}$/.test(d.id));
+
+    // Mappa dei tecnici unici (id -> { id, tecnico, dispositivo, materiali, ordine, isLive })
+    const techsMap = new Map();
+
+    // Leggiamo devices_names globale per ricavare i nomi aggiornati ed escludere i client web
+    let devicesData = {};
+    try {
+      const devicesSnap = await getDoc(doc(db, 'settings', 'devices_names'));
+      if (devicesSnap.exists()) {
+        devicesData = devicesSnap.data();
+      }
+    } catch (e) {
+      console.warn("Impossibile caricare i dispositivi globali in addMaterialRow:", e);
+    }
+
+    // Inizializziamo la mappa con TUTTI i tecnici app (non web) registrati nel sistema
+    Object.keys(devicesData).forEach(deviceId => {
+      const dev = devicesData[deviceId];
+      if (!dev || !dev.name || dev.type === 'web') return;
+
+      techsMap.set(deviceId, {
+        id: deviceId,
+        tecnico: dev.name,
+        dispositivo: '—',
+        materiali: {},
+        ordine: [],
+        isLive: false
+      });
+    });
+
+    // Ordiniamo storici per ID (cronologico per via del suffisso data)
+    histDocs.sort((a, b) => a.id.localeCompare(b.id));
+
+    // Sovrascriviamo o integriamo con gli storici dell'appalto
+    histDocs.forEach(d => {
+      const match = d.id.match(/^(.*)_(\d{4}-\d{2}-\d{2})$/);
+      if (match) {
+        const deviceId = match[1];
+        const existing = techsMap.get(deviceId);
+        techsMap.set(deviceId, {
+          id: deviceId,
+          tecnico: d.tecnico || (existing ? existing.tecnico : deviceId),
+          dispositivo: d.dispositivo || (existing ? existing.dispositivo : '—'),
+          materiali: d.materiali || {},
+          ordine: d.ordine || [],
+          isLive: false
+        });
+      }
+    });
+
+    // Sovrascriviamo o integriamo con i live dell'appalto
+    liveDocs.forEach(d => {
+      const activeToday = isToday(d.ultimo_aggiornamento);
+      const existing = techsMap.get(d.id);
+      techsMap.set(d.id, {
+        id: d.id,
+        tecnico: d.tecnico || (existing ? existing.tecnico : d.id),
+        dispositivo: d.dispositivo || (existing ? existing.dispositivo : '—'),
+        materiali: d.materiali || {},
+        ordine: d.ordine || [],
+        isLive: activeToday
+      });
+    });
+
+    // Filtriamo i tecnici nascosti/disattivati
+    const hidden = getHiddenTecniciSync();
+    const activeTechs = Array.from(techsMap.values()).filter(t => !isHiddenDoc(t, hidden));
 
     if (activeTechs.length === 0) {
       showToast('Nessun tecnico disponibile.', 'warning');
       return;
     }
 
-    const optionsHtml = activeTechs.map(t =>
-      `<option value="${escapeHtml(t.id)}">${escapeHtml(t.tecnico || t.id)}</option>`
+    // 3. Generazione opzioni materiali e tecnici
+    const materialOptionsHtml = sortedMaterials.map(m =>
+      `<option value="${escapeHtml(m)}">${escapeHtml(m)}</option>`
     ).join('');
 
-    const msgHtml = `
-      <p>${escapeHtml(`Vuoi aggiungere "${newName}" a tutti i tecnici o solo a uno di essi?`)}</p>
-      <div style="margin-top:14px; text-align:left;">
-        <label for="confirm-select-tech" style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:6px;">Seleziona tecnico (se vuoi aggiungere solo a uno):</label>
-        <select id="confirm-select-tech" class="select-fancy" style="width:100%; box-sizing:border-box;">
-          ${optionsHtml}
+    const techsOptions = activeTechs.map(t =>
+      `<option value="${escapeHtml(t.id)}">${escapeHtml(t.tecnico || t.id)}</option>`
+    ).join('');
+    const techOptionsHtml = `
+      <div style="margin-top:10px; text-align:left;">
+        <label for="rename-tech-select" style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">Seleziona tecnico:</label>
+        <select id="rename-tech-select" class="select-fancy" style="width:100%; box-sizing:border-box;">
+          <option value="all">-- Aggiungi a tutti i tecnici --</option>
+          ${techsOptions}
         </select>
       </div>
     `;
 
-    // Cattura il valore del select PRIMA che il modale venga chiuso
-    let selectedTechId = null;
-    const _origClose = null; // sarà gestito dal flusso sottostante
+    const htmlContent = `
+      <div style="margin-top:14px; text-align:left; display: flex; flex-direction: column; gap: 12px;">
+        <div>
+          <label for="rename-material-select" style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">Oppure seleziona materiale esistente:</label>
+          <select id="rename-material-select" class="select-fancy" style="width:100%; box-sizing:border-box;">
+            <option value="">-- Scrivi custom sopra o scegli esistente qui --</option>
+            ${materialOptionsHtml}
+          </select>
+        </div>
+        ${techOptionsHtml}
+        <div>
+          <label for="rename-qty-input" style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">Imposta quantità:</label>
+          <input type="text" id="rename-qty-input" class="rename-field" style="width:100%; box-sizing:border-box; margin-top:0;" value="1" placeholder="es: 1 o 1+2sparati">
+        </div>
+      </div>
+    `;
 
-    const choice = await showConfirm({
+    // 4. Mostra il modale unificato
+    const modalResult = await showRenameModal({
       title: 'Aggiungi materiale',
-      msg: msgHtml,
+      defaultValue: '',
       icon: '➕',
-      okLabel: 'Aggiungi per tutti',
-      okAccent: true,
-      extraLabel: 'Solo per selezionato',
-      asHtml: true
+      okLabel: 'Aggiungi',
+      htmlContent: htmlContent
     });
 
-    // Leggi il select PRIMA del cleanup (il modale è ancora nel DOM)
-    const selectEl = document.getElementById('confirm-select-tech');
-    if (selectEl) selectedTechId = selectEl.value;
+    if (!modalResult) return;
 
-    // Cleanup del contenuto modale
-    const msgEl = document.getElementById('confirm-msg');
-    if (msgEl) msgEl.innerHTML = '';
+    const inputVal = typeof modalResult === 'object' ? modalResult.value : modalResult;
+    const materialSelectVal = typeof modalResult === 'object' ? modalResult.materialSelect : '';
+    const selectedTechId = typeof modalResult === 'object' ? modalResult.techSelect : 'all';
+    const qtyInputVal = typeof modalResult === 'object' ? modalResult.qtyInput : '1';
 
-    if (!choice) return;
+    // Determina il materiale finale da utilizzare
+    const finalMaterialName = inputVal ? inputVal : materialSelectVal;
+    if (!finalMaterialName) {
+      showToast('Devi inserire un nome custom o selezionare un materiale esistente.', 'warning');
+      return;
+    }
+
+    // 5. Validazioni e duplicati per nuovi materiali
+    if (!materialSelectVal) {
+      const validationError = validateMaterialName(finalMaterialName);
+      if (validationError) {
+        showToast(validationError, 'warning');
+        return;
+      }
+
+      const normalizedName = finalMaterialName.toLowerCase();
+      const isDuplicate = sortedMaterials.some(m => m.toLowerCase() === normalizedName);
+      if (isDuplicate) {
+        const goAhead = await showConfirm({
+          title: 'Materiale già presente',
+          msg: `"${escapeHtml(finalMaterialName)}" esiste già nella lista. Vuoi aggiungerlo comunque?`,
+          icon: '⚠️',
+          okLabel: 'Aggiungi comunque',
+          okAccent: true,
+          asHtml: true
+        });
+        if (!goAhead) return;
+      }
+    }
 
     showToast('Aggiunta in corso...', 'info');
 
     let updatedCount = 0;
-    if (choice === 'extra' && selectedTechId) {
+
+    const updateOrCreateTechDoc = async (t) => {
+      if (t.isLive) {
+        await updateDoc(
+          doc(db, currentAppalto, t.id),
+          new FieldPath('materiali', finalMaterialName), qtyInputVal,
+          'last_updated_at', Date.now(),
+          'last_updated_by', 'admin'
+        );
+      } else {
+        const newMateriali = { ...t.materiali, [finalMaterialName]: qtyInputVal };
+        const newOrdine = [...t.ordine];
+        if (!newOrdine.includes(finalMaterialName)) newOrdine.push(finalMaterialName);
+
+        const timestamp = new Date().toLocaleTimeString('it-IT').slice(0, 5) + ' ' + new Date().toLocaleDateString('it-IT');
+        await setDoc(doc(db, currentAppalto, t.id), {
+          tecnico: t.tecnico,
+          dispositivo: t.dispositivo || '—',
+          ultimo_aggiornamento: timestamp,
+          last_updated_at: Date.now(),
+          last_updated_by: 'admin',
+          appalto: currentAppalto,
+          materiali: newMateriali,
+          ordine: newOrdine
+        });
+      }
+    };
+
+    if (selectedTechId !== 'all') {
       const targetTech = activeTechs.find(t => t.id === selectedTechId);
       if (targetTech) {
-        await updateDoc(doc(db, currentAppalto, targetTech.id), {
-          [`materiali.${newName}`]: '1',
-          last_updated_at: Date.now(),
-          last_updated_by: 'admin'
-        });
+        await updateOrCreateTechDoc(targetTech);
         updatedCount = 1;
       }
-    } else if (choice === true) {
-      // Write parallele per velocità
-      await Promise.all(activeTechs.map(t =>
-        updateDoc(doc(db, currentAppalto, t.id), {
-          [`materiali.${newName}`]: '1',
-          last_updated_at: Date.now(),
-          last_updated_by: 'admin'
-        })
-      ));
+    } else {
+      // Write parallele per tutti i tecnici
+      await Promise.all(activeTechs.map(t => updateOrCreateTechDoc(t)));
       updatedCount = activeTechs.length;
     }
 
-    // ⚡ Optimistic DOM update: add a row immediately
-    const tbody = document.querySelector('tbody');
-    if (tbody && updatedCount > 0) {
-      const tr = document.createElement('tr');
-      tr.dataset.material = newName.toLowerCase();
-      const td = document.createElement('td');
-      td.className = 'td-material';
-      td.textContent = newName;
-      tr.appendChild(td);
-      const cols = document.querySelectorAll('thead th').length - 1;
-      for (let i = 0; i < cols; i++) {
-        const cell = document.createElement('td');
-        cell.className = 'td-value has-value';
-        cell.textContent = choice === true ? '1' : (i === activeTechs.findIndex(t => t.id === selectedTechId) ? '1' : '·');
-        cell.classList.toggle('empty', cell.textContent === '·');
-        if (cell.textContent === '·') cell.classList.remove('has-value');
-        tr.appendChild(cell);
-      }
-      const firstRow = tbody.querySelector('tr');
-      if (firstRow) {
-        tbody.insertBefore(tr, firstRow);
-      } else {
-        tbody.appendChild(tr);
-      }
-    }
     _lastRenderedKey = null;
-    showToast(`✅ Aggiunto "${escapeHtml(newName)}" a ${updatedCount} tecnico/i.`, 'success', 3500, true);
+    showToast(`✅ Aggiornato "${escapeHtml(finalMaterialName)}" per ${updatedCount} tecnico/i.`, 'success', 3500, true);
   } catch (e) {
     showToast('Errore durante l\'aggiunta: ' + e.message, 'error', 5000);
     console.error(e);
@@ -1155,7 +1231,19 @@ function renderTable(appalto, tecnici, container, dateKey = 'live', allDocs = []
             if (cell) {
               const cls = val !== '' ? 'has-value' : 'empty';
               const display = val !== '' ? val : '·';
-              cell.className = `td-value ${cls}`;
+              
+              const isAdmin = currentUser && currentUser.role === 'admin';
+              if (isAdmin && dateKey === 'live') {
+                cell.className = `td-value ${cls} editable-cell`;
+                cell.dataset.raw = val;
+                cell.dataset.techId = t.id;
+                cell.dataset.materialName = mat;
+              } else {
+                cell.className = `td-value ${cls}`;
+                delete cell.dataset.raw;
+                delete cell.dataset.techId;
+                delete cell.dataset.materialName;
+              }
               cell.textContent = display;
             }
           }
@@ -1503,11 +1591,12 @@ window.editQuantityInline = function(cell) {
         cell.className = `td-value ${newCls} editable-cell`;
         cell.textContent = newVal !== '' ? newVal : '·';
         
-        await updateDoc(doc(db, capturedAppalto, techId), {
-          [`materiali.${materialName}`]: newVal,
-          last_updated_at: Date.now(),
-          last_updated_by: currentUser?.name || 'admin'
-        });
+        await updateDoc(
+          doc(db, capturedAppalto, techId),
+          new FieldPath('materiali', materialName), newVal,
+          'last_updated_at', Date.now(),
+          'last_updated_by', currentUser?.name || 'admin'
+        );
         showToast('Quantità aggiornata', 'success');
       } catch(e) {
         showToast('Errore durante l\'aggiornamento: ' + e.message, 'error');

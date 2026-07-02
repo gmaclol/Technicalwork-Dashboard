@@ -443,11 +443,12 @@ body.scroll-locked {
 }
 #confirm-overlay.show { display: flex; }
 .confirm-box {
-  width: 420px; max-width: calc(100vw - 32px); padding: 36px 32px;
+  width: 420px; max-width: calc(100vw - 32px); max-height: calc(100vh - 48px); padding: 36px 32px;
   background: var(--surface-solid); border: 1px solid var(--border-strong);
   border-radius: var(--radius-xl); box-shadow: var(--shadow-lg);
   animation: scaleUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   display: flex; flex-direction: column; gap: 20px;
+  overflow-y: auto;
 }
 .confirm-icon { font-size: 36px; text-align: center; }
 .confirm-title { font-size: 18px; font-weight: 700; color: var(--text); text-align: center; }

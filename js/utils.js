@@ -215,6 +215,8 @@ export function showRenameModal(options = {}) {
   let title = 'Rinomina';
   let defaultValue = '';
   let icon = '✏️';
+  let htmlContent = '';
+  let okLabel = 'Rinomina';
 
   if (typeof options === 'string') {
     defaultValue = options;
@@ -222,6 +224,8 @@ export function showRenameModal(options = {}) {
     title = options.title || title;
     defaultValue = options.defaultValue || defaultValue;
     icon = options.icon || icon;
+    htmlContent = options.htmlContent || '';
+    okLabel = options.okLabel || okLabel;
   }
 
   return new Promise(resolve => {
@@ -229,6 +233,19 @@ export function showRenameModal(options = {}) {
     document.getElementById('rename-title').textContent = title || '';
     const inp = document.getElementById('rename-input');
     inp.value = defaultValue;
+    
+    const msgEl = document.getElementById('rename-msg');
+    if (htmlContent) {
+      msgEl.innerHTML = htmlContent;
+      msgEl.style.display = 'block';
+    } else {
+      msgEl.innerHTML = '';
+      msgEl.style.display = 'none';
+    }
+
+    const okBtn = document.getElementById('rename-ok');
+    okBtn.textContent = okLabel;
+
     const overlay = document.getElementById('rename-overlay');
     overlay.classList.add('show');
     if (typeof window.lockScroll === 'function') window.lockScroll();
@@ -238,6 +255,25 @@ export function showRenameModal(options = {}) {
     const box = overlay.querySelector('.confirm-box');
     const removeTrap = trapFocus(box);
 
+    const getResult = () => {
+      const val = inp.value.trim();
+      const selectEl = document.getElementById('rename-select');
+      const materialSelectEl = document.getElementById('rename-material-select');
+      const techSelectEl = document.getElementById('rename-tech-select');
+      const qtyInputEl = document.getElementById('rename-qty-input');
+
+      if (selectEl || materialSelectEl || techSelectEl || qtyInputEl) {
+        return {
+          value: val,
+          selectValue: selectEl ? selectEl.value : '',
+          materialSelect: materialSelectEl ? materialSelectEl.value : '',
+          techSelect: techSelectEl ? techSelectEl.value : 'all',
+          qtyInput: qtyInputEl ? qtyInputEl.value.trim() : '1'
+        };
+      }
+      return val || null;
+    };
+
     const close = (result) => {
       overlay.classList.remove('show');
       removeTrap();
@@ -245,21 +281,26 @@ export function showRenameModal(options = {}) {
       document.getElementById('rename-cancel').replaceWith(document.getElementById('rename-cancel').cloneNode(true));
       inp.removeEventListener('keydown', onKey);
       document.removeEventListener('keydown', onEsc);
+      overlay.removeEventListener('click', onOverlayClick);
+      msgEl.innerHTML = '';
+      msgEl.style.display = 'none';
+      document.getElementById('rename-ok').textContent = 'Rinomina';
       if (typeof window.unlockScroll === 'function') window.unlockScroll();
       resolve(result);
     };
 
     const onKey = (e) => {
-      if (e.key === 'Enter') { e.preventDefault(); close(inp.value.trim() || null); }
+      if (e.key === 'Enter') { e.preventDefault(); close(getResult()); }
     };
     const onEsc = (e) => {
       if (e.key === 'Escape') { e.preventDefault(); close(null); }
     };
+    const onOverlayClick = (e) => { if (e.target === overlay) close(null); };
     inp.addEventListener('keydown', onKey);
     document.addEventListener('keydown', onEsc);
-    document.getElementById('rename-ok').addEventListener('click', () => close(inp.value.trim() || null), { once: true });
+    document.getElementById('rename-ok').addEventListener('click', () => close(getResult()), { once: true });
     document.getElementById('rename-cancel').addEventListener('click', () => close(null), { once: true });
-    overlay.addEventListener('click', e => { if (e.target === overlay) close(null); }, { once: true });
+    overlay.addEventListener('click', onOverlayClick);
   });
 }
 

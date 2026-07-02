@@ -3,7 +3,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/fireba
 import {
   getFirestore, collection, getDocs, doc, setDoc,
   getDoc, onSnapshot, deleteDoc, updateDoc, deleteField,
-  disableNetwork, enableNetwork
+  disableNetwork, enableNetwork, FieldPath
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import {
   getDatabase, ref, onValue, set, update, onDisconnect, serverTimestamp, get
@@ -26,5 +26,6 @@ export const rtdb = getDatabase(app);
 export {
   collection, getDocs, doc, setDoc, getDoc, onSnapshot, deleteDoc, updateDoc, deleteField,
   ref, onValue, set, update, onDisconnect, serverTimestamp, get as rtdbGet,
-  disableNetwork, enableNetwork
+  disableNetwork, enableNetwork, FieldPath
 };
+
