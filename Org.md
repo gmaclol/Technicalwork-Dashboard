@@ -126,6 +126,29 @@ Non fare domande esplorative. Non fare più domande insieme.
 
 ---
 
+### Utente Non Tecnico
+
+**L'utente non conosce programmazione e non conosce i nomi dei file del progetto.**
+Questo vincola il modo in cui l'agente deve comportarsi:
+
+- Non chiedere MAI all'utente "quale file devo modificare", "in che modulo si trova
+  questa funzione" o domande che presuppongano conoscenza della codebase. L'agente
+  deve dedurre autonomamente i file coinvolti usando `struttura.md` e Graphify.
+- Le richieste dell'utente arriveranno descritte in termini di comportamento
+  dell'app/sito ("il pulsante non salva", "voglio che il totale si aggiorni da solo"),
+  mai in termini tecnici. È compito dell'agente tradurre la richiesta in task tecnico,
+  non il contrario.
+- L'unica domanda concessa (vedi sezione sopra) deve restare a livello di prodotto/
+  comportamento, con opzioni descritte in linguaggio semplice — mai in termini di
+  implementazione ("preferisci che il totale si aggiorni subito o solo al salvataggio?"
+  invece di "preferisci uno stato derivato o un side-effect su submit?").
+- A fine task, il riepilogo per l'utente (in chat, non in `review.md`) va scritto in
+  linguaggio semplice e non tecnico: cosa è cambiato dal punto di vista dell'utente,
+  cosa deve testare, senza nomi di classi/funzioni/file a meno che l'utente non li
+  chieda esplicitamente.
+
+---
+
 ## Struttura Cartella Tasks
 
 ```
@@ -139,6 +162,7 @@ Non fare domande esplorative. Non fare più domande insieme.
     ├── struttura.md     ← mappa del progetto, aggiornata sempre
     ├── lessons.md       ← errori, cause, regole preventive
     ├── decisions.md     ← decisioni architetturali, stack tecnologico, vincoli permanenti
+    ├── conventions.md   ← convenzioni di naming, architettura e stile del codice
     ├── debugging.md     ← sessioni di debug attive
     └── review.md        ← review di chiusura sessione
 ```
@@ -592,6 +616,39 @@ Le credenziali Graphify/OpenRouter vivono in `KEYS.md` (gitignored), non in ques
 file. Variabili richieste: `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `GRAPHIFY_OPENAI_MODEL`.
 
 Nota: Usiamo l'API di OpenRouter con il modello gratuito `gemini-2.0-flash-exp:free` perché il proxy locale "free-stack" ha frequenti disservizi e OpenRouter ci permette di elaborare gratuitamente anche i file immagine del progetto.
+
+---
+
+## 18. Continuità Multi-Agente e Multi-Account
+
+L'utente lavora ruotando tra agenti e account diversi nella stessa giornata/progetto
+(es. Gemini finché non finisce la quota gratuita → Claude → nuovo account Google
+gratuito), spesso all'interno di Antigravity IDE.
+
+### Regola Fondamentale
+
+Ogni sessione va trattata come se iniziasse da un agente completamente nuovo, senza
+alcuna memoria delle sessioni precedenti — **anche se il modello sembra essere lo
+stesso**. L'unica memoria reale e affidabile è quella scritta nei file `tasks/`.
+
+Conseguenze pratiche:
+
+- Non dare mai per scontato di "ricordare" decisioni, task in corso o errori passati
+  se non sono scritti in `tasks/`. Se manca un'informazione necessaria, è un difetto
+  di `struttura.md`/`decisions.md`/`lessons.md` da colmare subito, non qualcosa da
+  chiedere a memoria all'utente.
+- Non usare mai un tono che presupponga continuità conversazionale con una sessione
+  precedente ("come avevamo detto prima" va bene solo se è scritto in `tasks/`, non
+  se è solo nel contesto di chat).
+- In `review.md`, annota anche quale agente/modello ha svolto la sessione (es. "Gemini
+  2.5 via Antigravity", "Claude via Antigravity") quando è facilmente deducibile.
+  Serve a Stefano per capire se certi errori ricorrono più con un modello che con
+  un altro.
+- Se durante il protocollo di apertura sessione (sezione 11) emerge un'incoerenza tra
+  quanto scritto in `tasks/` e lo stato reale del codice (es. `todo.md` dice "task
+  completato" ma il codice non lo conferma), FERMATI e segnalalo prima di procedere:
+  probabile che una sessione precedente (agente diverso) abbia chiuso il task senza
+  verifica reale.
 
 ---
 

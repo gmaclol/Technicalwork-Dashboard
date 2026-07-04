@@ -1,3 +1,5 @@
+import { db, doc, onSnapshot } from './firebase.js';
+
 // ── Shared mutable state ──
 
 // Fallback hardcoded, sovrascritto dopo fetch config.json
@@ -17,7 +19,50 @@ export let currentUser = null;
 export let currentAppalto = APPALTI[0];
 export let currentDate = initialDate;
 
-export function setCurrentUser(u) { currentUser = u; }
+// ── GLOBAL DEVICES NAMES LISTENER (Pub/Sub) ──
+let _globalDevicesUnsub = null;
+let _globalDevicesCache = {};
+const _devicesSubscribers = new Map();
+
+export function subscribeToDevicesNames(key, callback) {
+  _devicesSubscribers.set(key, callback);
+  if (Object.keys(_globalDevicesCache).length > 0) {
+    try { callback(_globalDevicesCache); } catch(e) { console.error(e); }
+  }
+}
+
+export function unsubscribeFromDevicesNames(key) {
+  _devicesSubscribers.delete(key);
+}
+
+function startGlobalDevicesNamesListener() {
+  if (_globalDevicesUnsub) return;
+  _globalDevicesUnsub = onSnapshot(doc(db, 'settings', 'devices_names'), (snap) => {
+    _globalDevicesCache = snap.exists() ? snap.data() : {};
+    _devicesSubscribers.forEach((callback) => {
+      try { callback(_globalDevicesCache); } catch(e) { console.error(e); }
+    });
+  }, (err) => {
+    console.warn("Errore caricamento devices_names globale:", err);
+  });
+}
+
+function stopGlobalDevicesNamesListener() {
+  if (_globalDevicesUnsub) {
+    _globalDevicesUnsub();
+    _globalDevicesUnsub = null;
+  }
+  _globalDevicesCache = {};
+}
+
+export function setCurrentUser(u) {
+  currentUser = u;
+  if (u) {
+    startGlobalDevicesNamesListener();
+  } else {
+    stopGlobalDevicesNamesListener();
+  }
+}
 export function setCurrentAppalto(a) { currentAppalto = a; }
 export function setCurrentDate(d) {
   currentDate = d;

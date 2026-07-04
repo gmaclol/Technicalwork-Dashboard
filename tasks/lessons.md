@@ -157,3 +157,19 @@ Un numero eccessivo di letture (20k+) e scritture sono state generate dalla web 
 **Causa:** Il ramo live di `loadAppalto` filtrava i tecnici che non avevano alcun materiale con valore non-vuoto (`Object.values(mats).some(...)`). Il ramo snapshot invece costruiva la lista partendo dai documenti snapshot, filtrando solo gli `isHiddenDoc`, ma non applicava il filtro sui materiali vuoti. Risultato: nel ramo snapshot apparivano colonne di tecnici con tutta la riga vuota, mentre il drawer (che usava `updateSidebarCountsForDate` che aveva il filtro corretto) mostrava il conteggio giusto.
 **Regola:** Qualsiasi filtro applicato al ramo live di `loadAppalto` deve essere applicato identicamente al ramo snapshot. Quando si introduce un nuovo filtro (hidden, materiali vuoti, ecc.), verificare entrambi i rami. Il drawer e la tabella devono sempre mostrare lo stesso conteggio, altrimenti c'è un filtro mancante in uno dei due percorsi.
 
+## Errore: Sfarfallio o cambio tab casuale (Ritorno automatico alla tab Tecnici/Admin)
+**Causa:** L'attivazione di visualizzazioni amministrative (`#/admin/tecnici`, `#/admin/aree`, `#/admin/pfs`) registrava listener real-time (`onSnapshot` Firestore, `onValue` RTDB) i quali non venivano distrutti alla navigazione verso altre rotte (come le tabelle appalto). Se in background avveniva un aggiornamento (sync di un tecnico o cambiamento di presenza), il callback del listener orfano riscattava, invocando la funzione di rendering amministrativo che sostituiva l'HTML del `#content` (griglia materiali) con quello della tab precedente, lasciando intatto l'URL hash.
+**Regola:** All'inizio del router centrale (`handleHashChange` in `app.js`), assicurarsi di distruggere sistematicamente tutti i listener real-time specifici delle viste precedenti (`stopLiveListener`, `stopTecniciListeners`, `stopBannedListeners`, `stopPfsListeners`, `stopAreeListener`, `stopPfsLookupListener`), garantendo che nessuna elaborazione asincrona in background possa forzare il rendering su container DOM condivisi.
+
+## Errore: Spreco di Firebase Read Quota per listener multipli su devices_names
+**Causa:** Ogni tab caricata registrava da 2 a 5 listener `onSnapshot` indipendenti sullo stesso documento `settings/devices_names` (in `app.js` per online count, in `pfsLookup.js` per preferiti, in `tecnici.js` per lista tecnici e banned, e in `aree.js` per la dashboard aree). Oltre ad essere disordinato, questo moltiplicava le letture Firebase a ogni singola modifica.
+**Regola:** Implementare un pattern **Pub/Sub centrale** (in `state.js`). Registrare un unico listener globale reattivo al caricamento utente e consentire a ciascun modulo di iscriversi via chiave univoca (`subscribeToDevicesNames` / `unsubscribeFromDevicesNames`), azzerando le letture extra.
+
+## Errore: Celle interattive e controlli in-app inaccessibili da tastiera e screen reader
+**Causa:** L'editor inline si basava esclusivamente su eventi `dblclick` su desktop e `doubletap`/`longpress` su mobile. Le celle non avevano `tabindex`, non erano a fuoco, non rispondevano ai tasti e non fornivano informazioni semantiche ARIA.
+**Regola:**
+1. Qualsiasi elemento interattivo simulato (es. celle modificabili) deve includere `tabindex="0"`, `role="button"` e un'etichetta descrittiva `aria-label` aggiornata dinamicamente.
+2. Assicurare l'attivazione dei tasti `Enter` e `Space` tramite listener `keydown` per consentire l'avvio della modifica e la sottomissione.
+3. Usare la pseudo-classe CSS `:focus-visible` per visualizzare un indicatore ad alto contrasto senza intaccare l'estetica degli utenti mouse/touch.
+
+

@@ -2,8 +2,8 @@
 // One-to-one replica of PfsActivity + PfsAdapter.kt for web
 // User identified by login credential (currentUser.name → WEB-Username)
 
-import { db, doc, getDoc, setDoc, updateDoc, deleteField, onSnapshot } from './firebase.js';
-import { currentUser } from './state.js';
+import { db, doc, getDoc, setDoc, updateDoc, deleteField } from './firebase.js';
+import { currentUser, subscribeToDevicesNames } from './state.js';
 import { escapeHtml, showToast } from './utils.js';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -829,21 +829,18 @@ export async function initPfsLookup(configPfsAreas) {
     localStorage.setItem(MIGRATION_KEY, 'true');
   }
 
-  // 2. Setup Real-time Sync con Firestore
+  // 2. Setup Real-time Sync con Firestore via Pub/Sub
   if (id) {
-    if (_favsListener) _favsListener();
-    _favsListener = onSnapshot(doc(db, 'settings', 'devices_names'), (snap) => {
-      if (snap.exists()) {
-        const remote = snap.data()[id]?.pfsAreas;
-        if (Array.isArray(remote)) {
-          // Se il remote è diverso dal locale, sincronizza
-          const local = getFavorites();
-          if (JSON.stringify(local) !== JSON.stringify(remote)) {
-            localStorage.setItem(FAV_KEY, JSON.stringify(remote));
-            // Ricalcola _allAreas e rinfresca la sidebar solo con i favoriti
-            _allAreas = [...remote];
-            initPfsLookupSidebar(_allAreas);
-          }
+    subscribeToDevicesNames('pfs_lookup', (data) => {
+      const remote = data[id]?.pfsAreas;
+      if (Array.isArray(remote)) {
+        // Se il remote è diverso dal locale, sincronizza
+        const local = getFavorites();
+        if (JSON.stringify(local) !== JSON.stringify(remote)) {
+          localStorage.setItem(FAV_KEY, JSON.stringify(remote));
+          // Ricalcola _allAreas e rinfresca la sidebar solo con i favoriti
+          _allAreas = [...remote];
+          initPfsLookupSidebar(_allAreas);
         }
       }
     });

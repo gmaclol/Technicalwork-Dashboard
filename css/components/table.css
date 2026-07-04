@@ -1,0 +1,139 @@
+/* ── GRIGLIA MATERIALI & TABELLA ── */
+.table-scroll { flex: 1; padding: 0 40px; margin-top: 24px; padding-bottom: 24px; min-height: 0; position: relative; z-index: 1; }
+table { width: 100%; border-collapse: separate; border-spacing: 0; }
+
+thead th {
+  background: rgba(15, 23, 42, 0.9);
+  padding: 0; border-bottom: 1px solid var(--border-strong);
+}
+.th-inner { padding: 14px 16px; text-align: left; }
+.th-material {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.1em;
+  color: var(--text-dark); text-transform: uppercase; min-width: 190px; background: inherit;
+}
+.th-tech { min-width: 120px; text-align: center; }
+.tech-name { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+.tech-time { display: block; font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); }
+.tech-location { display: inline-block; margin-top: 6px; font-family: var(--font-mono); font-size: 10px; color: var(--accent); text-decoration: none; padding: 4px 10px; background: var(--accent-glow); border-radius: 6px; transition: all var(--transition-fast); }
+.tech-location:hover { background: rgba(99,102,241,0.5); color: white; }
+
+.tech-nav-left {
+  appearance: none; -webkit-appearance: none; border: none; background: transparent;
+  color: var(--accent); cursor: pointer; padding: 0; margin: 0 6px 0 0;
+  font-size: 14px; line-height: 1; flex-shrink: 0; display: none;
+  transition: color var(--transition-fast), transform var(--transition-fast);
+}
+.tech-nav-left:hover { color: var(--accent-glow); transform: translateX(-1px); }
+
+tbody tr { transition: background-color var(--transition-fast); }
+tbody tr:hover { background: rgba(255,255,255,0.03); }
+tbody tr.extra-row { background: rgba(245, 158, 11, 0.05); }
+tbody tr.extra-row:hover { background: rgba(245, 158, 11, 0.08); }
+tbody tr.extra-row .td-material { border-left: 3px solid var(--yellow); padding-left: 11px; color: var(--yellow); }
+
+td { padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,0.04); vertical-align: middle; }
+.td-material {
+  background: var(--surface-solid); font-size: 13px; font-weight: 600; color: var(--text); white-space: nowrap;
+  border-right: 1px solid var(--border); transition: background-color var(--transition-fast);
+  position: relative;
+  padding-left: 14px;
+}
+tbody tr:hover .td-material { background: #1e293b; }
+
+.material-row-actions {
+  display: inline-flex;
+  gap: 6px;
+  margin-right: 8px;
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+  vertical-align: middle;
+}
+tbody tr:hover .material-row-actions {
+  opacity: 1;
+  transform: translateX(0);
+}
+.btn-mat-action {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  transition: all var(--transition-fast);
+  padding: 0;
+}
+.btn-mat-action:hover {
+  transform: scale(1.15);
+}
+.btn-mat-edit:hover {
+  background: rgba(99, 102, 241, 0.2);
+  border-color: var(--accent);
+}
+.btn-mat-delete:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: var(--red);
+}
+.btn-mat-add {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: var(--green, #10b981);
+  color: var(--green, #10b981);
+  margin-left: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  width: 22px;
+  height: 22px;
+  vertical-align: middle;
+}
+.btn-mat-add:hover {
+  background: rgba(16, 185, 129, 0.3);
+  transform: scale(1.2);
+}
+
+.td-value { text-align: center; font-family: var(--font-mono); font-size: 13px; font-weight: 700; }
+.td-value.has-value { color: white; text-shadow: 0 0 10px rgba(255,255,255,0.4); background: rgba(255,255,255,0.06); border-radius: 8px; padding: 8px 0; }
+.td-value.empty { color: var(--text-muted); font-weight: 500; }
+
+.separator-row td { background: rgba(0,0,0,0.5) !important; padding: 12px 14px; font-family: var(--font-sans); font-size: 11px; font-weight: 800; letter-spacing: 0.2em; color: var(--accent); text-transform: uppercase; border-bottom: 1px solid var(--border-strong); }
+
+/* ── Inline Quantity Editor ── */
+.editable-cell {
+  position: relative;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast);
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: manipulation;
+  cursor: pointer;
+}
+.editable-cell:hover {
+  background-color: rgba(99, 102, 241, 0.08) !important;
+  outline: 1px dashed rgba(99, 102, 241, 0.5);
+}
+.editable-cell:focus-visible {
+  outline: 2px solid var(--accent) !important;
+  outline-offset: -2px;
+  background-color: rgba(99, 102, 241, 0.12) !important;
+}
+.editable-cell:active {
+  background-color: rgba(99, 102, 241, 0.15) !important;
+  outline: 1px solid rgba(99, 102, 241, 0.7);
+}
+.editable-cell.editing {
+  padding: 2px !important;
+  background-color: var(--bg-card) !important;
+  cursor: default;
+}
+.quantity-edit-input {
+  box-shadow: 0 0 8px rgba(99, 102, 241, 0.35);
+  font-family: var(--font-mono);
+  font-weight: bold;
+  min-width: 60px;
+  -webkit-user-select: text;
+  user-select: text;
+  touch-action: manipulation;
+}

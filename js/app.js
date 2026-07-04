@@ -1,11 +1,11 @@
 import { db, rtdb, ref, onValue, set, update, onDisconnect, serverTimestamp, doc, onSnapshot, enableNetwork, disableNetwork } from './firebase.js';
-import { APPALTI, currentUser, currentAppalto, currentDate, setCurrentAppalto, setCurrentDate, loadConfig, invalidateConfigCache } from './state.js';
-import { preloadCounts, loadAppalto, filterMaterials, toggleSnapshotDropdown, pickSnapshotDate, closeSnapshotDropdown, selectAppalto, onDateChange, loadGeo, addMaterialRow, editMaterialRow, deleteMaterialRow, scrollCellIntoViewCenter, scrollTechHeaderNeighbor, forceListUpdateFromGithub, toggleDrawer, closeDrawer, updateSidebarCountsForDate } from './data.js';
+import { APPALTI, currentUser, currentAppalto, currentDate, setCurrentAppalto, setCurrentDate, loadConfig, invalidateConfigCache, subscribeToDevicesNames, unsubscribeFromDevicesNames } from './state.js';
+import { preloadCounts, loadAppalto, filterMaterials, toggleSnapshotDropdown, pickSnapshotDate, closeSnapshotDropdown, selectAppalto, onDateChange, loadGeo, addMaterialRow, editMaterialRow, deleteMaterialRow, scrollCellIntoViewCenter, scrollTechHeaderNeighbor, forceListUpdateFromGithub, toggleDrawer, closeDrawer, updateSidebarCountsForDate, stopLiveListener, toggleCustomSelect, selectCustomOption } from './data.js';
 import { escapeHtml, showConfirm, showToast } from './utils.js';
 import { exportToExcel, printTable } from './export.js';
-import { showTecnici, deleteTecnico, renameTecnico, toggleTecnico, renameWebTecnico, deleteWebTecnico, showBanned } from './tecnici.js';
-import { showPfsDashboard, toggleAllPfs, updatePfsToolbar, deletePfsItem, deleteSelectedPfs } from './pfs.js';
-import { showAreeDashboard, savePfsAreas, deleteDeviceAreas, renameDevice } from './aree.js';
+import { showTecnici, deleteTecnico, renameTecnico, toggleTecnico, renameWebTecnico, deleteWebTecnico, showBanned, stopTecniciListeners, stopBannedListeners } from './tecnici.js';
+import { showPfsDashboard, toggleAllPfs, updatePfsToolbar, deletePfsItem, deleteSelectedPfs, stopPfsListeners } from './pfs.js';
+import { showAreeDashboard, savePfsAreas, deleteDeviceAreas, renameDevice, stopAreeListener } from './aree.js';
 import { initPfsLookup, initPfsLookupSidebar, pfsLookupSearch, pfsLookupSelectArea, pfsLookupToggleStar, pfsItemToggle, pfsSubmitAddress, pfsCopyAddress, pfsToggleRegion, pfsRegionSearch, pfsRegionToggleStar, getWebDeviceId, stopPfsLookupListener, showPfsRegionBrowser } from './pfsLookup.js';
 import { doLogin, doLogout, checkSession } from './auth.js';
 
@@ -74,7 +74,6 @@ async function buildSidebar() {
 let _connectedRefUnsub = null;
 let _selfStateUnsub    = null;
 let _presenceUnsub     = null;
-let _devicesUnsub      = null;
 let _deviceNamesCache  = {};
 let _visibilityHandler = null;
 let _lastHiddenTime    = 0;
@@ -149,7 +148,7 @@ function initPresence() {
       const tooltipEl = document.getElementById('online-tooltip');
       if (tooltipEl) {
         const showTooltip = (e) => {
-          e.preventDefault();
+          if (e) e.preventDefault();
           tooltipEl.classList.add('show');
         };
         const hideTooltip = () => {
@@ -159,17 +158,21 @@ function initPresence() {
         onlineEl.addEventListener('pointerup', hideTooltip);
         onlineEl.addEventListener('pointerleave', hideTooltip);
         onlineEl.addEventListener('contextmenu', e => e.preventDefault());
+        onlineEl.addEventListener('focus', showTooltip);
+        onlineEl.addEventListener('blur', hideTooltip);
+        onlineEl.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            tooltipEl.classList.toggle('show');
+          }
+        });
       }
     }
 
-    if (_devicesUnsub) _devicesUnsub();
-    _devicesUnsub = onSnapshot(doc(db, 'settings', 'devices_names'), (snap) => {
-      if (snap.exists()) _deviceNamesCache = snap.data();
-    });
-
-    if (_presenceUnsub) _presenceUnsub();
-    _presenceUnsub = onValue(ref(rtdb, '/status'), (snap) => {
-      const data = snap.val() || {};
+    let _lastPresenceSnap = null;
+    const updatePresenceUI = () => {
+      if (!_lastPresenceSnap) return;
+      const data = _lastPresenceSnap.val() || {};
       const active = Object.keys(data).map(k => {
         let u = data[k];
         const isOnline = u && (u.state === 'online' || (u.connections && Object.keys(u.connections).length > 0));
@@ -203,6 +206,17 @@ function initPresence() {
         onlineEl.classList.remove('has-online');
         countEl.style.display = 'none';
       }
+    };
+
+    subscribeToDevicesNames('app_presence', (data) => {
+      _deviceNamesCache = data;
+      updatePresenceUI();
+    });
+
+    if (_presenceUnsub) _presenceUnsub();
+    _presenceUnsub = onValue(ref(rtdb, '/status'), (snap) => {
+      _lastPresenceSnap = snap;
+      updatePresenceUI();
     });
   }
 }
@@ -211,7 +225,7 @@ function stopPresence() {
   if (_connectedRefUnsub) { _connectedRefUnsub(); _connectedRefUnsub = null; }
   if (_selfStateUnsub) { _selfStateUnsub(); _selfStateUnsub = null; }
   if (_presenceUnsub) { _presenceUnsub(); _presenceUnsub = null; }
-  if (_devicesUnsub) { _devicesUnsub(); _devicesUnsub = null; }
+  unsubscribeFromDevicesNames('app_presence');
   if (_visibilityHandler) {
     document.removeEventListener('visibilitychange', _visibilityHandler);
     _visibilityHandler = null;
@@ -323,6 +337,11 @@ function handleHashChange() {
   document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
 
   // Stop all view-specific listeners before routing
+  stopLiveListener();
+  stopTecniciListeners();
+  stopBannedListeners();
+  stopPfsListeners();
+  stopAreeListener();
   stopPfsLookupListener();
   if (window._stopGlobalPfsNotifications) window._stopGlobalPfsNotifications();
 
@@ -413,6 +432,8 @@ window.onDateChange = onDateChange;
 window.toggleSnapshotDropdown = toggleSnapshotDropdown;
 window.pickSnapshotDate = pickSnapshotDate;
 window.closeSnapshotDropdown = closeSnapshotDropdown;
+window.toggleCustomSelect = toggleCustomSelect;
+window.selectCustomOption = selectCustomOption;
 window.filterMaterials = filterMaterials;
 window.scrollCellIntoViewCenter = scrollCellIntoViewCenter;
 window.scrollTechHeaderNeighbor = scrollTechHeaderNeighbor;

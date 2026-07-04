@@ -1,6 +1,6 @@
 # struttura.md — Dashboard (tchwrk2)
 
-*Ultimo aggiornamento: 2026-06-23 — Sessione revisione sicurezza e bug critici (26 fix: crash, XSS, iOS CSS, error handling)*
+*Ultimo aggiornamento: 2026-07-02 — Fix editing materiali (FieldPath), modale aggiunta tecnici globali, scroll/click-outside modal*
 
 ---
 
@@ -32,7 +32,8 @@
 | Export | Esportazione Excel e Stampa tabella | `js/export.js` |
 | Utility | Escape HTML, toast, modali, date, parsing quantità | `js/utils.js` |
 | Design Tokens | Variabili CSS, reset, animazioni | `css/variables.css` |
-| Componenti | Tutti gli stili UI (login, sidebar, table, toast, PFS cards, ecc.) | `css/components.css` |
+| Componenti | Foglio di stile indice (importa i singoli moduli) | `css/components.css` |
+| Componenti Modulari | forms, sidebar, table, modal, toast, kpi, pfs, pfs-lookup, misc | `css/components/*.css` |
 | Tema Chiaro | Override light theme | `css/themes.css` |
 | Responsive | Mobile, print, PWA safe-areas | `css/responsive.css` |
 
@@ -138,22 +139,22 @@
 #### `js/firebase.js` (30 righe)
 **Responsabilità:** Inizializzazione Firebase (Firestore + RTDB), export funzioni SDK
 
-**Esporta:** `db`, `rtdb`, e funzioni Firestore/RTDB (collection, doc, getDocs, setDoc, onSnapshot, ref, onValue, set, update, onDisconnect, serverTimestamp, disableNetwork, enableNetwork)
+**Esporta:** `db`, `rtdb`, `FieldPath`, e funzioni Firestore/RTDB (collection, doc, getDocs, setDoc, updateDoc, onSnapshot, ref, onValue, set, update, onDisconnect, serverTimestamp, disableNetwork, enableNetwork)
 
 **Dipendenze:** Firebase SDK via CDN
 
 **Stato:** stabile
 
-#### `js/data.js` (1348 righe)
-**Responsabilità:** Core del caricamento dati e rendering. Fetch materiali da GitHub, rendering tabella, KPI, snapshot storici, stale hash detection, geocoding, filtro materiali, incremental render, scroll helpers, mini-editor inline delle quantità.
+#### `js/data.js` (1680 righe)
+**Responsabilità:** Core del caricamento dati e rendering. Fetch materiali da GitHub, rendering tabella, KPI, snapshot storici, stale hash detection, geocoding, filtro materiali, incremental render, scroll helpers, mini-editor inline delle quantità, aggiunta materiali con modale tecnici globali.
 
-**Funzioni chiave:** `loadAppalto()`, `renderTable()`, `preloadCounts()`, `updateSidebarCountsForDate()`, `fetchRawMasterList()`, `checkStaleHashes()`, `filterMaterials()`, `loadGeo()`, `exportToExcel()` (delega), `printTable()` (delega), `forceListUpdateFromGithub()`, `getHiddenTecnici()`, `saveHiddenTecnici()`, `getHiddenTecniciSync()`, `setHiddenCache()`, `initGlobalHiddenListener()`, `editQuantityInline()`
+**Funzioni chiave:** `loadAppalto()`, `renderTable()`, `preloadCounts()`, `updateSidebarCountsForDate()`, `fetchRawMasterList()`, `checkStaleHashes()`, `filterMaterials()`, `loadGeo()`, `exportToExcel()` (delega), `printTable()` (delega), `forceListUpdateFromGithub()`, `getHiddenTecnici()`, `saveHiddenTecnici()`, `getHiddenTecniciSync()`, `setHiddenCache()`, `initGlobalHiddenListener()`, `editQuantityInline()`, `addMaterialRow()`
 
-**Dipendenze:** firebase.js, state.js, utils.js, export.js
+**Dipendenze:** firebase.js (incluso FieldPath), state.js, utils.js, export.js
 
-**Side effects:** Scrive su Firestore `settings/stale_hashes` (una tantum per appalto), `settings/hidden_tecnici`, e `materiali` degli appalti (via edit inline).
+**Side effects:** Scrive su Firestore `settings/stale_hashes` (una tantum per appalto), `settings/hidden_tecnici`, `settings/devices_names` (lettura tecnici globali), e `materiali` degli appalti (via edit inline e addMaterialRow). Usa `FieldPath` per chiavi con punto (es. "ONT ZTE 2.5 G").
 
-**Stato:** stabile — fixati: import ridondanti rimossi, XSS materiali/nomi tecnici, stale currentAppalto inline editor, try/catch onSnapshot callback
+**Stato:** stabile — fixati: bug FieldPath per nomi materiali con punto, editing inline bloccato dopo primo salvataggio, modale aggiunta materiali con tecnici globali (devices_names + documenti appalto, filtro web/hidden)
 
 #### `js/pfs.js` (345 righe)
 **Responsabilità:** Sezione admin "Gestione PFS" — visualizzazione duale (segnalazioni + log) in tempo reale, notifiche globali, badge contatore, eliminazione singola/bulk
@@ -214,14 +215,14 @@
 
 **Stato:** stabile
 
-#### `js/utils.js` (255 righe)
-**Responsabilità:** Funzioni trasversali: escape HTML (XSS), date helpers, toast, modali conferma/rinomina, parsing quantità (free + "sparati"), focus trap
+#### `js/utils.js` (316 righe)
+**Responsabilità:** Funzioni trasversali: escape HTML (XSS), date helpers, toast, modali conferma/rinomina (con supporto htmlContent e campi custom), parsing quantità (free + "sparati"), focus trap
 
 **Funzioni:** `escapeHtml()`, `isToday()`, `parseTimestamp()`, `relativeTime()`, `dateOnlyRelativeTime()`, `techStatus()`, `formatDateLabel()`, `showToast()`, `showConfirm()`, `showRenameModal()`, `trapFocus()`, `parseQuantity()`, `formatQuantityTotal()`
 
 **Dipendenze:** nessuna
 
-**Stato:** stabile
+**Stato:** stabile — fix: showRenameModal ora supporta htmlContent con select/input custom, click-outside persistente (rimosso `once:true` sul listener overlay che veniva consumato dal primo click interno)
 
 ### 3.2 HTML / Config / Build
 
@@ -251,10 +252,10 @@
 
 **Stato:** stabile
 
-#### `css/components.css` (1130 righe)
+#### `css/components.css` (1123 righe)
 **Responsabilità:** Tutti gli stili dei componenti: login, topbar, sidebar, table, toggle switch, content header, snapshot dropdown, button, KPI cards, toast, confirm/rename modals, PFS cards, PFS lookup accordion, region browser, search, spinner, stale badge, scrollbar, status circles, tooltip. Oltre 1100 righe.
 
-**Stato:** stabile — candidato a split (1130 righe, molti componenti)
+**Stato:** stabile — candidato a split (1123 righe, molti componenti). Fix: aggiunta `max-height: calc(100vh - 48px)` e `overflow-y: auto` a `.confirm-box` per scrollabilità modali con contenuto lungo.
 
 #### `css/themes.css` (126 righe)
 **Responsabilità:** Override tema chiaro per tutti i componenti (sidebar, table, input, modal, KPI, snapshot, search, ecc.)
@@ -303,11 +304,11 @@ node_modules/, .env, .DS_Store
 
 ### Debito Tecnico / Aree di Miglioramento
 
-1. **`js/data.js` (1348 righe) e `js/pfsLookup.js` (858 righe):** File molto grandi con responsabilità multiple. `data.js` mescola fetch, rendering, stale detection, geocoding, scroll helpers. `pfsLookup.js` mescola parsing, rendering, region browser, sync Firestore.
+1. **`js/data.js` (1680 righe) e `js/pfsLookup.js` (858 righe):** File molto grandi con responsabilità multiple. `data.js` mescola fetch, rendering, stale detection, geocoding, scroll helpers, modale aggiunta materiali con caricamento tecnici globali. `pfsLookup.js` mescola parsing, rendering, region browser, sync Firestore.
 
-2. **`css/components.css` (1130 righe):** Unico file CSS enorme. Candidato a split per componente (login, sidebar, table, PFS, lookup, modal).
+2. **[Risolto] `css/components.css`:** Splittato con successo in fogli stile specifici per componente sotto `css/components/`.
 
-3. **Listener multipli su `settings/devices_names`:** Attualmente ci sono 3-4 listener separati sullo stesso documento (sidebar favs, tecnici web, aree preferite). Ogni write genera letture moltiplicate. Già segnalato in review.md come follow-up.
+3. **[Risolto] Listener multipli su `settings/devices_names`:** Centralizzati in un unico listener globale tramite Pub/Sub in `state.js`, riducendo drasticamente le letture sul database.
 
 4. **Dipendenza Firebase via CDN:** La dashboard carica Firebase JS SDK via URL CDN (`https://www.gstatic.com/...`), non via npm. Questo rende il version tracing difficile e impedisce tree-shaking.
 

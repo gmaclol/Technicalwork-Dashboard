@@ -3,6 +3,7 @@
 ## Obiettivi della Sessione Attuale
 - [x] Migrazione da fetch statico (`getDocs`) a realtime (`onSnapshot`) su tutte le tab principali (Tecnici, PFS, Aree).
 - [x] Prevenzione leak listener: implementazione distruzione automatica (`stop*Listeners`) in `app.js` al cambio tab.
+- [x] Corretto bug di sfarfallio e ritorno imprevisto alla tab Tecnici (o aree/PFS) per leak dei listener real-time di background.
 - [x] Sincronizzazione Real-Time UI (mantieni stato selezioni checkbox e focus cursori testuali durante re-render in background).
 - [x] Sistema di Notifiche Globali per nuovi PFS: allerta PWA nativa in background e in-app toast se l'app è in uso (solo account Admin).
 - [x] Badge "Segnalazioni non lette" nella barra laterale: counter in tempo reale che si auto-azzera entrando nella tab PFS.
@@ -22,6 +23,17 @@
 - [x] Dashboard Tecnici: implementato rendering utenti Web e fix stile header divisorio.
 - [x] PFS Lookup DOM Pagination: Refactoring rendering DOM per aree massicce (es. Roma ~5800 elementi) con costante `MAX_VISIBLE_ITEMS = 100` e pulsante "Mostra altri" per evitare crash WebKit/Safari su iOS.
 - [ ] PFS Lookup: aggiungere fingerprint più robusto (WebGL hash) se necessaria maggiore unicità cross-session.
+
+## 2026-07-04 — Sessione Correzione Bug Leak, Ottimizzazioni e Accessibilità
+- [x] Risolto bug per cui i listener di background (Tecnici, PFS, Aree, Banned, Live) causavano la visualizzazione errata/casuale di tab amministrativi.
+- [x] Importati e invocati tutti i metodi `stop*Listeners` all'inizio di `handleHashChange` in `app.js`.
+- [x] **Fase 1: Splitting CSS**: Diviso `css/components.css` in fogli stile separati per ciascun componente (forms, sidebar, table, modal, toast, kpi, pfs, pfs-lookup, misc) importati tramite `@import`.
+- [x] **Fase 2: Centralizzazione Listener Billing**: Sostituiti tutti i listener `onSnapshot` indipendenti di `devices_names` in `app.js`, `pfsLookup.js`, `tecnici.js` e `aree.js` con un pattern Pub/Sub centralizzato in `state.js`.
+- [x] **Fase 3: Adeguamento Accessibilità WCAG 2.2**: Implementato `tabindex="0"`, `role="button"` e `aria-label` dinamici sulle celle griglia materiali modificabili; inserito supporto tastiera (`Enter`/`Space`) per avvio editing; aggiunto stile `:focus-visible` per visualizzare i cursori di fuoco ad alto contrasto.
+- [x] Eseguito build di produzione (`npm run build`) e allineato il service worker.
+- [x] Eseguito `graphify update .` per mantenere aggiornato il grafo della conoscenza.
+
+
 ## 2026-06-23 — Sessione Correzione Bug Router (DeepSeek Regressions)
 - [x] Risolto bug parsing hash del router in `app.js` che causava caricamento errato dell'appalto e snapshot (slicing non corretto del prefisso `#/`).
 - [x] Sincronizzato correttamente l'indicatore dell'appalto attivo in topbar (`#tb-appalto`) in risposta all'evento `hashchange`.

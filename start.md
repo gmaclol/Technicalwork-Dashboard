@@ -7,8 +7,11 @@ Ciao! Prima di procedere con qualsiasi compito, leggi e segui queste istruzioni 
    - `tasks/lessons.md` (errori passati da evitare)
    - `tasks/struttura.md` (mappa e relazioni dei file)
    - `tasks/decisions.md` (decisioni architetturali, stack tecnologico e vincoli del progetto, es. budget e servizi consentiti)
+   - `tasks/conventions.md` (convenzioni di naming, architettura e stile del codice, se presente)
 
 3. **Stack del progetto**: se `tasks/decisions.md` non contiene ancora una sezione "Stack e Vincoli" (es. è la prima sessione su questo progetto), chiedimi quali tecnologie e servizi stiamo usando e documentala subito in `tasks/decisions.md` prima di iniziare il task.
+
+   Allo stesso modo, se `tasks/conventions.md` non esiste ancora o è vuoto, compilalo con le convenzioni reali del progetto (naming, architettura, gestione stato/errori) non appena emergono dal codice esistente, senza chiedermelo: io non conosco i dettagli tecnici, deducili tu dal codice.
 
 4. **Esplorazione con Graphify**: per capire rapidamente la struttura del progetto, navigare tra i file o rispondere a domande sul codebase, NON fare letture massive o grep casuali. Utilizza invece i comandi di graphify (es. `graphify query "la tua domanda"`, `graphify path`, `graphify explain`). Se esiste, fai riferimento anche a `graphify-out/wiki/index.md` per l'orientamento generale.
 

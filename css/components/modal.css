@@ -1,0 +1,47 @@
+/* ── CONFIRM & RENAME MODALS ── */
+#confirm-overlay {
+  position: fixed; inset: 0; z-index: 8000; background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  display: none; align-items: center; justify-content: center;
+  animation: fadeIn 0.2s ease;
+}
+#confirm-overlay.show { display: flex; }
+.confirm-box {
+  width: 420px; max-width: calc(100vw - 32px); max-height: calc(100vh - 48px); padding: 36px 32px;
+  background: var(--surface-solid); border: 1px solid var(--border-strong);
+  border-radius: var(--radius-xl); box-shadow: var(--shadow-lg);
+  animation: scaleUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  display: flex; flex-direction: column; gap: 20px;
+  overflow-y: auto;
+}
+.confirm-icon { font-size: 36px; text-align: center; }
+.confirm-title { font-size: 18px; font-weight: 700; color: var(--text); text-align: center; }
+.confirm-msg { font-size: 14px; color: var(--text-muted); text-align: center; line-height: 1.6; }
+.confirm-actions { display: flex; gap: 12px; justify-content: center; }
+.confirm-btn-cancel {
+  flex: 1; padding: 12px; border-radius: var(--radius); border: 1px solid var(--border-strong);
+  background: transparent; color: var(--text-muted); font-family: var(--font-sans);
+  font-size: 14px; font-weight: 600; cursor: pointer; transition: all var(--transition-fast);
+}
+.confirm-btn-cancel:hover { background: rgba(255,255,255,0.06); color: var(--text); }
+.confirm-btn-ok {
+  flex: 1; padding: 12px; border-radius: var(--radius); border: none;
+  background: var(--red); color: white; font-family: var(--font-sans);
+  font-size: 14px; font-weight: 700; cursor: pointer; transition: all var(--transition-fast);
+  box-shadow: 0 4px 16px rgba(239,68,68,0.3);
+}
+.confirm-btn-ok:hover { filter: brightness(1.15); transform: translateY(-1px); }
+.confirm-btn-ok.btn-accent { background: var(--accent-gradient); box-shadow: 0 4px 16px rgba(99,102,241,0.3); }
+
+#rename-overlay {
+  position: fixed; inset: 0; z-index: 8000; background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  display: none; align-items: center; justify-content: center;
+}
+#rename-overlay.show { display: flex; }
+.rename-field {
+  width: 100%; background: rgba(0,0,0,0.2); border: 1px solid var(--border-strong);
+  border-radius: var(--radius); color: var(--text); font-family: var(--font-mono);
+  font-size: 15px; padding: 14px 16px; outline: none; transition: all var(--transition);
+}
+.rename-field:focus { border-color: var(--accent); background: rgba(0,0,0,0.35); box-shadow: 0 0 0 4px var(--accent-glow); }

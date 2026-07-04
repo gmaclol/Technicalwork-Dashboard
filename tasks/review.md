@@ -1,6 +1,45 @@
 # review.md — Dashboard (tchwrk2)
 
+## 2026-07-04 — Sessione Correzione Bug Leak, Ottimizzazioni e Accessibilità
+
+**Cosa è stato fatto:**
+- Risolto il bug dei leak dei listener di background che causavano la visualizzazione intermittente e inaspettata di pannelli amministrativi (Tecnici, PFS, Aree Preferite) mentre l'utente visualizzava una tabella appalto.
+- Importati e agganciati tutti i metodi di rimozione dei listener (`stopLiveListener`, `stopTecniciListeners`, `stopBannedListeners`, `stopPfsListeners`, `stopAreeListener`) all'inizio del router centrale `handleHashChange` in `js/app.js`.
+- **Fase 1: Splitting CSS**: Diviso `css/components.css` in fogli stile separati per ciascun componente (`forms.css`, `sidebar.css`, `table.css`, `modal.css`, `toast.css`, `kpi.css`, `pfs.css`, `pfs-lookup.css`, `misc.css`) e importati in `css/components.css` tramite `@import`.
+- **Fase 2: Centralizzazione Listener Billing**: Sostituiti tutti i listener `onSnapshot` indipendenti di `devices_names` in `app.js`, `pfsLookup.js`, `tecnici.js` e `aree.js` con un unico listener globale e un pattern Pub/Sub centralizzato in `state.js`.
+- **Fase 3: Adeguamento Accessibilità (a11y)**: Implementato `tabindex="0"`, `role="button"` e `aria-label` dinamici sulle celle griglia materiali modificabili; inserito supporto tastiera (`Enter`/`Space`) per avvio editing; aggiunto stile `:focus-visible` per visualizzare i cursori di fuoco ad alto contrasto.
+- Eseguito il build di produzione per aggiornare i file compilati in `docs/` e rigenerare il service worker della PWA.
+- Aggiornato il grafo della conoscenza locale con `graphify update .`.
+
+**Perché:**
+- I listener real-time di Firestore (`onSnapshot`) e RTDB (`onValue`) montati dalle varie viste amministrative non venivano disattivati quando l'utente navigava via da esse. Quando avvenivano aggiornamenti in background sul database, i callback di questi listener orfani scattavano in background, eseguendo il rendering delle vecchie viste e sovrascrivendo l'HTML del container principale `#content`.
+- Avere fino a 5 listener reattivi contemporaneamente sullo stesso documento `settings/devices_names` causava un elevato numero di letture di database a ogni cambio rotta o modifica delle impostazioni.
+- Le celle modificabili della griglia materiali erano inaccessibili da tastiera e da screen reader, non offrendo alcun tipo di affordance a11y né un modo per essere modificate senza l'uso del doppio click/tap del mouse.
+
+**File modificati:**
+- `js/state.js`: Aggiunto Pub/Sub centrale per `devices_names` e caricamento automatico su utente.
+- `js/app.js`: Rimossa query indipendente di `devices_names`, aggiunta iscrizione e accessibilità indicatore utenti online.
+- `js/pfsLookup.js`: Sostituito listener autonomo con sottoscrizione pub/sub.
+- `js/tecnici.js`: Transizione a pub/sub per web technicians e banned list.
+- `js/aree.js`: Transizione a pub/sub per aree dashboard.
+- `js/data.js`: Aggiunti attributi a11y (`tabindex`, `role`, `aria-label`) e gestione keydown (`Enter`/`Space`) per l'editing delle celle.
+- `css/components.css`: Riscritto per fungere da indice di importazione dei moduli.
+- `css/components/*`: Nuova cartella con i file CSS splittati.
+- `index.html`: Corretto attributo `aria-hidden` sul menu laterale per accessibilità desktop e abilitato focus-accessibility sul contatore online.
+- `tasks/todo.md`: Aggiunta checklist sessione.
+- `tasks/lessons.md`: Aggiunte lezioni sulle tre fasi.
+- `tasks/review.md`: Aggiornato questo riepilogo.
+
+**Rischi residui:**
+- Nessuno. La build compila correttamente senza errori e i moduli mantengono intatte tutte le funzionalità precedenti.
+
+**Follow-up consigliati:**
+- N/A.
+
+---
+
 ## 2026-05-13 — Sessione Aggiornamento Real-Time & Notifiche
+
 
 **Cosa è stato fatto:**
 - Migrazione totale a `onSnapshot` per i moduli Admin (PFS, Aree Preferite, Tecnici) implementando un pattern centralizzato nel router `app.js` per distruggere le connessioni ai cambi rotta.
@@ -398,7 +437,41 @@
 - `js/utils.js` (richiamo blocco scroll e ascoltatore Escape globale su `showConfirm` e `showRenameModal`)
 - `css/components.css` (definizione stile `body.scroll-locked`)
 
+---
 
+## 2026-07-02 — Fix Editing Materiali, Modale Aggiunta Tecnici, Scroll/Click-Outside Modal
 
+**Cosa è stato fatto:**
+- **Fix bug "ONT ZTE 2.5 G" → "ONT ZTE 2"**: Il punto (`.`) nelle chiavi materiale veniva interpretato da Firestore come delimitatore di mappa annidata quando usato con dot-notation. Risolto introducendo `FieldPath` (importato/esportato da `firebase.js`) e usando la sintassi ad argomenti alternati di `updateDoc()` sia nell'inline editor che in `addMaterialRow()`.
+- **Fix editing bloccato dopo primo salvataggio**: Il rendering incrementale in tempo reale non riapplicava la classe `editable-cell` e i dataset attributes (`data-raw`, `data-tech-id`, `data-material-name`) alle celle aggiornate dall'admin. Corretto il blocco incrementale di `renderTable`.
+- **Modale aggiunta materiale con tecnici globali**: Ridisegnato `addMaterialRow()` per mostrare un modale unificato con:
+  1. Casella di testo per materiale custom
+  2. Select per materiale esistente (dalla lista master + materiali già usati)
+  3. Select per tecnico (tutti i tecnici app, non web, non hidden)
+  4. Input quantità
+- **Caricamento tecnici**: La tendina carica TUTTI i tecnici non-web da `settings/devices_names` + quelli trovati nei documenti live/storici dell'appalto (per coprire tecnici con app vecchia non registrati in devices_names). Filtrati i disattivati tramite `getHiddenTecniciSync()` e `isHiddenDoc()`.
+- **Fix `isLive` check**: Corretto il flag `isLive` nei documenti live da `true` hardcoded a `isToday(d.ultimo_aggiornamento)` per distinguere correttamente chi ha sincronizzato oggi.
+- **Scrollabilità modal**: Aggiunto `max-height: calc(100vh - 48px)` e `overflow-y: auto` a `.confirm-box` in `components.css` per rendere scrollabili i modali con contenuto lungo.
+- **Click-outside modal**: Il listener `{ once: true }` sull'overlay si auto-rimuoveva al primo click interno (es. sulla select). Sostituito con un handler nominato persistente (`onOverlayClick`) rimosso solo nel cleanup della funzione `close()`.
+
+**Perché:**
+- I nomi materiale con punto (es. "ONT ZTE 2.5 G") venivano corrotti in Firestore spezzando la chiave su ogni `.`.
+- L'admin non poteva modificare la stessa cella due volte senza refresh.
+- L'admin necessitava di poter modificare le liste di tecnici non ancora syncati o assenti dall'appalto corrente.
+- I modali con molti tecnici nella dropdown uscivano dallo schermo senza possibilità di scroll.
+- Cliccare fuori dal modale non lo chiudeva dopo aver interagito con elementi interni.
+
+**File modificati:**
+- `js/firebase.js` (export `FieldPath`)
+- `js/data.js` (FieldPath in `editQuantityInline` e `addMaterialRow`, caricamento tecnici globali, fix incrementale `renderTable`, fix `isLive`)
+- `js/utils.js` (supporto `htmlContent` in `showRenameModal`, fix click-outside persistente, cleanup `onOverlayClick`)
+- `css/components.css` (`max-height` e `overflow-y: auto` su `.confirm-box`)
+
+**Rischi residui:**
+- Tecnici con app vecchia (Cristian, Martin) non registrati in `devices_names` vengono recuperati dai documenti dell'appalto; se non hanno mai syncato su un appalto specifico, non appariranno nella tendina per quell'appalto.
+
+**Follow-up consigliati:**
+- Aggiornare l'app Android per registrare il dispositivo in `devices_names` anche nelle versioni più vecchie.
+- Valutare se `data.js` (1680 righe) necessita di uno split architetturale (es. separare `addMaterialRow` in un modulo dedicato).
 
 

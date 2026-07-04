@@ -1,6 +1,6 @@
 // ── Tecnici management ──
 import { db, collection, getDocs, doc, setDoc, deleteDoc, updateDoc, onSnapshot, deleteField, rtdb, ref, onValue } from './firebase.js';
-import { APPALTI, currentAppalto, currentDate, currentUser } from './state.js';
+import { APPALTI, currentAppalto, currentDate, currentUser, subscribeToDevicesNames, unsubscribeFromDevicesNames } from './state.js';
 import { escapeHtml, showToast, showConfirm, showRenameModal } from './utils.js';
 import { getHiddenTecnici, saveHiddenTecnici, resetHiddenCache, preloadCounts, getCountListeners, loadAppalto, setHiddenCache, getHiddenTecniciSync, resetLastRenderedKey } from './data.js';
 
@@ -85,11 +85,13 @@ let _bannedListeners = [];
 export function stopTecniciListeners() {
   _tecniciListeners.forEach(unsub => { if (typeof unsub === 'function') unsub(); });
   _tecniciListeners = [];
+  unsubscribeFromDevicesNames('tecnici_web');
 }
 
 export function stopBannedListeners() {
   _bannedListeners.forEach(unsub => { if (typeof unsub === 'function') unsub(); });
   _bannedListeners = [];
+  unsubscribeFromDevicesNames('tecnici_banned');
 }
 
 // ── SHOW TECNICI PAGE ──
@@ -304,12 +306,11 @@ export async function showTecnici() {
   });
   _tecniciListeners.push(unsubStatus);
 
-  // Listen to web users from devices_names
-  const unsubWeb = onSnapshot(doc(db, 'settings', 'devices_names'), (snap) => {
-    webDevices = snap.exists() ? snap.data() : {};
+  // Listen to web users from devices_names via global subscription
+  subscribeToDevicesNames('tecnici_web', (data) => {
+    webDevices = data;
     renderTecnici(); // re-render with updated web users
-  }, () => {});
-  _tecniciListeners.push(unsubWeb);
+  });
 
   // Listen to hidden_tecnici in real time
   const unsubHidden = onSnapshot(doc(db, 'settings', 'hidden_tecnici'), (snap) => {
@@ -519,15 +520,10 @@ export function showBanned() {
 
   stopBannedListeners();
 
-  const unsubBanned = onSnapshot(doc(db, 'settings', 'devices_names'), (snap) => {
-    const devices = snap.exists() ? snap.data() : {};
-    renderBannedListWithData(devices);
-  }, (e) => {
-    console.error("Errore caricamento banned list:", e);
-    const tbody = document.getElementById('banned-table-body');
-    if (tbody) tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 20px;">Errore durante il caricamento.</td></tr>`;
+  // Listen to devices_names via global subscription
+  subscribeToDevicesNames('tecnici_banned', (data) => {
+    renderBannedListWithData(data);
   });
-  _bannedListeners.push(unsubBanned);
 }
 
 window.toggleBanTecnico = async function(deviceId, isBanned) {

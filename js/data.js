@@ -14,6 +14,66 @@ function simpleHash(obj) {
   return h.toString(36);
 }
 
+// ── CUSTOM SELECT DROPDOWN LOGIC ──
+export function toggleCustomSelect(event, btn) {
+  if (event) event.stopPropagation();
+  const dropdown = btn.closest('.custom-select');
+  if (!dropdown) return;
+  const isOpen = dropdown.classList.contains('open');
+  // Close all other custom select dropdowns
+  document.querySelectorAll('.custom-select.open').forEach(d => {
+    if (d !== dropdown) d.classList.remove('open');
+  });
+  dropdown.classList.toggle('open');
+}
+
+export function selectCustomOption(btn) {
+  const dropdown = btn.closest('.custom-select');
+  if (!dropdown) return;
+  const val = btn.dataset.value;
+  const label = btn.textContent;
+  
+  // Update hidden input
+  const hiddenInput = dropdown.querySelector('input[type="hidden"]');
+  if (hiddenInput) {
+    hiddenInput.value = val;
+    hiddenInput.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+  
+  // Update label
+  const labelSpan = dropdown.querySelector('.select-label');
+  if (labelSpan) labelSpan.textContent = label;
+  
+  // Update active state
+  dropdown.querySelectorAll('.select-opt').forEach(opt => opt.classList.remove('active'));
+  btn.classList.add('active');
+  
+  dropdown.classList.remove('open');
+}
+
+function buildCustomSelect(id, label, options, defaultValue) {
+  const selectedOption = options.find(opt => opt.value === defaultValue) || options[0] || { value: '', label: '-- Seleziona --' };
+  const optionsHtml = options.map(opt => `
+    <button type="button" class="select-opt ${opt.value === defaultValue ? 'active' : ''}"
+      role="option" aria-selected="${opt.value === defaultValue ? 'true' : 'false'}"
+      data-value="${escapeHtml(opt.value)}" onclick="selectCustomOption(this)"
+    >${escapeHtml(opt.label)}</button>
+  `).join('');
+
+  return `
+    <div class="custom-select" id="${id}-container">
+      <button type="button" class="select-trigger" onclick="toggleCustomSelect(event, this)">
+        <span class="select-label">${escapeHtml(selectedOption.label)}</span>
+        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5l3 3 3-3"/></svg>
+      </button>
+      <div class="select-options-list" role="listbox">
+        ${optionsHtml}
+      </div>
+      <input type="hidden" id="${id}" value="${escapeHtml(defaultValue)}">
+    </div>
+  `;
+}
+
 
 let _staleCache = null;
 let _staleCheckedForAppalto = null;
@@ -593,31 +653,28 @@ export async function addMaterialRow() {
     }
 
     // 3. Generazione opzioni materiali e tecnici
-    const materialOptionsHtml = sortedMaterials.map(m =>
-      `<option value="${escapeHtml(m)}">${escapeHtml(m)}</option>`
-    ).join('');
+    const materialSelectOptions = [
+      { value: '', label: '-- Scrivi custom sopra o scegli esistente --' },
+      ...sortedMaterials.map(m => ({ value: m, label: m }))
+    ];
 
-    const techsOptions = activeTechs.map(t =>
-      `<option value="${escapeHtml(t.id)}">${escapeHtml(t.tecnico || t.id)}</option>`
-    ).join('');
+    const techSelectOptions = [
+      { value: 'all', label: '-- Aggiungi a tutti i tecnici --' },
+      ...activeTechs.map(t => ({ value: t.id, label: t.tecnico || t.id }))
+    ];
+
     const techOptionsHtml = `
       <div style="margin-top:10px; text-align:left;">
-        <label for="rename-tech-select" style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">Seleziona tecnico:</label>
-        <select id="rename-tech-select" class="select-fancy" style="width:100%; box-sizing:border-box;">
-          <option value="all">-- Aggiungi a tutti i tecnici --</option>
-          ${techsOptions}
-        </select>
+        <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">Seleziona tecnico:</label>
+        ${buildCustomSelect('rename-tech-select', 'Seleziona tecnico', techSelectOptions, 'all')}
       </div>
     `;
 
     const htmlContent = `
       <div style="margin-top:14px; text-align:left; display: flex; flex-direction: column; gap: 12px;">
         <div>
-          <label for="rename-material-select" style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">Oppure seleziona materiale esistente:</label>
-          <select id="rename-material-select" class="select-fancy" style="width:100%; box-sizing:border-box;">
-            <option value="">-- Scrivi custom sopra o scegli esistente qui --</option>
-            ${materialOptionsHtml}
-          </select>
+          <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">Oppure seleziona materiale esistente:</label>
+          ${buildCustomSelect('rename-material-select', 'Oppure seleziona materiale esistente', materialSelectOptions, '')}
         </div>
         ${techOptionsHtml}
         <div>
@@ -764,17 +821,13 @@ export async function editMaterialRow(oldName) {
       return;
     }
 
-    const optionsHtml = activeTechs.map(t =>
-      `<option value="${escapeHtml(t.id)}">${escapeHtml(t.tecnico || t.id)}</option>`
-    ).join('');
+    const confirmTechOptions = activeTechs.map(t => ({ value: t.id, label: t.tecnico || t.id }));
 
     const msgHtml = `
       <p>${escapeHtml(`Vuoi rinominare "${oldName}" in "${newName}" per tutti i tecnici o solo per uno di essi?`)}</p>
       <div style="margin-top:14px; text-align:left;">
-        <label for="confirm-select-tech" style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:6px;">Seleziona tecnico (se vuoi modificare solo uno):</label>
-        <select id="confirm-select-tech" class="select-fancy" style="width:100%; box-sizing:border-box;">
-          ${optionsHtml}
-        </select>
+        <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:6px;">Seleziona tecnico (se vuoi modificare solo uno):</label>
+        ${buildCustomSelect('confirm-select-tech', 'Seleziona tecnico', confirmTechOptions, confirmTechOptions[0]?.value || '')}
       </div>
     `;
 
@@ -905,17 +958,13 @@ export async function deleteMaterialRow(materialName) {
       return;
     }
 
-    const optionsHtml = activeTechs.map(t =>
-      `<option value="${escapeHtml(t.id)}">${escapeHtml(t.tecnico || t.id)}</option>`
-    ).join('');
+    const confirmTechOptions = activeTechs.map(t => ({ value: t.id, label: t.tecnico || t.id }));
 
     const msgHtml = `
       <p>${escapeHtml(`Vuoi eliminare definitivamente "${materialName}" da tutti i tecnici o solo da uno di essi?`)}</p>
       <div style="margin-top:14px; text-align:left;">
-        <label for="confirm-select-tech" style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:6px;">Seleziona tecnico (se vuoi eliminare solo da uno):</label>
-        <select id="confirm-select-tech" class="select-fancy" style="width:100%; box-sizing:border-box;">
-          ${optionsHtml}
-        </select>
+        <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:6px;">Seleziona tecnico (se vuoi eliminare solo da uno):</label>
+        ${buildCustomSelect('confirm-select-tech', 'Seleziona tecnico', confirmTechOptions, confirmTechOptions[0]?.value || '')}
       </div>
     `;
 
@@ -1238,11 +1287,17 @@ function renderTable(appalto, tecnici, container, dateKey = 'live', allDocs = []
                 cell.dataset.raw = val;
                 cell.dataset.techId = t.id;
                 cell.dataset.materialName = mat;
+                cell.setAttribute('tabindex', '0');
+                cell.setAttribute('role', 'button');
+                cell.setAttribute('aria-label', `Quantità ${mat} per ${t.tecnico || t.id}: ${val || 'vuoto'}`);
               } else {
                 cell.className = `td-value ${cls}`;
                 delete cell.dataset.raw;
                 delete cell.dataset.techId;
                 delete cell.dataset.materialName;
+                cell.removeAttribute('tabindex');
+                cell.removeAttribute('role');
+                cell.removeAttribute('aria-label');
               }
               cell.textContent = display;
             }
@@ -1499,7 +1554,7 @@ function renderTable(appalto, tecnici, container, dateKey = 'live', allDocs = []
         
         let editableAttr = '';
         if (isAdmin && dateKey === 'live') {
-          editableAttr = ` data-tech-id="${escapeHtml(t.id)}" data-material-name="${escapeHtml(mat)}" data-raw="${escapeHtml(val)}" class="td-value ${cls} editable-cell" title="Tocca per modificare"`;          
+          editableAttr = ` data-tech-id="${escapeHtml(t.id)}" data-material-name="${escapeHtml(mat)}" data-raw="${escapeHtml(val)}" class="td-value ${cls} editable-cell" title="Tocca per modificare" tabindex="0" role="button" aria-label="Quantità ${escapeHtml(mat)} per ${escapeHtml(t.tecnico || t.id)}: ${escapeHtml(val || 'vuoto')}"`;          
         } else {
           editableAttr = ` class="td-value ${cls}"`;
         }
@@ -1590,6 +1645,7 @@ window.editQuantityInline = function(cell) {
         const newCls = newVal !== '' ? 'has-value' : 'empty';
         cell.className = `td-value ${newCls} editable-cell`;
         cell.textContent = newVal !== '' ? newVal : '·';
+        cell.setAttribute('aria-label', `Quantità ${materialName} per ${techId}: ${newVal || 'vuoto'}`);
         
         await updateDoc(
           doc(db, capturedAppalto, techId),
@@ -1604,10 +1660,12 @@ window.editQuantityInline = function(cell) {
         cell.dataset.raw = rawVal;
         cell.textContent = rawVal !== '' ? rawVal : '·';
         cell.className = `td-value ${rawVal !== '' ? 'has-value' : 'empty'} editable-cell`;
+        cell.setAttribute('aria-label', `Quantità ${materialName} per ${techId}: ${rawVal || 'vuoto'}`);
       }
     } else {
       cell.textContent = rawVal !== '' ? rawVal : '·';
       cell.className = `td-value ${rawVal !== '' ? 'has-value' : 'empty'} editable-cell`;
+      cell.setAttribute('aria-label', `Quantità ${materialName} per ${techId}: ${rawVal || 'vuoto'}`);
     }
   }
   
@@ -1642,6 +1700,17 @@ window.editQuantityInline = function(cell) {
     e.preventDefault();
     window.editQuantityInline(cell);
   }, { passive: false });
+
+  // Keyboard: Enter / Space to edit when focused
+  document.addEventListener('keydown', (e) => {
+    const cell = e.target.closest('.editable-cell');
+    if (!cell) return;
+    if (e.key === 'Enter' || e.key === ' ') {
+      if (cell.classList.contains('editing')) return;
+      e.preventDefault();
+      window.editQuantityInline(cell);
+    }
+  });
 
   // Mobile: double-tap OR long-press
   document.addEventListener('touchstart', (e) => {

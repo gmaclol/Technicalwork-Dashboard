@@ -1,14 +1,9 @@
-import { db, doc, onSnapshot, updateDoc, deleteField, setDoc } from './firebase.js';
+import { db, doc, updateDoc, deleteField, setDoc } from './firebase.js';
 import { escapeHtml, showToast, showConfirm, showRenameModal } from './utils.js';
-import { currentUser } from './state.js';
-
-let _areeListener = null;
+import { currentUser, subscribeToDevicesNames, unsubscribeFromDevicesNames } from './state.js';
 
 export function stopAreeListener() {
-  if (_areeListener) {
-    _areeListener();
-    _areeListener = null;
-  }
+  unsubscribeFromDevicesNames('aree_dashboard');
 }
 
 export async function showAreeDashboard() {
@@ -27,19 +22,17 @@ export async function showAreeDashboard() {
 
   stopAreeListener();
 
-  _areeListener = onSnapshot(doc(db, 'settings', 'devices_names'), (snap) => {
+  subscribeToDevicesNames('aree_dashboard', (data) => {
     // Preserve focus and selection
     const activeId = document.activeElement ? document.activeElement.id : null;
     const selectionStart = activeId ? document.activeElement.selectionStart : null;
     const selectionEnd = activeId ? document.activeElement.selectionEnd : null;
     const activeValue = activeId ? document.activeElement.value : null;
 
-    if (!snap.exists()) {
+    if (!data || Object.keys(data).length === 0) {
       content.innerHTML = `<div class="state-box fade-in"><p>Nessun dato trovato.</p></div>`;
       return;
     }
-
-    const data = snap.data();
     
     // Sort devices by name, supportando il formato legacy (stringa) e il nuovo (oggetto)
     const allDevices = Object.keys(data).map(deviceId => {

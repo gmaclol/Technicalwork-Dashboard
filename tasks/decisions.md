@@ -82,6 +82,27 @@ Fornire all'amministratore la capacità di modificare le quantità dei materiali
 * Al `blur` o premendo `Enter`, la modifica viene inviata come update su Firestore. L'`onSnapshot` dell'appalto cattura la modifica e aggiorna la singola cella via rendering incrementale.
 * Premendo `Escape`, l'editing viene annullato ripristinando il valore originale in locale.
 
+## 2026-07-04 — CSS Component Splitting e Ottimizzazione Moduli
+**Motivazione:**
+Il file `css/components.css` conteneva oltre 1200 righe di CSS misto per decine di componenti differenti. Questa struttura monolitica rendeva difficile la manutenzione grafica e favoriva errori di sovrascrittura.
+**Decisione:**
+* Dividere `css/components.css` in fogli di stile modularizzati e focalizzati per singolo componente sotto la nuova cartella `css/components/`.
+* Mantenere `css/components.css` come mero indice composto da regole `@import` per agganciare in automatico i nuovi file e permettere a Vite di compilarli in un unico foglio di stile ottimizzato in produzione.
+
+## 2026-07-04 — Pattern Pub/Sub per settings/devices_names
+**Motivazione:**
+Molti file caricati in parallelo avevano bisogno di monitorare il documento `settings/devices_names` (per i preferiti delle aree, i nomi dei tecnici online, la lista neri e i tecnici della dashboard). Questo causava registrazioni multiple di `onSnapshot` che duplicavano i dati letti da Firestore.
+**Decisione:**
+* Centralizzare in `js/state.js` un singolo listener `onSnapshot` su `settings/devices_names` che si attiva solo al login/session restore e si distrugge al logout.
+* Esporre le funzioni `subscribeToDevicesNames` e `unsubscribeFromDevicesNames` per consentire ai moduli (`app.js`, `pfsLookup.js`, `tecnici.js` e `aree.js`) di abbonarsi reattivamente alle variazioni del documento leggendo direttamente dalla cache locale senza consumare letture Firebase aggiuntive.
+
+## 2026-07-04 — Accessibilità WCAG 2.2 e Selettori Custom
+**Motivazione:**
+Le celle modificabili con doppio click non fornivano affordance o supporto per la navigazione a tastiera e screen reader. Inoltre, i tag `<select>` nativi mostravano l'overlay blu standard dei browser e sistemi operativi che stonava con la grafica scura e moderna dell'app.
+**Decisione:**
+* **Accessibilità**: Aggiunti attributi `tabindex="0"`, `role="button"` e `aria-label` descrittivi dinamici per ciascuna cella modificabile. Registrato un gestore tastiera (`keydown` per `Enter` / `Space`) per aprire l'editor inline ed implementato lo stile CSS `:focus-visible` per un indicatore di fuoco visibile ad alto contrasto.
+* **Custom Dropdown Select**: Sostituiti tutti i tag `<select>` delle modali e dei confirm box con un componente custom select (`.custom-select`) formato da trigger button, menu a comparsa div ad hoc e un tag `<input type="hidden">`. Quest'ultimo preserva l'identificativo ID del vecchio select nativo, garantendo il corretto funzionamento di tutta la logica asincrona esistente senza costringere a modifiche dei parser.
+
 ## Stack e Vincoli — Dashboard (tchwrk2)
 
 Stack:
@@ -96,6 +117,7 @@ Vincoli:
 - **Budget:** Zero-costo (Piano Spark di Firebase, servizi e CDN gratuiti). Nessun servizio o dipendenza a pagamento è consentito.
 - **Servizi vietati:** Qualsiasi heartbeat periodico/polling frequente su Firebase Firestore (vietato per evitare addebiti o superamento quota di scrittura).
 - **Lingua di lavoro:** Italiano per spiegazioni, commenti, commit e file `tasks/`.
+
 
 
 
