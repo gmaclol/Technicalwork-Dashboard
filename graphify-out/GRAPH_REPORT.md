@@ -1,7 +1,7 @@
-# Graph Report - tchwrk2  (2026-07-14)
+# Graph Report - tchwrk2  (2026-07-15)
 
 ## Corpus Check
-- 45 files · ~407,632 words
+- 45 files · ~407,852 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `0a1c32f4`
+- Built from commit: `d8b7bb12`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -79,15 +79,15 @@
 
 ## Surprising Connections (you probably didn't know these)
 - `oe()` --calls--> `y()`  [INFERRED]
-  docs/assets/index-B4tU8Pqv.js → docs/workbox-4b126c97.js
+  docs/assets/index-OU-7n-An.js → docs/workbox-4b126c97.js
 - `ae()` --calls--> `d()`  [INFERRED]
-  docs/assets/index-B4tU8Pqv.js → docs/workbox-4b126c97.js
+  docs/assets/index-OU-7n-An.js → docs/workbox-4b126c97.js
 - `Ke()` --calls--> `d()`  [INFERRED]
-  docs/assets/index-B4tU8Pqv.js → docs/workbox-4b126c97.js
+  docs/assets/index-OU-7n-An.js → docs/workbox-4b126c97.js
 - `Je()` --calls--> `d()`  [INFERRED]
-  docs/assets/index-B4tU8Pqv.js → docs/workbox-4b126c97.js
+  docs/assets/index-OU-7n-An.js → docs/workbox-4b126c97.js
 - `ot()` --calls--> `d()`  [INFERRED]
-  docs/assets/index-B4tU8Pqv.js → docs/workbox-4b126c97.js
+  docs/assets/index-OU-7n-An.js → docs/workbox-4b126c97.js
 
 ## Import Cycles
 - None detected.

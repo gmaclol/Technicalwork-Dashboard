@@ -476,6 +476,7 @@
 - **Riorganizzazione tabella dei bloccati**: Eliminato lo stile inline grezzo per la tabella dei dispositivi bannati ed introdotta la classe `.tecnici-table` in `css/components/table.css` con bordi, hover e font coerenti con le tabelle dell'applicazione.
 - **Supporto mobile e touch targets**: Aggiunti stili CSS responsive in `css/responsive.css` sotto `@media (max-width: 900px)` per abilitare il wrap su mobile ed impostare i pulsanti tecnici larghi il 100% del loro container con altezza di 44px conforme alle WCAG 2.2.
 - **Esportazione Immagine (Lista Modem) & Share Nativo**: Creata la funzione `exportToImage` (con il relativo tasto "Immagine") per generare e scaricare una versione PNG ad alta risoluzione speculare al layout a tabella dell'esportazione Excel. Mostra ciascun materiale con le quantità relative per tecnico, evidenziando in azzurro/cyan la colonna del totale finale. In modalità Live, viene calcolata ed inserita la data reale corrente (es: `14/07/2026` a video e `14-07-2026` nel file con prefisso `Lista_Modem_`) al posto di un generico "Oggi" per facilitare la condivisione e l'archiviazione cronologica. Su ambienti mobili e PWA che lo supportano, richiama l'API Web Share per aprire direttamente il menu di condivisione di sistema (per inviare la foto su WhatsApp, Telegram, email, ecc.) anziché salvare solo in locale.
+- **Ottimizzazione layout header PWA**: Spostato il selettore di data (`.snapshot-dropdown`) all'interno del nuovo contenitore `.content-header-main` a fianco del titolo dell'appalto su mobile (dove c'era lo spazio vuoto indicato). Questo lascia la riga inferiore `.content-actions` interamente dedicata ai tre pulsanti d'azione (Esporta, Stampa, Immagine), che ora si distribuiscono in modo fluido e simmetrico occupando il 100% della larghezza ed evitando che il pulsante Immagine venga tagliato fuori dallo schermo.
 - **Build di produzione**: Eseguito `npm run build` per rigenerare i file pronti per la produzione in `docs/` e allineato il Service Worker.
 - **Aggiornamento Grafo**: Eseguito `graphify update .` per mantenere coerenti le relazioni.
 
@@ -493,9 +494,9 @@
 - `js/data.js` (inserito il pulsante Immagine ed importato il metodo di export)
 - `js/app.js` (esposto globalmente `window.exportToImage`)
 - `css/components/forms.css` (aggiunta classe `.tecnici-actions` e padding)
-- `css/components/misc.css` (aggiunta larghezza max e centratura a `.tecnici-panel`)
+- `css/components/misc.css` (aggiunta classe `.content-header-main`, larghezza max e centratura a `.tecnici-panel`)
 - `css/components/table.css` (definizione classe `.tecnici-table`)
-- `css/responsive.css` (overrides per `.tecnici-actions` e pulsanti tecnici su mobile)
+- `css/responsive.css` (overrides per `.tecnici-actions`, pulsanti tecnici, e layout header/actions su mobile)
 
 **Rischi residui:**
 - Nessuno. Le modifiche sono grafiche e puramente di layout/esportazione, e non alterano le logiche di sincronizzazione dati o gli stati Firestore.

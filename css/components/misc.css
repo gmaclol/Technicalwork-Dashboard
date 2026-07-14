@@ -49,6 +49,7 @@
   border-bottom: 1px solid var(--border); flex-wrap: wrap; background: rgba(0,0,0,0.2);
   position: relative; z-index: 60; overflow: visible;
 }
+.content-header-main { display: flex; align-items: center; gap: 24px; }
 .content-title { font-size: 32px; font-weight: 800; letter-spacing: -0.03em; }
 .content-subtitle { font-family: var(--font-mono); font-size: 13px; font-weight: 500; color: var(--text-muted); padding-left: 16px; border-left: 1px solid var(--border-strong); }
 .content-actions { margin-left: auto; display: flex; gap: 14px; align-items: center; position: relative; z-index: 70; overflow: visible; }

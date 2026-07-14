@@ -77,10 +77,16 @@
   }
   .content-header {
     padding: 14px 16px !important;
-    flex-direction: row !important;
-    align-items: center !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+  }
+  .content-header-main {
+    display: flex !important;
     justify-content: space-between !important;
-    gap: 8px !important;
+    align-items: center !important;
+    width: 100% !important;
+    gap: 12px !important;
   }
   .content-title {
     font-size: 20px !important;
@@ -92,9 +98,14 @@
   }
   .content-actions {
     margin-left: 0 !important;
-    width: auto !important;
+    width: 100% !important;
+    display: flex !important;
     flex-wrap: nowrap !important;
-    gap: 6px !important;
+    gap: 8px !important;
+  }
+  .content-actions .btn-icon-text {
+    flex: 1 !important;
+    justify-content: center !important;
   }
   .snapshot-dropdown {
     min-width: 130px !important;
