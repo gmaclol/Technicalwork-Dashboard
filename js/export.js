@@ -1,5 +1,6 @@
 // ── Excel Export & Print ──
-import { escapeHtml, showToast, parseQuantity, formatQuantityTotal } from './utils.js';
+import { escapeHtml, showToast, parseQuantity, formatQuantityTotal, formatDateLabel, isToday, techStatus, relativeTime, dateOnlyRelativeTime } from './utils.js';
+import { currentDate, currentUser } from './state.js';
 
 export async function exportToExcel(appalto, tecnici, allMaterials) {
   const exportBtn = document.querySelector('.btn-export');
@@ -235,4 +236,323 @@ export function printTable(appalto, tecnici, allMaterials) {
   if (!win) { showToast('Popup bloccato. Consenti i popup per la stampa.', 'error'); return; }
   win.document.write(html);
   win.document.close();
+}
+
+export async function exportToImage(appalto, tecnici, allMaterials) {
+  const btn = document.querySelector('.btn-image');
+  const originalHTML = btn ? btn.innerHTML : null;
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<span class="btn-spinner"></span> Creazione…`;
+  }
+
+  try {
+    // 1. Filtra i materiali puliti (senza divisori)
+    const cleanMaterials = allMaterials.filter(m =>
+      !/^::.*::$/.test(m.trim()) && !/^;;.*;;$/.test(m.trim())
+    );
+
+    const firstColWidth = 250;
+    const colWidth = 110;
+    const lastColWidth = 120;
+    const paddingX = 40;
+    const tableWidth = firstColWidth + (tecnici.length * colWidth) + lastColWidth;
+    const canvasWidth = tableWidth + (paddingX * 2);
+
+    // Altezza base
+    const headerHeight = 110;
+    const tableHeaderHeight = 40;
+    const rowHeight = 32;
+    const tableHeight = tableHeaderHeight + (cleanMaterials.length * rowHeight);
+    
+    // Altezza totale dinamica basata sul numero di materiali
+    const canvasHeight = 175 + tableHeight + 80;
+
+    // 2. Creazione canvas reale
+    const canvas = document.createElement('canvas');
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
+    const ctx = canvas.getContext('2d');
+
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+
+    // Helper per disegnare rettangoli arrotondati
+    function drawRoundedRect(x, y, width, height, radius, fillStyle, strokeStyle, strokeWidth = 1) {
+      ctx.beginPath();
+      ctx.moveTo(x + radius, y);
+      ctx.lineTo(x + width - radius, y);
+      ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+      ctx.lineTo(x + width, y + height - radius);
+      ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+      ctx.lineTo(x + radius, y + height);
+      ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+      ctx.lineTo(x, y + radius);
+      ctx.quadraticCurveTo(x, y, x + radius, y);
+      ctx.closePath();
+      if (fillStyle) {
+        ctx.fillStyle = fillStyle;
+        ctx.fill();
+      }
+      if (strokeStyle) {
+        ctx.strokeStyle = strokeStyle;
+        ctx.lineWidth = strokeWidth;
+        ctx.stroke();
+      }
+    }
+
+    // Helper per troncare testo troppo lungo nei titoli di colonna
+    function truncateText(text, maxWidth, fontCtx) {
+      if (fontCtx.measureText(text).width <= maxWidth) return text;
+      let t = text;
+      while (t.length > 0 && fontCtx.measureText(t + '...').width > maxWidth) {
+        t = t.slice(0, -1);
+      }
+      return t + '...';
+    }
+
+    // 3. Sfondo con gradiente scuro Slate + bagliori radiali
+    const bgGrad = ctx.createLinearGradient(0, 0, 0, canvasHeight);
+    bgGrad.addColorStop(0, '#090d16');
+    bgGrad.addColorStop(1, '#020617');
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+    // Bagliore viola in alto a sinistra
+    const glow1 = ctx.createRadialGradient(0, 0, 0, 0, 0, 450);
+    glow1.addColorStop(0, 'rgba(99, 102, 241, 0.12)');
+    glow1.addColorStop(1, 'rgba(99, 102, 241, 0)');
+    ctx.fillStyle = glow1;
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+    // Bagliore smeraldo in basso a destra
+    const glow2 = ctx.createRadialGradient(canvasWidth, canvasHeight, 0, canvasWidth, canvasHeight, 550);
+    glow2.addColorStop(0, 'rgba(16, 185, 129, 0.06)');
+    glow2.addColorStop(1, 'rgba(16, 185, 129, 0)');
+    ctx.fillStyle = glow2;
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+    // 4. Intestazioni del Report
+    ctx.textBaseline = 'top';
+    
+    ctx.font = "bold 11px monospace";
+    ctx.fillStyle = "#6366f1";
+    ctx.fillText("TECHNICALWORK // LISTA MODEM", paddingX, 45);
+
+    ctx.font = "bold 38px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText(appalto, paddingX, 70);
+
+    const isSnapshot = currentDate !== 'live';
+    ctx.font = "600 13px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+    if (isSnapshot) {
+      ctx.fillStyle = "#f59e0b";
+      ctx.fillText(`SNAPSHOT: ${formatDateLabel(currentDate).toUpperCase()}`, paddingX, 115);
+    } else {
+      const todayStr = new Date().toLocaleDateString('it-IT');
+      ctx.fillStyle = "#10b981";
+      ctx.fillText(`LIVE STATUS · ${todayStr}`, paddingX, 115);
+    }
+
+    // Linea divisoria sotto intestazione
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(paddingX, 145);
+    ctx.lineTo(canvasWidth - paddingX, 145);
+    ctx.stroke();
+
+    // Y iniziale della tabella
+    const tableY = 175;
+
+    // 5. DISEGNO INTESTAZIONI COLONNE TABELLA
+    drawRoundedRect(paddingX, tableY, tableWidth, tableHeaderHeight, 8, "rgba(255, 255, 255, 0.04)", "rgba(255, 255, 255, 0.08)", 1);
+    
+    ctx.font = "bold 11px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+    ctx.textBaseline = 'middle';
+    
+    // Colonna "MATERIALE"
+    ctx.fillStyle = "#94a3b8";
+    ctx.fillText("MATERIALE", paddingX + 16, tableY + (tableHeaderHeight / 2));
+
+    // Nomi tecnici
+    tecnici.forEach((t, i) => {
+      const name = (t.tecnico || t.id).toUpperCase();
+      const colX = paddingX + firstColWidth + (i * colWidth);
+      ctx.font = "bold 11px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+      
+      const truncated = truncateText(name, colWidth - 10, ctx);
+      ctx.fillStyle = "#ffffff";
+      ctx.textAlign = 'center';
+      ctx.fillText(truncated, colX + (colWidth / 2), tableY + (tableHeaderHeight / 2));
+      ctx.textAlign = 'left';
+    });
+
+    // Colonna "TOTALE"
+    const totalColX = paddingX + firstColWidth + (tecnici.length * colWidth);
+    ctx.font = "bold 11px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+    ctx.fillStyle = "#6366f1";
+    ctx.textAlign = 'center';
+    ctx.fillText("TOTALE", totalColX + (lastColWidth / 2), tableY + (tableHeaderHeight / 2));
+    ctx.textAlign = 'left';
+
+    // 6. DISEGNO RIGHE MATERIALI
+    let currentYLine = tableY + tableHeaderHeight;
+    cleanMaterials.forEach((mat, idx) => {
+      // Zebra striping
+      const isZebra = idx % 2 === 1;
+      const rowBg = isZebra ? "rgba(255, 255, 255, 0.01)" : "transparent";
+      
+      ctx.fillStyle = rowBg;
+      ctx.fillRect(paddingX, currentYLine, tableWidth, rowHeight);
+
+      // Linea orizzontale separatore
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.04)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(paddingX, currentYLine + rowHeight);
+      ctx.lineTo(canvasWidth - paddingX, currentYLine + rowHeight);
+      ctx.stroke();
+
+      // Nome materiale
+      ctx.font = "bold 12px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+      ctx.fillStyle = "#cbd5e1";
+      ctx.fillText(mat, paddingX + 16, currentYLine + (rowHeight / 2));
+
+      let matFree = 0;
+      let matUsed = 0;
+
+      // Scrittura celle quantità per tecnico
+      tecnici.forEach((t, i) => {
+        const v = (t.materiali && t.materiali[mat]) || '';
+        const q = parseQuantity(v);
+        matFree += q.free;
+        matUsed += q.used;
+
+        const colX = paddingX + firstColWidth + (i * colWidth);
+        const display = (v === '0' || v === 0 || v === '') ? '·' : String(v);
+
+        ctx.font = display === '·' ? "bold 14px monospace" : "bold 13px monospace";
+        ctx.fillStyle = display === '·' ? "#475569" : "#ffffff";
+        ctx.textAlign = 'center';
+        ctx.fillText(display, colX + (colWidth / 2), currentYLine + (rowHeight / 2));
+        ctx.textAlign = 'left';
+      });
+
+      // Valore Totale Materiale della riga
+      const totalDisplay = formatQuantityTotal(matFree, matUsed) || '0';
+      const colX = paddingX + firstColWidth + (tecnici.length * colWidth);
+      
+      // Sfondo colorato della cella Totale
+      ctx.fillStyle = "rgba(99, 102, 241, 0.06)";
+      ctx.fillRect(colX, currentYLine, lastColWidth, rowHeight);
+
+      ctx.font = "bold 13px monospace";
+      ctx.fillStyle = "#38bdf8"; // Cyan brillante per staccare visivamente
+      ctx.textAlign = 'center';
+      ctx.fillText(totalDisplay, colX + (lastColWidth / 2), currentYLine + (rowHeight / 2));
+      ctx.textAlign = 'left';
+
+      currentYLine += rowHeight;
+    });
+
+    // 7. DISEGNO BORDI ESTERNI E GRIGLIA VERTICALE
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.07)";
+    ctx.lineWidth = 1;
+    // Sinistro
+    ctx.beginPath();
+    ctx.moveTo(paddingX, tableY);
+    ctx.lineTo(paddingX, currentYLine);
+    ctx.stroke();
+    // Destro
+    ctx.beginPath();
+    ctx.moveTo(canvasWidth - paddingX, tableY);
+    ctx.lineTo(canvasWidth - paddingX, currentYLine);
+    ctx.stroke();
+    // Inferiore
+    ctx.beginPath();
+    ctx.moveTo(paddingX, currentYLine);
+    ctx.lineTo(canvasWidth - paddingX, currentYLine);
+    ctx.stroke();
+
+    // Linee verticali interne
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.04)";
+    // Linea dopo "MATERIALE"
+    ctx.beginPath();
+    ctx.moveTo(paddingX + firstColWidth, tableY);
+    ctx.lineTo(paddingX + firstColWidth, currentYLine);
+    ctx.stroke();
+
+    // Linee tra tecnici
+    tecnici.forEach((t, i) => {
+      const colX = paddingX + firstColWidth + (i * colWidth);
+      ctx.beginPath();
+      ctx.moveTo(colX + colWidth, tableY);
+      ctx.lineTo(colX + colWidth, currentYLine);
+      ctx.stroke();
+    });
+
+    // 8. Footer Watermark
+    ctx.font = "500 11px monospace";
+    ctx.fillStyle = "#475569";
+    ctx.textAlign = "center";
+    const nowStr = new Date().toLocaleString('it-IT');
+    ctx.fillText(`TechnicalWork Dashboard · Lista Modem Generata da ${currentUser?.name || 'Admin'} il ${nowStr}`, canvasWidth / 2, canvasHeight - 25);
+    ctx.textAlign = "left"; // Reset
+
+    // 9. Condivisione nativa (PWA/Mobile) o Download alternativo (Desktop)
+    const dateFileSuffix = currentDate === 'live'
+      ? new Date().toLocaleDateString('it-IT').replace(/\//g, '-')
+      : currentDate;
+    const filename = `Lista_Modem_${appalto}_${dateFileSuffix}.png`;
+
+    const downloadImage = () => {
+      const url = canvas.toDataURL('image/png');
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      showToast('Immagine generata e scaricata!', 'success');
+    };
+
+    if (navigator.canShare && typeof File !== 'undefined') {
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+          downloadImage();
+          return;
+        }
+        const file = new File([blob], filename, { type: 'image/png' });
+        if (navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({
+              files: [file],
+              title: `Lista Modem - ${appalto}`,
+              text: `Lista dei modem sincronizzata per ${appalto}.`
+            });
+            showToast('Condivisione avviata!', 'success');
+          } catch (err) {
+            // AbortError indica che l'utente ha chiuso il pannello nativo di share, non facciamo nulla
+            if (err.name !== 'AbortError') {
+              console.error(err);
+              downloadImage();
+            }
+          }
+        } else {
+          downloadImage();
+        }
+      }, 'image/png');
+    } else {
+      downloadImage();
+    }
+  } catch(e) {
+    console.error(e);
+    showToast('Errore durante la creazione dell\'immagine: ' + e.message, 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = originalHTML;
+    }
+  }
 }

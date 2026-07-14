@@ -475,6 +475,7 @@
 - **Ripristino flexbox azioni tecnici e prevenzione wrap**: Aggiunta la classe `.tecnici-actions` in `css/components/forms.css` con layout flex, che allinea verticalmente pulsanti e checkbox toggle e li posiziona ordinatamente a destra delle card tecnici tramite `margin-left: auto`. Inoltre, configurato `.toggle-wrap` con `flex-wrap: nowrap` e `.toggle-info` con `flex: 1; min-width: 0` per schermi desktop. Questo fa sì che anche con dettagli hardware molto lunghi, il testo vada a capo internamente mentre i pulsanti e gli switch rimangano sulla stessa riga a destra, stabili e allineati verticalmente senza slittare in basso.
 - **Riorganizzazione tabella dei bloccati**: Eliminato lo stile inline grezzo per la tabella dei dispositivi bannati ed introdotta la classe `.tecnici-table` in `css/components/table.css` con bordi, hover e font coerenti con le tabelle dell'applicazione.
 - **Supporto mobile e touch targets**: Aggiunti stili CSS responsive in `css/responsive.css` sotto `@media (max-width: 900px)` per abilitare il wrap su mobile ed impostare i pulsanti tecnici larghi il 100% del loro container con altezza di 44px conforme alle WCAG 2.2.
+- **Esportazione Immagine (Lista Modem) & Share Nativo**: Creata la funzione `exportToImage` (con il relativo tasto "Immagine") per generare e scaricare una versione PNG ad alta risoluzione speculare al layout a tabella dell'esportazione Excel. Mostra ciascun materiale con le quantità relative per tecnico, evidenziando in azzurro/cyan la colonna del totale finale. In modalità Live, viene calcolata ed inserita la data reale corrente (es: `14/07/2026` a video e `14-07-2026` nel file con prefisso `Lista_Modem_`) al posto di un generico "Oggi" per facilitare la condivisione e l'archiviazione cronologica. Su ambienti mobili e PWA che lo supportano, richiama l'API Web Share per aprire direttamente il menu di condivisione di sistema (per inviare la foto su WhatsApp, Telegram, email, ecc.) anziché salvare solo in locale.
 - **Build di produzione**: Eseguito `npm run build` per rigenerare i file pronti per la produzione in `docs/` e allineato il Service Worker.
 - **Aggiornamento Grafo**: Eseguito `graphify update .` per mantenere coerenti le relazioni.
 
@@ -482,18 +483,22 @@
 - Nello splitting del file CSS monolitico in fogli di stile separati, alcune classi trasversali come `.tecnici-actions` erano andate perse, disallineando i pulsanti delle schede dei tecnici.
 - Senza un container con larghezza massima e testata comune, le pagine admin si presentavano vuote al centro e sproporzionatamente allungate ai margini su desktop e PWA.
 - La tabella dei bloccati non seguiva lo stile del design system scuro/chiaro dell'applicazione.
+- Gli utenti necessitano di condividere rapidamente una "fotografia" della tabella materiali ad alta leggibilità sui canali social aziendali (WhatsApp/Telegram).
 
 **File modificati:**
 - `js/tecnici.js` (ristrutturazione layout `showTecnici` e `showBanned`)
 - `js/aree.js` (ristrutturazione layout `showAreeDashboard`)
 - `js/pfs.js` (ristrutturazione layout `showPfsDashboard`)
-- `css/components/forms.css` (aggiunta classe `.tecnici-actions`)
+- `js/export.js` (implementata la funzione `exportToImage` con calcolo ingombro dinamico e layout tabellare)
+- `js/data.js` (inserito il pulsante Immagine ed importato il metodo di export)
+- `js/app.js` (esposto globalmente `window.exportToImage`)
+- `css/components/forms.css` (aggiunta classe `.tecnici-actions` e padding)
 - `css/components/misc.css` (aggiunta larghezza max e centratura a `.tecnici-panel`)
 - `css/components/table.css` (definizione classe `.tecnici-table`)
 - `css/responsive.css` (overrides per `.tecnici-actions` e pulsanti tecnici su mobile)
 
 **Rischi residui:**
-- Nessuno. Le modifiche sono grafiche e puramente di layout, e non alterano le logiche di sincronizzazione dati o gli stati Firestore.
+- Nessuno. Le modifiche sono grafiche e puramente di layout/esportazione, e non alterano le logiche di sincronizzazione dati o gli stati Firestore.
 
 **Follow-up consigliati:**
 - Eseguire un check visivo completo in modalità light theme per confermare che l'ombreggiatura e il contrasto dei pulsanti ed input siano ottimali anche di giorno.

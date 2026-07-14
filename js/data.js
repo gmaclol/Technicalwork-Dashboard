@@ -2,7 +2,7 @@
 import { db, doc, collection, getDocs, onSnapshot, getDoc, setDoc, updateDoc, deleteField, FieldPath } from './firebase.js';
 import { APPALTI, currentUser, currentAppalto, currentDate, setCurrentAppalto, setCurrentDate, invalidateConfigCache } from './state.js';
 import { escapeHtml, isToday, relativeTime, dateOnlyRelativeTime, techStatus, formatDateLabel, parseTimestamp, showToast, parseQuantity, formatQuantityTotal, showConfirm, showRenameModal } from './utils.js';
-import { exportToExcel, printTable } from './export.js';
+import { exportToExcel, printTable, exportToImage } from './export.js';
 
 // ── STALE HASH HELPERS ──
 function simpleHash(obj) {
@@ -1401,6 +1401,10 @@ function renderTable(appalto, tecnici, container, dateKey = 'live', allDocs = []
         <button class="btn-icon-text" onclick="printTable('${appalto}', window._lastTecnici, window._lastMaterials)" ${tecnici.length === 0 ? 'disabled' : ''}>
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
           Stampa
+        </button>
+        <button class="btn-icon-text btn-image" onclick="exportToImage('${appalto}', window._lastTecnici, window._lastMaterials)" ${tecnici.length === 0 ? 'disabled' : ''}>
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          Immagine
         </button>
       </div>
     </div>`;

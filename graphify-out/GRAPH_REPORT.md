@@ -1,16 +1,16 @@
 # Graph Report - tchwrk2  (2026-07-14)
 
 ## Corpus Check
-- 45 files · ~405,823 words
+- 45 files · ~407,632 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 899 nodes · 1538 edges · 53 communities (49 shown, 4 thin omitted)
-- Extraction: 96% EXTRACTED · 4% INFERRED · 0% AMBIGUOUS · INFERRED: 67 edges (avg confidence: 0.8)
+- 901 nodes · 1554 edges · 53 communities (49 shown, 4 thin omitted)
+- Extraction: 96% EXTRACTED · 4% INFERRED · 0% AMBIGUOUS · INFERRED: 62 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `368cbcb2`
+- Built from commit: `0a1c32f4`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -68,26 +68,26 @@
 ## God Nodes (most connected - your core abstractions)
 1. `lessons.md — Dashboard (tchwrk2)` - 37 edges
 2. `$()` - 31 edges
-3. `showToast()` - 29 edges
-4. `n()` - 23 edges
+3. `showToast()` - 30 edges
+4. `o()` - 22 edges
 5. `Workflow Operativo AI-Assisted per Progetti Software` - 22 edges
-6. `o()` - 21 edges
-7. `j()` - 20 edges
-8. `handleHashChange()` - 20 edges
-9. `review.md — Dashboard (tchwrk2)` - 19 edges
+6. `j()` - 21 edges
+7. `handleHashChange()` - 20 edges
+8. `review.md — Dashboard (tchwrk2)` - 19 edges
+9. `n()` - 17 edges
 10. `escapeHtml()` - 17 edges
 
 ## Surprising Connections (you probably didn't know these)
+- `oe()` --calls--> `y()`  [INFERRED]
+  docs/assets/index-B4tU8Pqv.js → docs/workbox-4b126c97.js
 - `ae()` --calls--> `d()`  [INFERRED]
-  docs/assets/index-DgFzl-1P.js → docs/workbox-4b126c97.js
-- `ge()` --calls--> `d()`  [INFERRED]
-  docs/assets/index-DgFzl-1P.js → docs/workbox-4b126c97.js
-- `qe()` --calls--> `d()`  [INFERRED]
-  docs/assets/index-DgFzl-1P.js → docs/workbox-4b126c97.js
-- `at()` --calls--> `r`  [INFERRED]
-  docs/assets/index-DgFzl-1P.js → docs/workbox-4b126c97.js
-- `lt()` --calls--> `d()`  [INFERRED]
-  docs/assets/index-DgFzl-1P.js → docs/workbox-4b126c97.js
+  docs/assets/index-B4tU8Pqv.js → docs/workbox-4b126c97.js
+- `Ke()` --calls--> `d()`  [INFERRED]
+  docs/assets/index-B4tU8Pqv.js → docs/workbox-4b126c97.js
+- `Je()` --calls--> `d()`  [INFERRED]
+  docs/assets/index-B4tU8Pqv.js → docs/workbox-4b126c97.js
+- `ot()` --calls--> `d()`  [INFERRED]
+  docs/assets/index-B4tU8Pqv.js → docs/workbox-4b126c97.js
 
 ## Import Cycles
 - None detected.
@@ -96,7 +96,7 @@
 
 ### Community 0 - "Community 0"
 Cohesion: 0.06
-Nodes (86): A(), ae(), An(), ar(), at(), be(), bn(), ce() (+78 more)
+Nodes (89): A(), ae(), An(), at(), be(), bn(), Bt(), ce() (+81 more)
 
 ### Community 1 - "Community 1"
 Cohesion: 0.12
@@ -115,8 +115,8 @@ Cohesion: 0.05
 Nodes (39): 10. Anti-Patterns to Avoid, 11. Decision Checklist, 1. Framework Selection (2025), 2. Runtime Considerations (2025), 3. Architecture Principles, 4. Error Handling Principles, 5. Async Patterns Principles, 6. Validation Principles (+31 more)
 
 ### Community 5 - "Community 5"
-Cohesion: 0.14
-Nodes (20): buildSidebar(), checkSession(), doLogin(), doLogout(), hashPassword(), showApp(), finishEdit(), initGlobalHiddenListener() (+12 more)
+Cohesion: 0.15
+Nodes (19): buildSidebar(), checkSession(), doLogin(), doLogout(), hashPassword(), showApp(), initGlobalHiddenListener(), preloadCounts() (+11 more)
 
 ### Community 6 - "Community 6"
 Cohesion: 0.06
@@ -131,8 +131,8 @@ Cohesion: 0.10
 Nodes (20): 1. Naming Conventions, 2. Architettura — Dove Vive la Logica, 3.1 Real-Time (onSnapshot / onValue) vs Statico (getDocs), 3.2 Prevenzione Memory Leak e Sovrascritture DOM, 3.3 Cache Sincrona in RAM, 3. Gestione dello Stato e Firebase, 4.1 Gestione delle Exception, 4.2 Dialogs e Sicurezza XSS (+12 more)
 
 ### Community 9 - "Community 9"
-Cohesion: 0.30
-Nodes (13): addMaterialRow(), buildCustomSelect(), deleteMaterialRow(), editMaterialRow(), fetchRawMasterList(), validateMaterialName(), exportToExcel(), printTable() (+5 more)
+Cohesion: 0.19
+Nodes (18): addMaterialRow(), buildCustomSelect(), deleteMaterialRow(), editMaterialRow(), fetchRawMasterList(), finishEdit(), validateMaterialName(), exportToExcel() (+10 more)
 
 ### Community 10 - "Community 10"
 Cohesion: 0.09
@@ -155,12 +155,12 @@ Cohesion: 0.05
 Nodes (37): Errore: `100vh` su iOS causa overflow layout, Errore: `appearance: none` senza prefisso iOS, Errore: Async callback dentro `onSnapshot` senza try/catch, Errore Billing Spike Firestore (Reads e Writes), Errore: Celle interattive e controlli in-app inaccessibili da tastiera e screen reader, Errore: Crash di WebKit/Safari su iOS con liste DOM massicce (~5000+ nodi), Errore Crash Ricerca iOS e Accessibilità, Errore: `currentAppalto` letto dopo `await` in callback asincrona (+29 more)
 
 ### Community 15 - "Community 15"
-Cohesion: 0.13
-Nodes (21): getCountListeners(), getHiddenTecnici(), getHiddenTecniciSync(), resetHiddenCache(), resetLastRenderedKey(), saveHiddenTecnici(), setHiddenCache(), app (+13 more)
+Cohesion: 0.15
+Nodes (19): getCountListeners(), getHiddenTecnici(), getHiddenTecniciSync(), resetHiddenCache(), resetLastRenderedKey(), saveHiddenTecnici(), setHiddenCache(), triggerTableRenderWithHidden() (+11 more)
 
 ### Community 16 - "Community 16"
-Cohesion: 0.15
-Nodes (29): applyTheme(), _deviceNamesCache, handleHashChange(), initPresence(), stopPresence(), toggleTheme(), updateSidebarHrefsAndCounts(), deleteDeviceAreas() (+21 more)
+Cohesion: 0.14
+Nodes (30): applyTheme(), _deviceNamesCache, handleHashChange(), initPresence(), stopPresence(), toggleTheme(), updateSidebarHrefsAndCounts(), deleteDeviceAreas() (+22 more)
 
 ### Community 17 - "Community 17"
 Cohesion: 0.13
@@ -255,8 +255,8 @@ Cohesion: 0.67
 Nodes (3): 9. Verifica Prima del Completamento, Domanda Finale, Verifiche obbligatorie
 
 ### Community 42 - "Community 42"
-Cohesion: 0.29
-Nodes (5): t(), F, y(), loadBrandModels(), resolveDeviceName()
+Cohesion: 0.28
+Nodes (3): F, s, y()
 
 ### Community 45 - "Community 45"
 Cohesion: 0.13
@@ -267,11 +267,11 @@ Cohesion: 0.20
 Nodes (3): deleteCacheAndMetadata(), M, P
 
 ### Community 50 - "Community 50"
-Cohesion: 0.17
+Cohesion: 0.16
 Nodes (4): a, get(), k(), st()
 
 ### Community 51 - "Community 51"
-Cohesion: 0.09
+Cohesion: 0.11
 Nodes (33): checkStaleHashes(), closeSnapshotDropdown(), _countListeners, filterMaterials(), forceListUpdateFromGithub(), _geoCache, _lastAllDocs, _lastRenderedTecNames (+25 more)
 
 ## Knowledge Gaps
@@ -286,13 +286,13 @@ _Questions this graph is uniquely positioned to answer:_
   _High betweenness centrality (0.029) - this node is a cross-community bridge._
 - **Why does `loadGeo()` connect `Community 51` to `Community 16`, `Community 42`?**
   _High betweenness centrality (0.023) - this node is a cross-community bridge._
-- **Why does `n()` connect `Community 0` to `Community 42`, `Community 50`, `Community 45`?**
-  _High betweenness centrality (0.020) - this node is a cross-community bridge._
-- **Are the 5 inferred relationships involving `n()` (e.g. with `.fetch()` and `.setCatchHandler()`) actually correct?**
-  _`n()` has 5 INFERRED edges - model-reasoned connections that need verification._
+- **Why does `loadConfig()` connect `Community 5` to `Community 16`, `Community 42`?**
+  _High betweenness centrality (0.019) - this node is a cross-community bridge._
 - **What connects `_deviceNamesCache`, `_staleCacheMap`, `_lastAllDocs` to the rest of the system?**
   _436 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
-  _Cohesion score 0.06494960806270997 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.06314432989690721 - nodes in this community are weakly interconnected._
 - **Should `Community 1` be split into smaller, more focused modules?**
   _Cohesion score 0.11764705882352941 - nodes in this community are weakly interconnected._
+- **Should `Community 2` be split into smaller, more focused modules?**
+  _Cohesion score 0.04081632653061224 - nodes in this community are weakly interconnected._

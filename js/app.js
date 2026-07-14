@@ -2,7 +2,7 @@ import { db, rtdb, ref, onValue, set, update, onDisconnect, serverTimestamp, doc
 import { APPALTI, currentUser, currentAppalto, currentDate, setCurrentAppalto, setCurrentDate, loadConfig, invalidateConfigCache, subscribeToDevicesNames, unsubscribeFromDevicesNames } from './state.js';
 import { preloadCounts, loadAppalto, filterMaterials, toggleSnapshotDropdown, pickSnapshotDate, closeSnapshotDropdown, selectAppalto, onDateChange, loadGeo, addMaterialRow, editMaterialRow, deleteMaterialRow, scrollCellIntoViewCenter, scrollTechHeaderNeighbor, forceListUpdateFromGithub, toggleDrawer, closeDrawer, updateSidebarCountsForDate, stopLiveListener, toggleCustomSelect, selectCustomOption } from './data.js';
 import { escapeHtml, showConfirm, showToast } from './utils.js';
-import { exportToExcel, printTable } from './export.js';
+import { exportToExcel, printTable, exportToImage } from './export.js';
 import { showTecnici, deleteTecnico, renameTecnico, toggleTecnico, renameWebTecnico, deleteWebTecnico, showBanned, stopTecniciListeners, stopBannedListeners } from './tecnici.js';
 import { showPfsDashboard, toggleAllPfs, updatePfsToolbar, deletePfsItem, deleteSelectedPfs, stopPfsListeners } from './pfs.js';
 import { showAreeDashboard, savePfsAreas, deleteDeviceAreas, renameDevice, stopAreeListener } from './aree.js';
@@ -440,6 +440,7 @@ window.scrollTechHeaderNeighbor = scrollTechHeaderNeighbor;
 window.loadGeo = loadGeo;
 window.exportToExcel = exportToExcel;
 window.printTable = printTable;
+window.exportToImage = exportToImage;
 window.addMaterialRow = addMaterialRow;
 window.editMaterialRow = editMaterialRow;
 window.deleteMaterialRow = deleteMaterialRow;
