@@ -137,3 +137,46 @@ tbody tr:hover .material-row-actions {
   user-select: text;
   touch-action: manipulation;
 }
+
+/* ── BANNED DEVICES TABLE (tecnici-table) ── */
+.tecnici-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin-top: 16px;
+  background: rgba(255, 255, 255, 0.01);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.tecnici-table th {
+  background: rgba(0, 0, 0, 0.2);
+  padding: 14px 16px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--border-strong);
+  text-align: left;
+}
+.tecnici-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  vertical-align: middle;
+  font-size: 13px;
+  color: var(--text);
+}
+.tecnici-table tbody tr:last-child td {
+  border-bottom: none;
+}
+.tecnici-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+[data-theme="light"] .tecnici-table {
+  background: rgba(0, 0, 0, 0.01);
+}
+[data-theme="light"] .tecnici-table th {
+  background: rgba(0, 0, 0, 0.03);
+  color: var(--text-dark);
+}

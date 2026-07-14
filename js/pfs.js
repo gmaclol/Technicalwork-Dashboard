@@ -142,17 +142,18 @@ export async function showPfsDashboard() {
     const checkedSigs = Array.from(document.querySelectorAll('.sig-check:checked')).map(cb => cb.closest('.pfs-card').dataset.id);
     const checkedLogs = Array.from(document.querySelectorAll('.log-check:checked')).map(cb => cb.closest('.pfs-card').dataset.id);
 
-    let html = `<div class="tecnici-panel fade-in">
-      <div class="content-header" style="padding:0; margin-bottom: 32px; background:transparent; border:none">
+    let html = `
+      <div class="content-header fade-in">
         <div>
           <div class="content-title">Gestione PFS</div>
           <div class="content-subtitle">Elimina o gestisci segnalazioni ed accessi</div>
         </div>
       </div>
-      <div id="pfs-delete-toolbar" class="delete-toolbar">
-        <span id="pfs-delete-count" style="font-size:14px; font-weight:600; color:var(--red)">0 selezionati</span>
-        <button class="btn-bulk-delete" onclick="deleteSelectedPfs()">Elimina Selezionati</button>
-      </div>`;
+      <div class="tecnici-panel fade-in">
+        <div id="pfs-delete-toolbar" class="delete-toolbar">
+          <span id="pfs-delete-count" style="font-size:14px; font-weight:600; color:var(--red)">0 selezionati</span>
+          <button class="btn-bulk-delete" onclick="deleteSelectedPfs()">Elimina Selezionati</button>
+        </div>`;
 
     // ── Section 1: Signals ──
     html += `<div style="margin-bottom:48px">

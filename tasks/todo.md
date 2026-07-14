@@ -24,6 +24,15 @@
 - [x] PFS Lookup DOM Pagination: Refactoring rendering DOM per aree massicce (es. Roma ~5800 elementi) con costante `MAX_VISIBLE_ITEMS = 100` e pulsante "Mostra altri" per evitare crash WebKit/Safari su iOS.
 - [ ] PFS Lookup: aggiungere fingerprint più robusto (WebGL hash) se necessaria maggiore unicità cross-session.
 
+## 2026-07-14 — Sessione Uniformità Grafica e Layout Tab Admin
+- [x] **Uniformazione layout testate**: Spostate le testate delle viste admin (Tecnici, Bloccati, Aree Preferite, Gestione PFS) in un `.content-header` esterno a `.tecnici-panel`, garantendo allineamento e sfondo coerenti con le tabelle degli appalti.
+- [x] **Ottimizzazione e centratura pannelli**: Configurato `.tecnici-panel` con `max-width: 1000px` e `margin: 0 auto` per prevenire lo stretching eccessivo e rendere la lettura più piacevole su monitor widescreen.
+- [x] **Ripristino flexbox azioni tecnici e prevenzione wrap**: Risolto bug di allineamento orizzontale ripristinando la classe `.tecnici-actions` con layout flex. Inoltre, forzato `flex-wrap: nowrap` su desktop per `.toggle-wrap` e `flex: 1; min-width: 0;` su `.toggle-info` in modo che il testo lungo vada a capo internamente lasciando i bottoni ordinatamente allineati e stabili sulla destra, mentre su mobile viene abilitato il wrap a 44px di target touch.
+- [x] **Styling moderno per la tabella dei bloccati**: Rimosso lo stile inline grezzo per la tabella dispositivi bannati, sostituendola con una classe strutturata `.tecnici-table` in `table.css` che si integra con il design scuro e chiaro.
+- [x] **Supporto mobile e touch targets**: Aggiunti stili in `responsive.css` per garantire che i pulsanti d'azione tecnici su schermi mobili occupino larghezza fluida con altezza di 44px conforme alle WCAG 2.2.
+- [x] **Generato build di produzione** (`npm run build`) e aggiornato il service worker.
+- [x] **Aggiornato il grafo della conoscenza** tramite `graphify`.
+
 ## 2026-07-04 — Sessione Correzione Bug Leak, Ottimizzazioni e Accessibilità
 - [x] Risolto bug per cui i listener di background (Tecnici, PFS, Aree, Banned, Live) causavano la visualizzazione errata/casuale di tab amministrativi.
 - [x] Importati e invocati tutti i metodi `stop*Listeners` all'inizio di `handleHashChange` in `app.js`.

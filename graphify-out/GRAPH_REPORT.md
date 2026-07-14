@@ -1,16 +1,16 @@
-# Graph Report - tchwrk2  (2026-07-04)
+# Graph Report - tchwrk2  (2026-07-14)
 
 ## Corpus Check
-- 45 files · ~405,184 words
+- 45 files · ~405,823 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 896 nodes · 1535 edges · 53 communities (49 shown, 4 thin omitted)
+- 899 nodes · 1538 edges · 53 communities (49 shown, 4 thin omitted)
 - Extraction: 96% EXTRACTED · 4% INFERRED · 0% AMBIGUOUS · INFERRED: 67 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `541245a2`
+- Built from commit: `368cbcb2`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -66,7 +66,7 @@
 - [[_COMMUNITY_Community 51|Community 51]]
 
 ## God Nodes (most connected - your core abstractions)
-1. `lessons.md — Dashboard (tchwrk2)` - 36 edges
+1. `lessons.md — Dashboard (tchwrk2)` - 37 edges
 2. `$()` - 31 edges
 3. `showToast()` - 29 edges
 4. `n()` - 23 edges
@@ -74,20 +74,20 @@
 6. `o()` - 21 edges
 7. `j()` - 20 edges
 8. `handleHashChange()` - 20 edges
-9. `review.md — Dashboard (tchwrk2)` - 18 edges
+9. `review.md — Dashboard (tchwrk2)` - 19 edges
 10. `escapeHtml()` - 17 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `ae()` --calls--> `d()`  [INFERRED]
-  docs/assets/index-CsuPAYtV.js → docs/workbox-4b126c97.js
+  docs/assets/index-DgFzl-1P.js → docs/workbox-4b126c97.js
 - `ge()` --calls--> `d()`  [INFERRED]
-  docs/assets/index-CsuPAYtV.js → docs/workbox-4b126c97.js
+  docs/assets/index-DgFzl-1P.js → docs/workbox-4b126c97.js
 - `qe()` --calls--> `d()`  [INFERRED]
-  docs/assets/index-CsuPAYtV.js → docs/workbox-4b126c97.js
+  docs/assets/index-DgFzl-1P.js → docs/workbox-4b126c97.js
 - `at()` --calls--> `r`  [INFERRED]
-  docs/assets/index-CsuPAYtV.js → docs/workbox-4b126c97.js
+  docs/assets/index-DgFzl-1P.js → docs/workbox-4b126c97.js
 - `lt()` --calls--> `d()`  [INFERRED]
-  docs/assets/index-CsuPAYtV.js → docs/workbox-4b126c97.js
+  docs/assets/index-DgFzl-1P.js → docs/workbox-4b126c97.js
 
 ## Import Cycles
 - None detected.
@@ -115,8 +115,8 @@ Cohesion: 0.05
 Nodes (39): 10. Anti-Patterns to Avoid, 11. Decision Checklist, 1. Framework Selection (2025), 2. Runtime Considerations (2025), 3. Architecture Principles, 4. Error Handling Principles, 5. Async Patterns Principles, 6. Validation Principles (+31 more)
 
 ### Community 5 - "Community 5"
-Cohesion: 0.18
-Nodes (16): buildSidebar(), checkSession(), doLogin(), hashPassword(), showApp(), finishEdit(), initGlobalHiddenListener(), preloadCounts() (+8 more)
+Cohesion: 0.14
+Nodes (20): buildSidebar(), checkSession(), doLogin(), doLogout(), hashPassword(), showApp(), finishEdit(), initGlobalHiddenListener() (+12 more)
 
 ### Community 6 - "Community 6"
 Cohesion: 0.06
@@ -152,15 +152,15 @@ Nodes (16): Buttons, Common ARIA patterns, Error states, Form fields, Level A (m
 
 ### Community 14 - "Community 14"
 Cohesion: 0.05
-Nodes (36): Errore: `100vh` su iOS causa overflow layout, Errore: `appearance: none` senza prefisso iOS, Errore: Async callback dentro `onSnapshot` senza try/catch, Errore Billing Spike Firestore (Reads e Writes), Errore: Celle interattive e controlli in-app inaccessibili da tastiera e screen reader, Errore: Crash di WebKit/Safari su iOS con liste DOM massicce (~5000+ nodi), Errore Crash Ricerca iOS e Accessibilità, Errore: `currentAppalto` letto dopo `await` in callback asincrona (+28 more)
+Nodes (37): Errore: `100vh` su iOS causa overflow layout, Errore: `appearance: none` senza prefisso iOS, Errore: Async callback dentro `onSnapshot` senza try/catch, Errore Billing Spike Firestore (Reads e Writes), Errore: Celle interattive e controlli in-app inaccessibili da tastiera e screen reader, Errore: Crash di WebKit/Safari su iOS con liste DOM massicce (~5000+ nodi), Errore Crash Ricerca iOS e Accessibilità, Errore: `currentAppalto` letto dopo `await` in callback asincrona (+29 more)
 
 ### Community 15 - "Community 15"
 Cohesion: 0.13
 Nodes (21): getCountListeners(), getHiddenTecnici(), getHiddenTecniciSync(), resetHiddenCache(), resetLastRenderedKey(), saveHiddenTecnici(), setHiddenCache(), app (+13 more)
 
 ### Community 16 - "Community 16"
-Cohesion: 0.14
-Nodes (30): applyTheme(), _deviceNamesCache, handleHashChange(), initPresence(), stopPresence(), toggleTheme(), updateSidebarHrefsAndCounts(), deleteDeviceAreas() (+22 more)
+Cohesion: 0.15
+Nodes (29): applyTheme(), _deviceNamesCache, handleHashChange(), initPresence(), stopPresence(), toggleTheme(), updateSidebarHrefsAndCounts(), deleteDeviceAreas() (+21 more)
 
 ### Community 17 - "Community 17"
 Cohesion: 0.13
@@ -191,16 +191,16 @@ Cohesion: 0.15
 Nodes (12): 1. Architettura Generale, 2. Flussi Dati Principali, 3. Mappa dei File, 4. Punti di Attenzione, Criteri di Completamento, Istruzioni di Scansione, Obiettivo, Output Finale (+4 more)
 
 ### Community 24 - "Community 24"
-Cohesion: 0.11
-Nodes (18): 2026-05-13 — Sessione Aggiornamento Real-Time & Notifiche, 2026-05-13 — Sessione Ricerca PFS Sidebar & Web Users Sync, 2026-05-15 — Fix PWA iOS Safari Crash e Accessibilità (a11y), 2026-05-15 — Ottimizzazione Firebase: Risoluzione Spike Reads e Writes, 2026-05-16 — Audit e Fix Write Firestore Eccessive, 2026-05-16 — Ottimizzazione Caching e Sincronizzazione Real-Time, 2026-05-17 — Sessione Ottimizzazione PWA iOS Safari (Pagine DOM), 2026-05-28 — Scansione Completa Codebase e Popolamento struttura.md (+10 more)
+Cohesion: 0.10
+Nodes (19): 2026-05-13 — Sessione Aggiornamento Real-Time & Notifiche, 2026-05-13 — Sessione Ricerca PFS Sidebar & Web Users Sync, 2026-05-15 — Fix PWA iOS Safari Crash e Accessibilità (a11y), 2026-05-15 — Ottimizzazione Firebase: Risoluzione Spike Reads e Writes, 2026-05-16 — Audit e Fix Write Firestore Eccessive, 2026-05-16 — Ottimizzazione Caching e Sincronizzazione Real-Time, 2026-05-17 — Sessione Ottimizzazione PWA iOS Safari (Pagine DOM), 2026-05-28 — Scansione Completa Codebase e Popolamento struttura.md (+11 more)
 
 ### Community 25 - "Community 25"
 Cohesion: 0.17
 Nodes (11): API Response Format, Authentication & Authorization, Caching Strategies, Database Patterns, Dependency Injection, DI Container, JWT Authentication, MongoDB with Mongoose (+3 more)
 
 ### Community 26 - "Community 26"
-Cohesion: 0.22
-Nodes (12): doLogout(), clearUnseenPfsCount(), deletePfsItem(), deleteSelectedPfs(), _pfsListeners, requestNotificationPermission(), showPfsDashboard(), startGlobalPfsNotifications() (+4 more)
+Cohesion: 0.31
+Nodes (9): clearUnseenPfsCount(), deletePfsItem(), deleteSelectedPfs(), _pfsListeners, showPfsDashboard(), stopPfsListeners(), toggleAllPfs(), updatePfsToolbar() (+1 more)
 
 ### Community 27 - "Community 27"
 Cohesion: 0.14
@@ -227,8 +227,8 @@ Cohesion: 0.50
 Nodes (4): 17. Stack Tecnologico e Vincoli di Progetto, All'avvio di un nuovo progetto (o se la sezione manca), Formato consigliato in decisions.md, Regola
 
 ### Community 33 - "Community 33"
-Cohesion: 0.13
-Nodes (14): 2026-05-28 — Sessione Precedente, 2026-05-31 — Sessione Corrente, 2026-06-20 — Sessione Corrente, 2026-06-22 — Sessione 2, 2026-06-22 — Sessione Corrente, 2026-06-23 — Sessione Accessibilità PWA, Gestione Scroll-Lock e Icone Dispositivo, 2026-06-23 — Sessione Correzione Bug Router (DeepSeek Regressions), 2026-06-23 — Sessione PWA Bugfix (Theme Switcher, Online Count, Routing e Tooltip) (+6 more)
+Cohesion: 0.12
+Nodes (15): 2026-05-28 — Sessione Precedente, 2026-05-31 — Sessione Corrente, 2026-06-20 — Sessione Corrente, 2026-06-22 — Sessione 2, 2026-06-22 — Sessione Corrente, 2026-06-23 — Sessione Accessibilità PWA, Gestione Scroll-Lock e Icone Dispositivo, 2026-06-23 — Sessione Correzione Bug Router (DeepSeek Regressions), 2026-06-23 — Sessione PWA Bugfix (Theme Switcher, Online Count, Routing e Tooltip) (+7 more)
 
 ### Community 34 - "Community 34"
 Cohesion: 0.50
@@ -275,7 +275,7 @@ Cohesion: 0.09
 Nodes (33): checkStaleHashes(), closeSnapshotDropdown(), _countListeners, filterMaterials(), forceListUpdateFromGithub(), _geoCache, _lastAllDocs, _lastRenderedTecNames (+25 more)
 
 ## Knowledge Gaps
-- **433 isolated node(s):** `_deviceNamesCache`, `_staleCacheMap`, `_lastAllDocs`, `_countListeners`, `_liveCounts` (+428 more)
+- **436 isolated node(s):** `_deviceNamesCache`, `_staleCacheMap`, `_lastAllDocs`, `_countListeners`, `_liveCounts` (+431 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **4 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
@@ -283,7 +283,7 @@ Nodes (33): checkStaleHashes(), closeSnapshotDropdown(), _countListeners, filter
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `$()` connect `Community 45` to `Community 0`, `Community 42`, `Community 46`, `Community 48`, `Community 49`, `Community 50`?**
-  _High betweenness centrality (0.030) - this node is a cross-community bridge._
+  _High betweenness centrality (0.029) - this node is a cross-community bridge._
 - **Why does `loadGeo()` connect `Community 51` to `Community 16`, `Community 42`?**
   _High betweenness centrality (0.023) - this node is a cross-community bridge._
 - **Why does `n()` connect `Community 0` to `Community 42`, `Community 50`, `Community 45`?**
@@ -291,7 +291,7 @@ _Questions this graph is uniquely positioned to answer:_
 - **Are the 5 inferred relationships involving `n()` (e.g. with `.fetch()` and `.setCatchHandler()`) actually correct?**
   _`n()` has 5 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `_deviceNamesCache`, `_staleCacheMap`, `_lastAllDocs` to the rest of the system?**
-  _433 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _436 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
   _Cohesion score 0.06494960806270997 - nodes in this community are weakly interconnected._
 - **Should `Community 1` be split into smaller, more focused modules?**

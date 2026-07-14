@@ -249,11 +249,19 @@ export async function showTecnici() {
         }
       }
 
-      content.innerHTML = `<div class="tecnici-panel fade-in">
-        <div class="tecnici-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-          <div class="content-title">Tecnici</div>
-          <div class="tecnici-note" style="width:100%;">⚠ I tecnici disattivati vengono nascosti dalla tabella e dai conteggi. Il loro sync continua normalmente.</div>
-        </div>${cards}</div>`;
+      content.innerHTML = `
+        <div class="content-header fade-in">
+          <div>
+            <div class="content-title">Tecnici</div>
+            <div class="content-subtitle">Abilita, disabilita e rinomina i tecnici registrati</div>
+          </div>
+        </div>
+        <div class="tecnici-panel fade-in">
+          <div class="tecnici-note">⚠ I tecnici disattivati vengono nascosti dalla tabella e dai conteggi. Il loro sync continua normalmente.</div>
+          <div style="display:flex; flex-direction:column; gap:10px; margin-top:20px;">
+            ${cards}
+          </div>
+        </div>`;
     } catch(e) {
       console.error(e);
     }
@@ -494,20 +502,23 @@ export function showBanned() {
   }
   
   content.innerHTML = `
-    <div class="tecnici-panel fade-in">
-      <div class="tecnici-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-        <div class="content-title">Dispositivi Bloccati (Killswitch)</div>
-        <div class="tecnici-note" style="width:100%;">⚠ I dispositivi bloccati non possono usare l'app o accedere ai dati aziendali.</div>
+    <div class="content-header fade-in">
+      <div>
+        <div class="content-title">Dispositivi Bloccati</div>
+        <div class="content-subtitle">Gestisci il blocco di sicurezza (Killswitch) dei dispositivi</div>
       </div>
-      <div class="table-responsive" style="margin-top:20px;">
-        <table class="tecnici-table" style="width:100%; text-align:left; border-collapse:collapse;">
+    </div>
+    <div class="tecnici-panel fade-in">
+      <div class="tecnici-note">⚠ I dispositivi bloccati non possono usare l'app o accedere ai dati aziendali.</div>
+      <div class="table-scroll" style="margin-top:20px; padding:0;">
+        <table class="tecnici-table">
           <thead>
-            <tr style="border-bottom: 1px solid var(--border);">
-              <th style="padding: 12px 8px;">Stato</th>
-              <th style="padding: 12px 8px;">Utente</th>
-              <th style="padding: 12px 8px;">Dispositivo</th>
-              <th style="padding: 12px 8px;">ID univoco</th>
-              <th style="padding: 12px 8px;">Azioni</th>
+            <tr>
+              <th>Stato</th>
+              <th>Utente</th>
+              <th>Dispositivo</th>
+              <th>ID univoco</th>
+              <th>Azioni</th>
             </tr>
           </thead>
           <tbody id="banned-table-body">

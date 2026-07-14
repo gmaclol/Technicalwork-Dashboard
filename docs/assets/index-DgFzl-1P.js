@@ -213,11 +213,19 @@ import{initializeApp as e}from"https://www.gstatic.com/firebasejs/10.12.0/fireba
             <span class="tecnici-divider-line"></span>
             <span class="tecnici-divider-label">🖥️ Dashboard Web (${u.length})</span>
             <span class="tecnici-divider-line"></span>
-          </div>`;for(let e of u)n+=await l(e)}t.innerHTML=`<div class="tecnici-panel fade-in">
-        <div class="tecnici-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-          <div class="content-title">Tecnici</div>
-          <div class="tecnici-note" style="width:100%;">⚠ I tecnici disattivati vengono nascosti dalla tabella e dai conteggi. Il loro sync continua normalmente.</div>
-        </div>${n}</div>`}catch(e){console.error(e)}}async function l([e,t]){let n=[t.os,t.browser,t.cores?`${t.cores} core`:null,t.memory?`${t.memory}GB RAM`:null].filter(Boolean).join(` · `),r=`<span class="tecnico-type-badge tecnico-type-web" title="${n||`Dashboard Web`}">🖥 WEB</span>`,i=t.webName||t.baseName||e,a=e.replace(/'/g,`\\'`),o=i.replace(/'/g,`\\'`),s=t.isOnline?t.ultimo:`Ultima sessione: ${t.ultimo}`;return`<div class="toggle-wrap">
+          </div>`;for(let e of u)n+=await l(e)}t.innerHTML=`
+        <div class="content-header fade-in">
+          <div>
+            <div class="content-title">Tecnici</div>
+            <div class="content-subtitle">Abilita, disabilita e rinomina i tecnici registrati</div>
+          </div>
+        </div>
+        <div class="tecnici-panel fade-in">
+          <div class="tecnici-note">⚠ I tecnici disattivati vengono nascosti dalla tabella e dai conteggi. Il loro sync continua normalmente.</div>
+          <div style="display:flex; flex-direction:column; gap:10px; margin-top:20px;">
+            ${n}
+          </div>
+        </div>`}catch(e){console.error(e)}}async function l([e,t]){let n=[t.os,t.browser,t.cores?`${t.cores} core`:null,t.memory?`${t.memory}GB RAM`:null].filter(Boolean).join(` · `),r=`<span class="tecnico-type-badge tecnico-type-web" title="${n||`Dashboard Web`}">🖥 WEB</span>`,i=t.webName||t.baseName||e,a=e.replace(/'/g,`\\'`),o=i.replace(/'/g,`\\'`),s=t.isOnline?t.ultimo:`Ultima sessione: ${t.ultimo}`;return`<div class="toggle-wrap">
       <div class="toggle-info">
         <span class="toggle-name">${i} ${r}</span>
         <span class="toggle-device">🖥️ ${n||`Web Dashboard`} · PFS: ${t.appalti.length?t.appalti.join(`, `):`nessuna stella`} · ${s}</span>
@@ -228,20 +236,23 @@ import{initializeApp as e}from"https://www.gstatic.com/firebasejs/10.12.0/fireba
         <button class="btn-tecnico-action btn-delete" onclick="deleteWebTecnico('${a}')" title="Rimuovi dal registro">🗑️ Rimuovi</button>
       </div>
     </div>`}w.forEach(e=>{let t=d(n(S,e),t=>{r[e]=t.docs.filter(e=>!/_\d{4}-\d{2}-\d{2}$/.test(e.id)).map(e=>({id:e.id,data:e.data()})),s<w.length&&s++,c()},t=>{console.error(`Errore caricamento tecnici per ${e}:`,t),s<w.length&&s++,c()});Ct.push(t)});let u=g(_(C,`/status`),e=>{a=e.val()||{},c()},e=>{console.error(`Errore caricamento status presenza:`,e)});Ct.push(u),re(`tecnici_web`,e=>{i=e,c()});let f=d(o(S,`settings`,`hidden_tecnici`),e=>{e.exists()?ze(e.data().hidden||[]):ze([]),c()},()=>{});Ct.push(f)}async function Ot(e,t){let n=await Ce({title:`Rinomina utente web`,defaultValue:t,icon:`✏️`});if(!n||n===t)return;let r=document.getElementById(`content`);r&&(r.querySelectorAll(`.toggle-name`).forEach(e=>{let r=e.firstChild;r&&r.nodeType===Node.TEXT_NODE&&r.textContent.trim()===t&&(r.textContent=n+` `)}),r.querySelectorAll(`.btn-rename`).forEach(r=>{let i=r.getAttribute(`onclick`)||``;i.includes(`'${e}'`)&&i.includes(`'${t.replace(/'/g,`\\'`)}'`)&&r.setAttribute(`onclick`,i.replace(`'${t.replace(/'/g,`\\'`)}'`,`'${n.replace(/'/g,`\\'`)}'`))}));try{await p(o(S,`settings`,`devices_names`),{[`${e}.name`]:n}),j(`✅ Rinominato in "${n}"`,`success`)}catch(e){j(`Errore rinomina`,`error`),console.error(e)}}async function kt(e){if(await M({title:`Rimuovere "${e}"?`,msg:`Questo utente web verrà rimosso dal registro. Potrà ri-registrarsi al prossimo login.`,icon:`🖥️`,okLabel:`Rimuovi`}))try{await p(o(S,`settings`,`devices_names`),{[e]:i()}),j(`Utente web rimosso`,`success`)}catch(e){j(`Errore rimozione`,`error`),console.error(e)}}async function At(e,t){if(await M({title:`Eliminare "${e}"?`,msg:`Verranno cancellati TUTTI i dati di questo tecnico (inclusi gli snapshot) da tutti gli appalti. Questa azione è irreversibile.`,icon:`🗑️`,okLabel:`Elimina definitivamente`}))try{let i=JSON.parse(t.replace(/&#39;/g,`'`).replace(/&quot;/g,`"`));for(let[e,t]of Object.entries(i)){await r(o(S,e,t));let i=(await l(n(S,e))).docs.filter(e=>e.id.startsWith(t+`_`)&&/_\d{4}-\d{2}-\d{2}$/.test(e.id));for(let t of i)await r(o(S,e,t.id))}let a=F();a=a.filter(t=>t!==e),await Be(a),j(`Tecnico "${e}" eliminato.`,`success`)}catch(e){j(`Errore durante l'eliminazione: `+e.message,`error`,5e3),console.error(e)}}async function jt(e,t){let r=await Ce({title:`Rinomina tecnico`,defaultValue:e,icon:`✏️`});if(!r||r===e)return;let i=r;try{let r=JSON.parse(t.replace(/&#39;/g,`'`).replace(/&quot;/g,`"`)),a=document.getElementById(`content`);if(a&&(a.querySelectorAll(`.toggle-name`).forEach(t=>{let n=t.firstChild;n&&n.nodeType===Node.TEXT_NODE&&n.textContent.trim()===e&&(n.textContent=i+` `)}),a.querySelectorAll(`.btn-rename`).forEach(t=>{let n=t.getAttribute(`onclick`)||``;(n.includes(`'${e.replace(/'/g,`\\'`)}'`)||n.includes(`'${e}'`))&&t.setAttribute(`onclick`,n.replace(RegExp(`'${e.replace(/[.*+?^${}()|[\]\\]/g,`\\$&`).replace(/'/g,`\\\\'`)}'`,`g`),`'${i.replace(/'/g,`\\'`)}'`))})),Object.keys(r).length>0){let e=Object.values(r)[0];try{await f(o(S,`settings`,`devices_names`),{[e]:{name:i,updatedAt:Date.now()}},{merge:!0})}catch{}}for(let[e,t]of Object.entries(r)){await p(o(S,e,t),{tecnico:i});let r=(await l(n(S,e))).docs.filter(e=>e.id.startsWith(t+`_`)&&/_\d{4}-\d{2}-\d{2}$/.test(e.id));for(let t of r)await p(o(S,e,t.id),{tecnico:i})}let s=F();s.includes(e)&&(s=s.map(t=>t===e?i:t),await Be(s)),mt(),j(`Tecnico "${e}" rinominato in "${i}".`,`success`)}catch(e){j(`Errore durante la rinomina: `+e.message,`error`,5e3),console.error(e)}}async function Mt(e,t){let n=F();t?n=n.filter(t=>t!==e):n.includes(e)||n.push(e);try{await Be(n),j(t?`Tecnico "${e}" attivato`:`Tecnico "${e}" disattivato`,`success`)}catch(e){j(`Errore durante la modifica della visibilità`,`error`),console.error(e)}}function Nt(){document.querySelectorAll(`.sidebar-item`).forEach(e=>e.classList.remove(`active`));let e=document.getElementById(`nav-Banned`);e&&e.classList.add(`active`);let t=document.getElementById(`content`);if(D.role!==`admin`){t.innerHTML=`<div class="state-box fade-in"><h2>Accesso Negato</h2><p>Non hai i permessi per visualizzare questa pagina.</p></div>`;return}t.innerHTML=`
-    <div class="tecnici-panel fade-in">
-      <div class="tecnici-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-        <div class="content-title">Dispositivi Bloccati (Killswitch)</div>
-        <div class="tecnici-note" style="width:100%;">⚠ I dispositivi bloccati non possono usare l'app o accedere ai dati aziendali.</div>
+    <div class="content-header fade-in">
+      <div>
+        <div class="content-title">Dispositivi Bloccati</div>
+        <div class="content-subtitle">Gestisci il blocco di sicurezza (Killswitch) dei dispositivi</div>
       </div>
-      <div class="table-responsive" style="margin-top:20px;">
-        <table class="tecnici-table" style="width:100%; text-align:left; border-collapse:collapse;">
+    </div>
+    <div class="tecnici-panel fade-in">
+      <div class="tecnici-note">⚠ I dispositivi bloccati non possono usare l'app o accedere ai dati aziendali.</div>
+      <div class="table-scroll" style="margin-top:20px; padding:0;">
+        <table class="tecnici-table">
           <thead>
-            <tr style="border-bottom: 1px solid var(--border);">
-              <th style="padding: 12px 8px;">Stato</th>
-              <th style="padding: 12px 8px;">Utente</th>
-              <th style="padding: 12px 8px;">Dispositivo</th>
-              <th style="padding: 12px 8px;">ID univoco</th>
-              <th style="padding: 12px 8px;">Azioni</th>
+            <tr>
+              <th>Stato</th>
+              <th>Utente</th>
+              <th>Dispositivo</th>
+              <th>ID univoco</th>
+              <th>Azioni</th>
             </tr>
           </thead>
           <tbody id="banned-table-body">
@@ -264,17 +275,18 @@ import{initializeApp as e}from"https://www.gstatic.com/firebasejs/10.12.0/fireba
             <button class="btn-tecnico-action btn-delete" id="btn-del-${t}" onclick="deleteBannedData('${t}', '${e.replace(/'/g,`\\'`)}')" title="Elimina definitivamente i dati" style="margin-left: 8px;">🗑️ Elimina Dati</button>
           </td>
         </tr>
-      `}r===0&&(n=`<tr><td colspan="5" style="text-align:center; padding: 20px;">Nessun dispositivo bloccato al momento.</td></tr>`),t.innerHTML=n;for(let[t,n]of Object.entries(e))if(n&&n.banned&&!n.deleted)countBannedUserDocs(t);else if(n&&n.banned&&n.deleted){let e=document.getElementById(`count-${t}`),n=document.getElementById(`btn-del-${t}`);e&&(e.innerHTML=`Dati eliminati`),n&&(n.style.display=`none`)}},window.renderBannedList=async function(){let e=await getDoc(o(S,`settings`,`devices_names`)),t=e.exists()?e.data():{};renderBannedListWithData(t)},window.deleteBannedData=async function(e,t){if(await M({title:`Eliminare i dati di "${t}"?`,msg:`Verranno cancellati TUTTI i dati caricati (inclusi snapshot) da tutti gli appalti. L'utente rimarrà bloccato, ma i suoi dati spariranno. Sei sicuro?`,icon:`🗑️`,okLabel:`Elimina definitivamente`}))try{j(`Rimozione in corso...`,`info`);for(let t of w){try{await r(o(S,t,e))}catch{}try{let i=(await l(n(S,t))).docs.filter(t=>t.id.startsWith(e+`_`)&&/_\d{4}-\d{2}-\d{2}$/.test(t.id));for(let e of i)await r(o(S,t,e.id))}catch{}}try{let t=(await l(n(S,`pfs_logs`))).docs.filter(t=>t.data().deviceId===e);for(let e of t)await r(o(S,`pfs_logs`,e.id))}catch{}await p(o(S,`settings`,`devices_names`),{[`${e}.banned`]:!0,[`${e}.deleted`]:!0,[`${e}.updatedAt`]:Date.now()}),j(`Dati di "${t}" eliminati con successo.`,`success`)}catch(e){console.error(e),j(`Errore durante l'eliminazione: `+e.message,`error`,5e3)}},window.countBannedUserDocs=async function(e){try{let t=0,r=[],i=null,a=null,o=null;for(let s of w)try{let c=(await l(n(S,s))).docs.filter(t=>t.id===e||t.id.startsWith(e+`_`));if(c.length>0){t+=c.length,r.push(s);let e=c[0].data();e&&(!i&&e.tecnico&&(i=e.tecnico),!a&&e.batteria&&(a=e.batteria),o===null&&e.gps_attivo!==void 0&&(o=e.gps_attivo))}}catch{}try{let a=(await l(n(S,`pfs_logs`))).docs.filter(t=>t.data().deviceId===e);a.length>0&&(t+=a.length,r.push(`PFS`),i||=a[0].data().tecnico)}catch{}if(i){let t=document.getElementById(`name-${e}`);t&&t.innerText===`Sconosciuto`&&(t.innerText=i);let n=document.getElementById(`btn-del-${e}`);n&&n.setAttribute(`onclick`,`deleteBannedData('${e}', '${i.replace(/'/g,`\\'`)}')`)}if(a||o!==null){let t=document.getElementById(`name-${e}`);if(t){let e=`<div style="font-size:11px; font-weight:normal; color:var(--text-muted); margin-top:2px;">`;a&&(e+=`🔋 ${a}`),o!==null&&(a&&(e+=` · `),e+=o?`📡 GPS Attivo`:`📡 GPS Disattivato`),e+=`</div>`,!t.innerHTML.includes(`🔋`)&&!t.innerHTML.includes(`📡`)&&(t.innerHTML+=e)}}let s=document.getElementById(`count-${e}`),c=document.getElementById(`btn-del-${e}`);if(s)if(t>0){let e=r.length>0?` (${r.join(`, `)})`:``;s.innerHTML=`<span style="color:#D32F2F">⚠️ ${t} documenti salvati${e}</span>`}else s.innerHTML=`Nessun dato salvato`,c&&(c.style.display=`none`)}catch(e){console.error(e)}};var Pt=[],Ft=null,It=0;function Lt(){It=0;let e=document.getElementById(`cnt-pfs`);e&&(e.style.display=`none`,e.textContent=`0`)}function Rt(){`Notification`in window&&Notification.permission!==`granted`&&Notification.permission!==`denied`&&Notification.requestPermission()}function zt(){if(Ft)return;Rt();let e=!0;Ft=d(n(S,`pfs_segnalati`),t=>{if(e){e=!1;return}t.docChanges().forEach(e=>{if(e.type===`added`){let t=e.doc.data(),n=`Nuovo PFS Segnalato`,r=t.tecnico||`Tecnico`,i=`${r} ha segnalato il PFS ${t.nome_pfs}\nIndirizzo: ${t.nuovo_indirizzo}`;if(`Notification`in window&&Notification.permission===`granted`&&document.visibilityState!==`visible`){let e=new Notification(n,{body:i,icon:`icon-192.png`});e.onclick=()=>{window.focus(),window.location.hash=`#/admin/pfs`,e.close()}}else j(`🚨 <b>${n}</b><br>${A(r)}: ${A(t.nome_pfs)}<br><small>${A(t.nuovo_indirizzo)}</small>`,`info`,1e4,!0);if(window.location.hash!==`#/admin/pfs`){It++;let e=document.getElementById(`cnt-pfs`);e&&(e.style.display=`inline-flex`,e.textContent=It)}}})})}function Bt(){Ft&&=(Ft(),null)}function Vt(){Pt.forEach(e=>e()),Pt=[]}function Ht(e){if(!e)return 0;try{let t=String(e).trim().split(/\s+/);if(t.length<2)return 0;let n,r;t[0].includes(`:`)?(n=t[0],r=t[1]):(r=t[0],n=t[1]);let[i,a,o]=n.split(`:`),[s,c,l]=r.split(`/`),u=new Date(l,c-1,s,i,a,o||0).getTime();return isNaN(u)?0:u}catch{return 0}}async function Ut(){document.querySelectorAll(`.sidebar-item`).forEach(e=>e.classList.remove(`active`));let e=document.getElementById(`nav-pfs`);e&&e.classList.add(`active`);let t=document.getElementById(`content`);if(D.role!==`admin`){t.innerHTML=`<div class="state-box fade-in"><h2>Accesso Negato</h2><p>Non hai i permessi per visualizzare questa pagina.</p></div>`;return}t.innerHTML=`<div class="state-box"><div class="loader-spinner"></div><p>Caricamento dati PFS…</p></div>`,Vt(),Lt();let r=[],i=[],a=!1,o=!1;function s(){if(!a||!o)return;let e=Array.from(document.querySelectorAll(`.sig-check:checked`)).map(e=>e.closest(`.pfs-card`).dataset.id),n=Array.from(document.querySelectorAll(`.log-check:checked`)).map(e=>e.closest(`.pfs-card`).dataset.id),s=`<div class="tecnici-panel fade-in">
-      <div class="content-header" style="padding:0; margin-bottom: 32px; background:transparent; border:none">
+      `}r===0&&(n=`<tr><td colspan="5" style="text-align:center; padding: 20px;">Nessun dispositivo bloccato al momento.</td></tr>`),t.innerHTML=n;for(let[t,n]of Object.entries(e))if(n&&n.banned&&!n.deleted)countBannedUserDocs(t);else if(n&&n.banned&&n.deleted){let e=document.getElementById(`count-${t}`),n=document.getElementById(`btn-del-${t}`);e&&(e.innerHTML=`Dati eliminati`),n&&(n.style.display=`none`)}},window.renderBannedList=async function(){let e=await getDoc(o(S,`settings`,`devices_names`)),t=e.exists()?e.data():{};renderBannedListWithData(t)},window.deleteBannedData=async function(e,t){if(await M({title:`Eliminare i dati di "${t}"?`,msg:`Verranno cancellati TUTTI i dati caricati (inclusi snapshot) da tutti gli appalti. L'utente rimarrà bloccato, ma i suoi dati spariranno. Sei sicuro?`,icon:`🗑️`,okLabel:`Elimina definitivamente`}))try{j(`Rimozione in corso...`,`info`);for(let t of w){try{await r(o(S,t,e))}catch{}try{let i=(await l(n(S,t))).docs.filter(t=>t.id.startsWith(e+`_`)&&/_\d{4}-\d{2}-\d{2}$/.test(t.id));for(let e of i)await r(o(S,t,e.id))}catch{}}try{let t=(await l(n(S,`pfs_logs`))).docs.filter(t=>t.data().deviceId===e);for(let e of t)await r(o(S,`pfs_logs`,e.id))}catch{}await p(o(S,`settings`,`devices_names`),{[`${e}.banned`]:!0,[`${e}.deleted`]:!0,[`${e}.updatedAt`]:Date.now()}),j(`Dati di "${t}" eliminati con successo.`,`success`)}catch(e){console.error(e),j(`Errore durante l'eliminazione: `+e.message,`error`,5e3)}},window.countBannedUserDocs=async function(e){try{let t=0,r=[],i=null,a=null,o=null;for(let s of w)try{let c=(await l(n(S,s))).docs.filter(t=>t.id===e||t.id.startsWith(e+`_`));if(c.length>0){t+=c.length,r.push(s);let e=c[0].data();e&&(!i&&e.tecnico&&(i=e.tecnico),!a&&e.batteria&&(a=e.batteria),o===null&&e.gps_attivo!==void 0&&(o=e.gps_attivo))}}catch{}try{let a=(await l(n(S,`pfs_logs`))).docs.filter(t=>t.data().deviceId===e);a.length>0&&(t+=a.length,r.push(`PFS`),i||=a[0].data().tecnico)}catch{}if(i){let t=document.getElementById(`name-${e}`);t&&t.innerText===`Sconosciuto`&&(t.innerText=i);let n=document.getElementById(`btn-del-${e}`);n&&n.setAttribute(`onclick`,`deleteBannedData('${e}', '${i.replace(/'/g,`\\'`)}')`)}if(a||o!==null){let t=document.getElementById(`name-${e}`);if(t){let e=`<div style="font-size:11px; font-weight:normal; color:var(--text-muted); margin-top:2px;">`;a&&(e+=`🔋 ${a}`),o!==null&&(a&&(e+=` · `),e+=o?`📡 GPS Attivo`:`📡 GPS Disattivato`),e+=`</div>`,!t.innerHTML.includes(`🔋`)&&!t.innerHTML.includes(`📡`)&&(t.innerHTML+=e)}}let s=document.getElementById(`count-${e}`),c=document.getElementById(`btn-del-${e}`);if(s)if(t>0){let e=r.length>0?` (${r.join(`, `)})`:``;s.innerHTML=`<span style="color:#D32F2F">⚠️ ${t} documenti salvati${e}</span>`}else s.innerHTML=`Nessun dato salvato`,c&&(c.style.display=`none`)}catch(e){console.error(e)}};var Pt=[],Ft=null,It=0;function Lt(){It=0;let e=document.getElementById(`cnt-pfs`);e&&(e.style.display=`none`,e.textContent=`0`)}function Rt(){`Notification`in window&&Notification.permission!==`granted`&&Notification.permission!==`denied`&&Notification.requestPermission()}function zt(){if(Ft)return;Rt();let e=!0;Ft=d(n(S,`pfs_segnalati`),t=>{if(e){e=!1;return}t.docChanges().forEach(e=>{if(e.type===`added`){let t=e.doc.data(),n=`Nuovo PFS Segnalato`,r=t.tecnico||`Tecnico`,i=`${r} ha segnalato il PFS ${t.nome_pfs}\nIndirizzo: ${t.nuovo_indirizzo}`;if(`Notification`in window&&Notification.permission===`granted`&&document.visibilityState!==`visible`){let e=new Notification(n,{body:i,icon:`icon-192.png`});e.onclick=()=>{window.focus(),window.location.hash=`#/admin/pfs`,e.close()}}else j(`🚨 <b>${n}</b><br>${A(r)}: ${A(t.nome_pfs)}<br><small>${A(t.nuovo_indirizzo)}</small>`,`info`,1e4,!0);if(window.location.hash!==`#/admin/pfs`){It++;let e=document.getElementById(`cnt-pfs`);e&&(e.style.display=`inline-flex`,e.textContent=It)}}})})}function Bt(){Ft&&=(Ft(),null)}function Vt(){Pt.forEach(e=>e()),Pt=[]}function Ht(e){if(!e)return 0;try{let t=String(e).trim().split(/\s+/);if(t.length<2)return 0;let n,r;t[0].includes(`:`)?(n=t[0],r=t[1]):(r=t[0],n=t[1]);let[i,a,o]=n.split(`:`),[s,c,l]=r.split(`/`),u=new Date(l,c-1,s,i,a,o||0).getTime();return isNaN(u)?0:u}catch{return 0}}async function Ut(){document.querySelectorAll(`.sidebar-item`).forEach(e=>e.classList.remove(`active`));let e=document.getElementById(`nav-pfs`);e&&e.classList.add(`active`);let t=document.getElementById(`content`);if(D.role!==`admin`){t.innerHTML=`<div class="state-box fade-in"><h2>Accesso Negato</h2><p>Non hai i permessi per visualizzare questa pagina.</p></div>`;return}t.innerHTML=`<div class="state-box"><div class="loader-spinner"></div><p>Caricamento dati PFS…</p></div>`,Vt(),Lt();let r=[],i=[],a=!1,o=!1;function s(){if(!a||!o)return;let e=Array.from(document.querySelectorAll(`.sig-check:checked`)).map(e=>e.closest(`.pfs-card`).dataset.id),n=Array.from(document.querySelectorAll(`.log-check:checked`)).map(e=>e.closest(`.pfs-card`).dataset.id),s=`
+      <div class="content-header fade-in">
         <div>
           <div class="content-title">Gestione PFS</div>
           <div class="content-subtitle">Elimina o gestisci segnalazioni ed accessi</div>
         </div>
       </div>
-      <div id="pfs-delete-toolbar" class="delete-toolbar">
-        <span id="pfs-delete-count" style="font-size:14px; font-weight:600; color:var(--red)">0 selezionati</span>
-        <button class="btn-bulk-delete" onclick="deleteSelectedPfs()">Elimina Selezionati</button>
-      </div>`;s+=`<div style="margin-bottom:48px">
+      <div class="tecnici-panel fade-in">
+        <div id="pfs-delete-toolbar" class="delete-toolbar">
+          <span id="pfs-delete-count" style="font-size:14px; font-weight:600; color:var(--red)">0 selezionati</span>
+          <button class="btn-bulk-delete" onclick="deleteSelectedPfs()">Elimina Selezionati</button>
+        </div>`;s+=`<div style="margin-bottom:48px">
       <h3 class="pfs-section-title pfs-section-red">
         <span class="pfs-section-dot" style="background:var(--red)"></span>
         Nuovi Indirizzi
@@ -363,15 +375,18 @@ import{initializeApp as e}from"https://www.gstatic.com/firebasejs/10.12.0/fireba
           <span class="tecnici-divider-line"></span>
         </div>
       `;for(let e of c)u+=l(e,!0)}if(t.innerHTML=`
-      <div class="tecnici-panel fade-in">
-        <div class="tecnici-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-          <div class="content-title">Aree Preferite Tecnici</div>
-          <div class="tecnici-note" style="width:100%;">
-            Queste sono le aree (comuni, province o PFS) preferite di ogni tecnico (quelle con la stellina attiva).
-            Modificando queste aree e salvando, l'app del tecnico si aggiornerà in tempo reale.
-          </div>
+      <div class="content-header fade-in">
+        <div>
+          <div class="content-title">Aree Preferite</div>
+          <div class="content-subtitle">Gestisci le aree di lavoro preferite per ciascun dispositivo</div>
         </div>
-        <div style="display:flex; flex-direction:column; gap:16px;">
+      </div>
+      <div class="tecnici-panel fade-in">
+        <div class="tecnici-note">
+          Queste sono le aree (comuni, province o PFS) preferite di ogni tecnico (quelle con la stellina attiva).
+          Modificando queste aree e salvando, l'app del tecnico si aggiornerà in tempo reale.
+        </div>
+        <div style="display:flex; flex-direction:column; gap:16px; margin-top:20px;">
           ${u}
         </div>
       </div>

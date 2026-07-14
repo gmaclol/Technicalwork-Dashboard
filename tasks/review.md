@@ -467,11 +467,35 @@
 - `js/utils.js` (supporto `htmlContent` in `showRenameModal`, fix click-outside persistente, cleanup `onOverlayClick`)
 - `css/components.css` (`max-height` e `overflow-y: auto` su `.confirm-box`)
 
+## 2026-07-14 — Sessione Uniformità Grafica e Layout Tab Admin
+
+**Cosa è stato fatto:**
+- **Uniformazione testate**: Estratte le testate delle quattro viste admin (`js/tecnici.js` per Tecnici e Bloccati, `js/aree.js` per Aree Preferite, `js/pfs.js` per Gestione PFS) ed inserite in un elemento `.content-header` esterno a `.tecnici-panel`. Questo garantisce allineamento, titolo, sottotitolo e sfondo grigio coerenti con le testate degli appalti.
+- **Centratura e max-width**: Configurato `.tecnici-panel` in `css/components/misc.css` con `max-width: 1000px`, `width: 100%` e `margin: 0 auto`, centrando e limitando la larghezza di schede e tabelle su schermi larghi ed evitando lo stretch sgradevole.
+- **Ripristino flexbox azioni tecnici e prevenzione wrap**: Aggiunta la classe `.tecnici-actions` in `css/components/forms.css` con layout flex, che allinea verticalmente pulsanti e checkbox toggle e li posiziona ordinatamente a destra delle card tecnici tramite `margin-left: auto`. Inoltre, configurato `.toggle-wrap` con `flex-wrap: nowrap` e `.toggle-info` con `flex: 1; min-width: 0` per schermi desktop. Questo fa sì che anche con dettagli hardware molto lunghi, il testo vada a capo internamente mentre i pulsanti e gli switch rimangano sulla stessa riga a destra, stabili e allineati verticalmente senza slittare in basso.
+- **Riorganizzazione tabella dei bloccati**: Eliminato lo stile inline grezzo per la tabella dei dispositivi bannati ed introdotta la classe `.tecnici-table` in `css/components/table.css` con bordi, hover e font coerenti con le tabelle dell'applicazione.
+- **Supporto mobile e touch targets**: Aggiunti stili CSS responsive in `css/responsive.css` sotto `@media (max-width: 900px)` per abilitare il wrap su mobile ed impostare i pulsanti tecnici larghi il 100% del loro container con altezza di 44px conforme alle WCAG 2.2.
+- **Build di produzione**: Eseguito `npm run build` per rigenerare i file pronti per la produzione in `docs/` e allineato il Service Worker.
+- **Aggiornamento Grafo**: Eseguito `graphify update .` per mantenere coerenti le relazioni.
+
+**Perché:**
+- Nello splitting del file CSS monolitico in fogli di stile separati, alcune classi trasversali come `.tecnici-actions` erano andate perse, disallineando i pulsanti delle schede dei tecnici.
+- Senza un container con larghezza massima e testata comune, le pagine admin si presentavano vuote al centro e sproporzionatamente allungate ai margini su desktop e PWA.
+- La tabella dei bloccati non seguiva lo stile del design system scuro/chiaro dell'applicazione.
+
+**File modificati:**
+- `js/tecnici.js` (ristrutturazione layout `showTecnici` e `showBanned`)
+- `js/aree.js` (ristrutturazione layout `showAreeDashboard`)
+- `js/pfs.js` (ristrutturazione layout `showPfsDashboard`)
+- `css/components/forms.css` (aggiunta classe `.tecnici-actions`)
+- `css/components/misc.css` (aggiunta larghezza max e centratura a `.tecnici-panel`)
+- `css/components/table.css` (definizione classe `.tecnici-table`)
+- `css/responsive.css` (overrides per `.tecnici-actions` e pulsanti tecnici su mobile)
+
 **Rischi residui:**
-- Tecnici con app vecchia (Cristian, Martin) non registrati in `devices_names` vengono recuperati dai documenti dell'appalto; se non hanno mai syncato su un appalto specifico, non appariranno nella tendina per quell'appalto.
+- Nessuno. Le modifiche sono grafiche e puramente di layout, e non alterano le logiche di sincronizzazione dati o gli stati Firestore.
 
 **Follow-up consigliati:**
-- Aggiornare l'app Android per registrare il dispositivo in `devices_names` anche nelle versioni più vecchie.
-- Valutare se `data.js` (1680 righe) necessita di uno split architetturale (es. separare `addMaterialRow` in un modulo dedicato).
+- Eseguire un check visivo completo in modalità light theme per confermare che l'ombreggiatura e il contrasto dei pulsanti ed input siano ottimali anche di giorno.
 
 

@@ -111,15 +111,18 @@ export async function showAreeDashboard() {
     }
 
     content.innerHTML = `
-      <div class="tecnici-panel fade-in">
-        <div class="tecnici-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-          <div class="content-title">Aree Preferite Tecnici</div>
-          <div class="tecnici-note" style="width:100%;">
-            Queste sono le aree (comuni, province o PFS) preferite di ogni tecnico (quelle con la stellina attiva).
-            Modificando queste aree e salvando, l'app del tecnico si aggiornerà in tempo reale.
-          </div>
+      <div class="content-header fade-in">
+        <div>
+          <div class="content-title">Aree Preferite</div>
+          <div class="content-subtitle">Gestisci le aree di lavoro preferite per ciascun dispositivo</div>
         </div>
-        <div style="display:flex; flex-direction:column; gap:16px;">
+      </div>
+      <div class="tecnici-panel fade-in">
+        <div class="tecnici-note">
+          Queste sono le aree (comuni, province o PFS) preferite di ogni tecnico (quelle con la stellina attiva).
+          Modificando queste aree e salvando, l'app del tecnico si aggiornerà in tempo reale.
+        </div>
+        <div style="display:flex; flex-direction:column; gap:16px; margin-top:20px;">
           ${devicesHtml}
         </div>
       </div>

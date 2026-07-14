@@ -172,4 +172,8 @@ Un numero eccessivo di letture (20k+) e scritture sono state generate dalla web 
 2. Assicurare l'attivazione dei tasti `Enter` e `Space` tramite listener `keydown` per consentire l'avvio della modifica e la sottomissione.
 3. Usare la pseudo-classe CSS `:focus-visible` per visualizzare un indicatore ad alto contrasto senza intaccare l'estetica degli utenti mouse/touch.
 
+## Errore: Perdita di classi CSS durante lo splitting modulare
+**Causa:** Durante lo splitting di `css/components.css` in fogli stile specifici per componente, alcune classi trasversali o meno comuni (come `.tecnici-actions` per il flexbox dei bottoni tecnici) sono andate perse. Questo ha causato il disallineamento e lo stretch disordinato di tutte le viste amministrative.
+**Regola:** Quando si ristrutturano o si dividono fogli stile monolitici, verificare con attenzione l'elenco di tutte le classi dichiarate ed usate nel markup dinamico di ciascun modulo JS. Eseguire sempre test visivi completi di tutte le rotte (incluse quelle di livello admin e non comuni) per accertarsi che nessun elemento perda le sue proprietà strutturali.
+
 

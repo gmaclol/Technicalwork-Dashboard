@@ -20,12 +20,12 @@
   padding: 14px 18px; border-radius: var(--radius);
   background: rgba(255,255,255,0.03); border: 1px solid var(--border);
   margin-bottom: 10px; transition: all var(--transition-fast);
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 .toggle-wrap:hover { background: rgba(255,255,255,0.06); }
-.toggle-info { display: flex; flex-direction: column; gap: 4px; }
+.toggle-info { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
 .toggle-name { font-size: 14px; font-weight: 600; color: var(--text); }
-.toggle-device { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); }
+.toggle-device { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); word-break: break-word; }
 .toggle { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
 .toggle input { opacity: 0; width: 0; height: 0; }
 .toggle-slider {
@@ -38,6 +38,15 @@
 }
 .toggle input:checked + .toggle-slider { background: var(--green); }
 .toggle input:checked + .toggle-slider::before { transform: translateX(20px); }
+
+.tecnici-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  flex-shrink: 0;
+  padding-left: 16px;
+}
 
 .btn-tecnico-action {
   background: transparent; border: 1px solid var(--border); border-radius: 8px;
