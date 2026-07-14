@@ -517,7 +517,8 @@ export async function exportToImage(appalto, tecnici, allMaterials) {
       showToast('Immagine generata e scaricata!', 'success');
     };
 
-    if (navigator.canShare && typeof File !== 'undefined') {
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    if (isMobile && navigator.canShare && typeof File !== 'undefined') {
       canvas.toBlob(async (blob) => {
         if (!blob) {
           downloadImage();
