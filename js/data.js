@@ -203,7 +203,8 @@ async function triggerTableRenderWithHidden() {
   if (!content || !currentAppalto) return;
   
   const dateKey = currentDate || 'live';
-  const hidden = getHiddenTecniciSync();
+  const hiddenPerm = getHiddenTecniciSync();
+  const hiddenDaily = getHiddenTodaySync(dateKey);
   const rawMaterials = await fetchRawMasterList(currentAppalto);
   const isAdminUser = currentUser && currentUser.role === 'admin';
   
@@ -214,7 +215,9 @@ async function triggerTableRenderWithHidden() {
     tecnici = _lastAllDocs
       .filter(d => !/_\d{4}-\d{2}-\d{2}$/.test(d.id))
       .filter(d => {
-        const isHidden = isHiddenDoc(d, hidden);
+        const isPermHidden = isHiddenDoc(d, hiddenPerm);
+        const isDailyHidden = isHiddenDoc(d, hiddenDaily);
+        const isHidden = isPermHidden || isDailyHidden;
         if (isHidden && !isAdminUser) return false;
         d._isHiddenByAdmin = isHidden;
         return true;
@@ -238,7 +241,9 @@ async function triggerTableRenderWithHidden() {
       id: d.id.replace('_' + dateKey, ''),
       tecnico: d.tecnico || d.id.replace('_' + dateKey, '')
     })).filter(d => {
-      const isHidden = isHiddenDoc(d, hidden);
+      const isPermHidden = isHiddenDoc(d, hiddenPerm);
+      const isDailyHidden = isHiddenDoc(d, hiddenDaily);
+      const isHidden = isPermHidden || isDailyHidden;
       if (isHidden && !isAdminUser) return false;
       d._isHiddenByAdmin = isHidden;
       return true;
@@ -257,7 +262,14 @@ export async function preloadCounts() {
   } catch (e) {
     _hiddenCache = [];
   }
+  try {
+    const hiddenDailySnap = await getDoc(doc(db, 'settings', 'hidden_lists_daily'));
+    _hiddenTodayCache = hiddenDailySnap.exists() ? (hiddenDailySnap.data() || {}) : {};
+  } catch (e) {
+    _hiddenTodayCache = {};
+  }
   initGlobalHiddenListener();
+  initGlobalHiddenListsListener();
   for (const appalto of APPALTI) {
     if (!_countListeners[appalto]) {
       _countListeners[appalto] = onSnapshot(collection(db, appalto), async (snap) => {
@@ -402,7 +414,32 @@ export async function forceListUpdateFromGithub() {
   } catch(e) {}
 }
 
+let _hiddenTodayCache = {};
+let _globalHiddenListsListener = null;
+
+export function getHiddenTodaySync(dateKey = currentDate || 'live') {
+  const dk = (dateKey === 'live') ? 'today' : dateKey;
+  return _hiddenTodayCache[dk] || [];
+}
+
+export function initGlobalHiddenListsListener() {
+  if (_globalHiddenListsListener) return;
+  _globalHiddenListsListener = onSnapshot(doc(db, 'settings', 'hidden_lists_daily'), (snap) => {
+    _hiddenTodayCache = snap.exists() ? (snap.data() || {}) : {};
+    updateSidebarCountsForDate(currentDate);
+    if (currentAppalto && document.getElementById('tb-appalto') && _lastAllDocs.length > 0) {
+      triggerTableRenderWithHidden();
+    }
+  }, (e) => {
+    console.error("Errore listener hidden_lists_daily:", e);
+  });
+}
+
 export async function requestAppaltoSync(targetAppalto = null) {
+  if (currentDate && currentDate !== 'live') {
+    showToast("La richiesta di sync è disponibile solo nella vista 'Oggi (live)'", "warning");
+    return;
+  }
   const appalto = targetAppalto || currentAppalto;
   if (!appalto) {
     showToast('Seleziona prima un appalto', 'warning');
@@ -423,20 +460,32 @@ export async function requestAppaltoSync(targetAppalto = null) {
 
 export async function toggleHideTecnico(techNameOrId) {
   if (!techNameOrId) return;
-  const currentHidden = getHiddenTecniciSync();
+  const dk = (!currentDate || currentDate === 'live') ? 'today' : currentDate;
+  const currentHiddenToday = getHiddenTodaySync(dk);
   const lowerTarget = techNameOrId.toLowerCase();
   
-  let newHidden;
-  const exists = currentHidden.some(h => (h || '').toLowerCase() === lowerTarget);
+  let newHiddenList;
+  const exists = currentHiddenToday.some(h => (h || '').toLowerCase() === lowerTarget);
   if (exists) {
-    newHidden = currentHidden.filter(h => (h || '').toLowerCase() !== lowerTarget);
-    showToast(`Lista per ${techNameOrId} riabilitata`, 'info');
+    newHiddenList = currentHiddenToday.filter(h => (h || '').toLowerCase() !== lowerTarget);
+    showToast(`Lista per ${techNameOrId} riabilitata (${dk === 'today' ? 'Oggi' : dk})`, 'info');
   } else {
-    newHidden = [...currentHidden, techNameOrId];
-    showToast(`Lista per ${techNameOrId} nascosta`, 'info');
+    newHiddenList = [...currentHiddenToday, techNameOrId];
+    showToast(`Lista per ${techNameOrId} nascosta (${dk === 'today' ? 'Oggi' : dk})`, 'info');
   }
+  
+  _hiddenTodayCache[dk] = newHiddenList;
   _lastRenderedKey = null; // Forza il re-render completo della griglia
-  await saveHiddenTecnici(newHidden);
+  
+  try {
+    const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    await setDoc(doc(db, 'settings', 'hidden_lists_daily'), {
+      [dk]: newHiddenList
+    }, { merge: true });
+  } catch(e) {
+    console.error('Errore salvataggio nascosti giornalieri', e);
+  }
+  
   triggerTableRenderWithHidden();
 }
 
