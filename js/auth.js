@@ -32,14 +32,17 @@ export function showApp() {
   document.getElementById('tb-user').textContent = currentUser.name + ' — Esci';
   
   const navAdmin = document.getElementById('nav-tecnici-wrapper');
+  const adminSyncWrapper = document.getElementById('admin-sync-wrapper');
   const btnUpdateSidebar = document.getElementById('btn-update-lists-sidebar');
   if (currentUser.role === 'admin') {
     navAdmin.style.display = 'block';
+    if (adminSyncWrapper) adminSyncWrapper.style.display = 'block';
     if (btnUpdateSidebar) btnUpdateSidebar.style.display = 'flex';
     // Avvia notifiche globali per l'admin
     startGlobalPfsNotifications();
   } else {
     navAdmin.style.display = 'none';
+    if (adminSyncWrapper) adminSyncWrapper.style.display = 'none';
     if (btnUpdateSidebar) btnUpdateSidebar.style.display = 'none';
   }
 

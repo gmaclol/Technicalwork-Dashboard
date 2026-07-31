@@ -205,12 +205,20 @@ async function triggerTableRenderWithHidden() {
   const dateKey = currentDate || 'live';
   const hidden = getHiddenTecniciSync();
   const rawMaterials = await fetchRawMasterList(currentAppalto);
+  const isAdminUser = currentUser && currentUser.role === 'admin';
+  
+  _lastRenderedKey = null; // Forza il re-render completo per applicare/rimuovere l'opacità
   
   let tecnici = [];
   if (dateKey === 'live') {
     tecnici = _lastAllDocs
       .filter(d => !/_\d{4}-\d{2}-\d{2}$/.test(d.id))
-      .filter(d => !isHiddenDoc(d, hidden))
+      .filter(d => {
+        const isHidden = isHiddenDoc(d, hidden);
+        if (isHidden && !isAdminUser) return false;
+        d._isHiddenByAdmin = isHidden;
+        return true;
+      })
       .filter(d => isToday(d.ultimo_aggiornamento))
       .filter(d => {
         const mats = d.materiali;
@@ -229,7 +237,12 @@ async function triggerTableRenderWithHidden() {
       ...d,
       id: d.id.replace('_' + dateKey, ''),
       tecnico: d.tecnico || d.id.replace('_' + dateKey, '')
-    })).filter(d => !isHiddenDoc(d, hidden));
+    })).filter(d => {
+      const isHidden = isHiddenDoc(d, hidden);
+      if (isHidden && !isAdminUser) return false;
+      d._isHiddenByAdmin = isHidden;
+      return true;
+    });
     
     renderTable(currentAppalto, tecnici, content, dateKey, _lastAllDocs, rawMaterials, new Map());
     const histCnt = document.getElementById('cnt-' + currentAppalto);
@@ -387,6 +400,44 @@ export async function forceListUpdateFromGithub() {
     const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
     await setDoc(doc(db, 'settings', 'dashboard'), { forceListUpdate: Date.now() }, { merge: true });
   } catch(e) {}
+}
+
+export async function requestAppaltoSync(targetAppalto = null) {
+  const appalto = targetAppalto || currentAppalto;
+  if (!appalto) {
+    showToast('Seleziona prima un appalto', 'warning');
+    return;
+  }
+  try {
+    const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    await setDoc(doc(db, 'settings', 'dashboard'), {
+      forceSyncAppalto: appalto,
+      forceSyncRequest: Date.now()
+    }, { merge: true });
+    showToast(`Richiesta sync inviata per ${appalto}`, 'success');
+  } catch(e) {
+    console.error('Errore richiesta sync:', e);
+    showToast('Errore durante l’invio della richiesta', 'error');
+  }
+}
+
+export async function toggleHideTecnico(techNameOrId) {
+  if (!techNameOrId) return;
+  const currentHidden = getHiddenTecniciSync();
+  const lowerTarget = techNameOrId.toLowerCase();
+  
+  let newHidden;
+  const exists = currentHidden.some(h => (h || '').toLowerCase() === lowerTarget);
+  if (exists) {
+    newHidden = currentHidden.filter(h => (h || '').toLowerCase() !== lowerTarget);
+    showToast(`Lista per ${techNameOrId} riabilitata`, 'info');
+  } else {
+    newHidden = [...currentHidden, techNameOrId];
+    showToast(`Lista per ${techNameOrId} nascosta`, 'info');
+  }
+  _lastRenderedKey = null; // Forza il re-render completo della griglia
+  await saveHiddenTecnici(newHidden);
+  triggerTableRenderWithHidden();
 }
 
 async function fetchRawMasterList(appalto) {
@@ -1120,9 +1171,15 @@ export async function loadAppalto(appalto, dateKey = 'live') {
           _lastAllDocs = allDocs;
 
           const hidden = getHiddenTecniciSync();
+          const isAdminUser = currentUser && currentUser.role === 'admin';
           const tecnici = allDocs
             .filter(d => !/_\d{4}-\d{2}-\d{2}$/.test(d.id))
-            .filter(d => !isHiddenDoc(d, hidden))
+            .filter(d => {
+              const isHidden = isHiddenDoc(d, hidden);
+              if (isHidden && !isAdminUser) return false;
+              d._isHiddenByAdmin = isHidden;
+              return true;
+            })
             .filter(d => isToday(d.ultimo_aggiornamento))
             .filter(d => {
               const mats = d.materiali;
@@ -1177,12 +1234,15 @@ export async function loadAppalto(appalto, dateKey = 'live') {
 
       const snapshots = allDocs.filter(d => d.id.endsWith('_' + dateKey));
       const hidden = getHiddenTecniciSync();
+      const isAdminUser = currentUser && currentUser.role === 'admin';
       const tecnici = snapshots.map(d => ({
         ...d,
         id: d.id.replace('_' + dateKey, ''),
         tecnico: d.tecnico || d.id.replace('_' + dateKey, '')
       })).filter(d => {
-        if (isHiddenDoc(d, hidden)) return false;
+        const isHidden = isHiddenDoc(d, hidden);
+        if (isHidden && !isAdminUser) return false;
+        d._isHiddenByAdmin = isHidden;
         const mats = d.materiali;
         if (!mats) return false;
         return Object.values(mats).some(v => v !== '' && v !== '0' && v !== 0);
@@ -1502,9 +1562,22 @@ function renderTable(appalto, tecnici, container, dateKey = 'live', allDocs = []
         staleHtml = `<span class="stale-badge" title="Lista materiali invariata dal ${sd}/${sm}/${sy}">⚠ ${sd}/${sm}</span>`;
       }
 
+      let hideBtnHtml = '';
+      if (isAdmin) {
+        const isHidden = t._isHiddenByAdmin;
+        const btnText = isHidden ? '👁️ Riabilita Lista' : '🙈 Nascondi Lista';
+        const btnStyle = isHidden 
+          ? 'background: rgba(99, 102, 241, 0.2); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.4);' 
+          : 'background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3);';
+        hideBtnHtml = `<button type="button" class="btn-hide-tech" onclick="event.stopPropagation(); toggleHideTecnico('${escapeHtml(name)}')" style="${btnStyle} font-size: 10px; padding: 2px 6px; border-radius: 4px; margin-bottom: 4px; cursor: pointer; font-weight: 600; font-family: var(--font-sans); transition: all 0.2s ease;">${btnText}</button>`;
+      }
+
+      const thStyle = t._isHiddenByAdmin ? 'opacity: 0.45; filter: grayscale(0.5);' : '';
+
       html += `
-            <th onclick="if(window.innerWidth <= 900) scrollCellIntoViewCenter(this)" style="cursor: pointer;">
+            <th onclick="if(window.innerWidth <= 900) scrollCellIntoViewCenter(this)" style="cursor: pointer; ${thStyle}" data-tech-id="${t.id}">
               <div class="th-inner th-tech">
+                ${hideBtnHtml}
                 <span class="tech-name">
                   <button type="button" class="tech-nav-left" aria-label="Sposta a sinistra" onclick="event.stopPropagation(); scrollTechHeaderNeighbor(this, -1)">◀</button>
                   ${statusHtml}${escapeHtml(name)}
@@ -1565,7 +1638,8 @@ function renderTable(appalto, tecnici, container, dateKey = 'live', allDocs = []
           editableAttr = ` class="td-value ${cls}"`;
         }
         
-        html += `<td${editableAttr}>${display}</td>`;
+        const tdStyle = t._isHiddenByAdmin ? ' style="opacity: 0.45; filter: grayscale(0.5);"' : '';
+        html += `<td${editableAttr}${tdStyle}>${display}</td>`;
       });
       html += `</tr>`;
     });

@@ -1,11 +1,11 @@
 {
   "docs/registerSW.js": {
-    "mtime": 1784066651.9495842,
+    "mtime": 1784066678.8932605,
     "ast_hash": "402b66900e731ca748771b6fc5e7a068",
     "semantic_hash": ""
   },
   "docs/sw.js": {
-    "mtime": 1784066655.6718671,
+    "mtime": 1784066683.2448838,
     "ast_hash": "382daf5f4026c7b913bee40875967888",
     "semantic_hash": ""
   },
@@ -175,7 +175,7 @@
     "semantic_hash": ""
   },
   "docs/index.html": {
-    "mtime": 1784066651.9472976,
+    "mtime": 1784066678.8932605,
     "ast_hash": "546f5189e6cdeaa16862a381bb2990d2",
     "semantic_hash": ""
   },
@@ -200,8 +200,8 @@
     "semantic_hash": ""
   },
   "tasks/review.md": {
-    "mtime": 1784066532.2147548,
-    "ast_hash": "848c9f1cb257569e78ff630600d0b272",
+    "mtime": 1784067099.1671162,
+    "ast_hash": "0edacea177846900e7989e633e0411da",
     "semantic_hash": ""
   },
   "tasks/struttura.md": {
@@ -210,8 +210,8 @@
     "semantic_hash": ""
   },
   "tasks/todo.md": {
-    "mtime": 1784066518.07101,
-    "ast_hash": "350109c91375c365e4841737dd2016fa",
+    "mtime": 1784067092.1702518,
+    "ast_hash": "775c5630fb8af4b4a2af306928558948",
     "semantic_hash": ""
   },
   "docs/icons/icon-192.png": {
@@ -265,12 +265,12 @@
     "semantic_hash": ""
   },
   "docs/workbox-4b126c97.js": {
-    "mtime": 1784066655.6718671,
+    "mtime": 1784066683.2543554,
     "ast_hash": "b75e31ea2482a1ee9928e834baa821c7",
     "semantic_hash": ""
   },
   "docs/assets/index-BXYTGuwe.js": {
-    "mtime": 1784066651.9430442,
+    "mtime": 1784066678.8932605,
     "ast_hash": "a8a38df360b4c0a4e2f57c5121c75682",
     "semantic_hash": ""
   }

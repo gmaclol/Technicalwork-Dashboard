@@ -1,6 +1,9 @@
 import { db, rtdb, ref, onValue, set, update, onDisconnect, serverTimestamp, doc, onSnapshot, enableNetwork, disableNetwork } from './firebase.js';
 import { APPALTI, currentUser, currentAppalto, currentDate, setCurrentAppalto, setCurrentDate, loadConfig, invalidateConfigCache, subscribeToDevicesNames, unsubscribeFromDevicesNames } from './state.js';
-import { preloadCounts, loadAppalto, filterMaterials, toggleSnapshotDropdown, pickSnapshotDate, closeSnapshotDropdown, selectAppalto, onDateChange, loadGeo, addMaterialRow, editMaterialRow, deleteMaterialRow, scrollCellIntoViewCenter, scrollTechHeaderNeighbor, forceListUpdateFromGithub, toggleDrawer, closeDrawer, updateSidebarCountsForDate, stopLiveListener, toggleCustomSelect, selectCustomOption } from './data.js';
+import { preloadCounts, loadAppalto, filterMaterials, toggleSnapshotDropdown, pickSnapshotDate, closeSnapshotDropdown, selectAppalto, onDateChange, loadGeo, addMaterialRow, editMaterialRow, deleteMaterialRow, scrollCellIntoViewCenter, scrollTechHeaderNeighbor, forceListUpdateFromGithub, requestAppaltoSync, toggleHideTecnico, toggleDrawer, closeDrawer, updateSidebarCountsForDate, stopLiveListener, toggleCustomSelect, selectCustomOption } from './data.js';
+
+window.requestAppaltoSync = requestAppaltoSync;
+window.toggleHideTecnico = toggleHideTecnico;
 import { escapeHtml, showConfirm, showToast } from './utils.js';
 import { exportToExcel, printTable, exportToImage } from './export.js';
 import { showTecnici, deleteTecnico, renameTecnico, toggleTecnico, renameWebTecnico, deleteWebTecnico, showBanned, stopTecniciListeners, stopBannedListeners } from './tecnici.js';
