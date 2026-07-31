@@ -138,6 +138,12 @@ Un numero eccessivo di letture (20k+) e scritture sono state generate dalla web 
 3. Su mobile/PWA, per i componenti informativi complessi, evitare di basarsi sull'attributo HTML nativo `title` (non visualizzabile al tocco/hold). Creare un tooltip HTML dedicato all'interno del DOM e controllarlo via JavaScript con eventi `pointerdown` (chiamando anche `e.preventDefault()` su `contextmenu` per prevenire menu contestuali nativi dell'OS), `pointerup` e `pointerleave`.
 4. Evitare l'utilizzo dell'oggetto globale `window` per invocare metodi di moduli diversi in un'applicazione basata su ES Modules. Importare sempre in modo esplicito le funzioni necessarie in cima ai moduli JavaScript che le consumano e invocarle direttamente.
 
+## Errore: Filtraggio distruttivo dei tecnici nascosti impediva la vista opacizzata Admin (`data.js`)
+**Causa:** La funzione `triggerTableRenderWithHidden()` e il primo filtro di `loadAppalto()` eseguivano `.filter(d => !isHiddenDoc(d, hidden))` indiscriminatamente sia per gli utenti comuni che per gli Admin. Di conseguenza, nascondere un tecnico rimuoveva la colonna dalla tabella anche per l'Admin, anziché lasciarla visibile con opacità ridotta. Inoltre, l'algoritmo di rendering incrementale `canIncrement` non rilevava i cambi di opacità/stato se i nomi dei tecnici rimasti coincidevano con quelli memorizzati in `_lastRenderedKey`.
+**Regola:** 
+1. Nel filtering dei documenti per la tabella, considerare sempre il ruolo dell'utente (`currentUser.role === 'admin'`). Se l'utente è Admin, preservare il documento impostando una flag interna (es. `d._isHiddenByAdmin = true`) da sfruttare in fase di rendering per applicare lo stile `opacity: 0.45` ed il tasto `Riabilita Lista`.
+2. Ogni volta che si modifica lo stato di visibilità o la struttura della tabella (es. `toggleHideTecnico()`), impostare `_lastRenderedKey = null` prima del re-render per forzare la ricostruzione completa del DOM della griglia.
+
 ## Errore: Rimozione o modifica di righe materiali standard (Modem / ONT, ecc.)
 **Causa:** L'amministratore poteva rinominare o eliminare per errore le righe di materiali standard dell'appalto definiti nella master list (da `lista.txt` o `Nomeappalto.txt` scaricate da GitHub), creando incoerenze nel tracciamento dei cantieri. Inoltre, il modal di conferma (`showConfirm`) utilizzava internamente `.textContent` su `confirm-msg` troncando qualsiasi elemento HTML inserito come parte del messaggio (come la select del tecnico).
 **Regola:** 

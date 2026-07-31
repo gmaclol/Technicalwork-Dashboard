@@ -103,6 +103,17 @@ Le celle modificabili con doppio click non fornivano affordance o supporto per l
 * **Accessibilità**: Aggiunti attributi `tabindex="0"`, `role="button"` e `aria-label` descrittivi dinamici per ciascuna cella modificabile. Registrato un gestore tastiera (`keydown` per `Enter` / `Space`) per aprire l'editor inline ed implementato lo stile CSS `:focus-visible` per un indicatore di fuoco visibile ad alto contrasto.
 * **Custom Dropdown Select**: Sostituiti tutti i tag `<select>` delle modali e dei confirm box con un componente custom select (`.custom-select`) formato da trigger button, menu a comparsa div ad hoc e un tag `<input type="hidden">`. Quest'ultimo preserva l'identificativo ID del vecchio select nativo, garantendo il corretto funzionamento di tutta la logica asincrona esistente senza costringere a modifiche dei parser.
 
+## 2026-07-31 — Gestione Richiesta Sync Appalto & Colonna Nascosta/Disabilitata Admin
+
+**Richiesta Sync Appalto On-Demand:**
+- Per consentire all'amministratore di forzare l'allineamento dei dati di un determinato appalto (es. *Elecnor*) senza inviare chiamate massive o attivare heartbeat costosi, il pulsante nel drawer scrive un unico timestamp sul documento `settings/dashboard` con i campi `forceSyncAppalto` e `forceSyncRequest`.
+- Gli eventi vengono intercettati in tempo reale dagli agenti Android collegati che rispondono avviando il sync della propria azienda.
+
+**Distinzione Permessi per Tecnici Nascosti (Admin vs User):**
+- Per gli utenti comuni (Non-Admin), i tecnici compresi nella lista `hidden_tecnici` vengono totalmente filtrati ed omessi dalla griglia materiali.
+- Per l'amministratore, l'omissione impediva il ripristino o la diagnosi. Pertanto, nel ramo Admin i documenti nascosti vengono preservati nell'array con la flag `_isHiddenByAdmin = true`.
+- La tabella applica lo stile CSS `opacity: 0.45` e `filter: grayscale(0.5)` all'intera colonna del tecnico (header + celle dati), esponendo in cima al nome il pulsante `👁️ Riabilita Lista` per consentire il ripristino istantaneo senza ricaricare la pagina.
+
 ## Stack e Vincoli — Dashboard (tchwrk2)
 
 Stack:
