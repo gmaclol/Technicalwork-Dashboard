@@ -6,7 +6,7 @@ window.requestAppaltoSync = requestAppaltoSync;
 window.toggleHideTecnico = toggleHideTecnico;
 import { escapeHtml, showConfirm, showToast } from './utils.js';
 import { exportToExcel, printTable, exportToImage } from './export.js';
-import { showTecnici, deleteTecnico, renameTecnico, toggleTecnico, renameWebTecnico, deleteWebTecnico, showBanned, stopTecniciListeners, stopBannedListeners } from './tecnici.js';
+import { showTecnici, deleteTecnico, renameTecnico, toggleTecnico, renameWebTecnico, deleteWebTecnico, showBanned, showCasa, stopTecniciListeners, stopBannedListeners, stopCasaListeners } from './tecnici.js';
 import { showPfsDashboard, toggleAllPfs, updatePfsToolbar, deletePfsItem, deleteSelectedPfs, stopPfsListeners } from './pfs.js';
 import { showAreeDashboard, savePfsAreas, deleteDeviceAreas, renameDevice, stopAreeListener } from './aree.js';
 import { initPfsLookup, initPfsLookupSidebar, pfsLookupSearch, pfsLookupSelectArea, pfsLookupToggleStar, pfsItemToggle, pfsSubmitAddress, pfsCopyAddress, pfsToggleRegion, pfsRegionSearch, pfsRegionToggleStar, getWebDeviceId, stopPfsLookupListener, showPfsRegionBrowser } from './pfsLookup.js';
@@ -343,6 +343,7 @@ function handleHashChange() {
   stopLiveListener();
   stopTecniciListeners();
   stopBannedListeners();
+  stopCasaListeners();
   stopPfsListeners();
   stopAreeListener();
   stopPfsLookupListener();
@@ -367,6 +368,7 @@ function handleHashChange() {
       const navEl = document.getElementById('nav-' + sub);
       if (navEl) navEl.classList.add('active');
       if (sub === 'tecnici') showTecnici();
+      else if (sub === 'casa') showCasa();
       else if (sub === 'pfs') showPfsDashboard();
       else if (sub === 'aree') showAreeDashboard();
       else if (sub === 'banned') showBanned();

@@ -756,3 +756,252 @@ window.countBannedUserDocs = async function(deviceId) {
   }
 };
 
+// ── POSIZIONE CASA TECNICI ──
+let _casaListeners = [];
+
+export function stopCasaListeners() {
+  _casaListeners.forEach(unsub => { if (typeof unsub === 'function') unsub(); });
+  _casaListeners = [];
+  unsubscribeFromDevicesNames('tecnici_casa');
+}
+
+export async function showCasa() {
+  document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+  const el = document.getElementById('nav-Casa');
+  if (el) el.classList.add('active');
+  
+  const content = document.getElementById('content');
+  if (currentUser.role !== 'admin') {
+    content.innerHTML = `<div class="state-box fade-in"><h2>Accesso Negato</h2><p>Non hai i permessi per visualizzare questa pagina.</p></div>`;
+    return;
+  }
+  
+  content.innerHTML = `<div class="state-box"><div class="loader-spinner"></div><p>Caricamento posizioni casa tecnici…</p></div>`;
+  
+  stopCasaListeners();
+  
+  let appaltiData = {};
+  let webDevices = {};
+  let loadedCount = 0;
+  
+  async function renderCasaList() {
+    if (loadedCount < APPALTI.length) return;
+    
+    try {
+      const allTecnici = new Map();
+      const hidden = getHiddenTecniciSync();
+      const bannedDeviceIds = Object.keys(webDevices).filter(id => webDevices[id]?.banned);
+      
+      // Colleziona da appalti (solo Android)
+      APPALTI.forEach(appalto => {
+        const docs = appaltiData[appalto] || [];
+        docs.forEach(d => {
+          const data = d.data;
+          const name = data.tecnico || d.id;
+          
+          // Filtri:
+          // 1. Deve essere Android
+          if (data.type === 'web') return;
+          // 2. Non deve essere bannato
+          if (bannedDeviceIds.includes(d.id) || bannedDeviceIds.includes(d.id.toLowerCase())) return;
+          // 3. Non deve essere nascosto (disattivato)
+          const isHidden = hidden.some(h => h.toLowerCase() === name.toLowerCase() || h.toLowerCase() === d.id.toLowerCase());
+          if (isHidden) return;
+
+          if (!allTecnici.has(name)) {
+            const devInfo = webDevices[d.id.toLowerCase()] || webDevices[d.id] || {};
+            allTecnici.set(name, {
+              deviceId: d.id,
+              type: 'android',
+              friendlyName: name,
+              homeAddress: devInfo.homeAddress || '',
+              homeLat: devInfo.homeLat || '',
+              homeLng: devInfo.homeLng || '',
+            });
+          }
+        });
+      });
+      
+      if (allTecnici.size === 0) {
+        content.innerHTML = `<div class="state-box fade-in"><p>Nessun tecnico attivo (Android) trovato.</p></div>`;
+        return;
+      }
+      
+      let rowsHtml = '';
+      const sortedTechs = [...allTecnici.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+      
+      for (const [name, info] of sortedTechs) {
+        const typeIcon = '📱';
+        const typeLabel = 'Android';
+        
+        rowsHtml += `
+          <tr data-device-id="${info.deviceId}">
+            <td>
+              <div style="font-weight:bold; display:flex; align-items:center; gap:6px;">
+                <span>${typeIcon} ${escapeHtml(name)}</span>
+              </div>
+              <div style="font-size:11px; color:var(--text-muted); font-family:var(--font-mono); margin-top:2px;">${info.deviceId} (${typeLabel})</div>
+            </td>
+            <td>
+              <input type="text" class="rename-field txt-address" placeholder="Es: Via Roma 1, Torino" value="${escapeHtml(info.homeAddress)}" style="width:100%; margin:0; padding:6px 10px; font-size:13px;" onkeydown="if(event.key==='Enter') saveHomePosition('${info.deviceId}', this)">
+            </td>
+            <td>
+              <div style="display:flex; gap:6px; align-items:center;">
+                <input type="text" class="rename-field txt-lat" placeholder="Lat" value="${escapeHtml(info.homeLat)}" style="width:75px; margin:0; padding:6px; font-size:13px; font-family:var(--font-mono); text-align:center;">
+                <input type="text" class="rename-field txt-lng" placeholder="Lng" value="${escapeHtml(info.homeLng)}" style="width:75px; margin:0; padding:6px; font-size:13px; font-family:var(--font-mono); text-align:center;">
+                <button class="btn-outline" style="padding:6px 10px; font-size:12px;" onclick="geocodeAddress('${info.deviceId}', this)" title="Cerca coordinate da indirizzo">🔍 Cerca</button>
+              </div>
+            </td>
+            <td style="text-align:right;">
+              <button class="login-btn btn-save-home" style="padding:6px 12px; font-size:13px; font-weight:600; width:auto; display:inline-block;" onclick="saveHomePosition('${info.deviceId}', this)">Salva</button>
+            </td>
+          </tr>
+        `;
+      }
+      
+      content.innerHTML = `
+        <div class="content-header fade-in">
+          <div>
+            <div class="content-title">Posizione Casa Tecnici</div>
+            <div class="content-subtitle">Imposta l'indirizzo di casa dei tecnici per i calcoli di percorso</div>
+          </div>
+        </div>
+        <div class="tecnici-panel fade-in">
+          <div class="tecnici-note">Inserisci l'indirizzo di casa del tecnico e premi Cerca per geocodificare le coordinate di latitudine e longitudine, poi clicca Salva.</div>
+          <div class="table-scroll" style="margin-top:20px; padding:0;">
+            <table class="tecnici-table">
+              <thead>
+                <tr>
+                  <th>Tecnico</th>
+                  <th>Indirizzo Casa</th>
+                  <th>Coordinate (Lat / Lng)</th>
+                  <th style="text-align:right;">Azione</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rowsHtml}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+      
+    } catch (e) {
+      console.error(e);
+      content.innerHTML = `<div class="state-box fade-in"><p>Errore nel caricamento dei dati: ${e.message}</p></div>`;
+    }
+  }
+  
+  // Listeners
+  APPALTI.forEach(appalto => {
+    const unsub = onSnapshot(collection(db, appalto), (snap) => {
+      appaltiData[appalto] = snap.docs
+        .filter(d => !/_\d{4}-\d{2}-\d{2}$/.test(d.id))
+        .map(d => ({ id: d.id, data: d.data() }));
+      
+      if (loadedCount < APPALTI.length) loadedCount++;
+      renderCasaList();
+    }, (e) => {
+      console.error(`Errore caricamento per ${appalto} in Casa:`, e);
+      if (loadedCount < APPALTI.length) loadedCount++;
+      renderCasaList();
+    });
+    _casaListeners.push(unsub);
+  });
+  
+  subscribeToDevicesNames('tecnici_casa', (data) => {
+    webDevices = data;
+    renderCasaList();
+  });
+}
+
+window.geocodeAddress = async function(deviceId, btn) {
+  const row = btn.closest('tr');
+  const addressInput = row.querySelector('.txt-address');
+  const latInput = row.querySelector('.txt-lat');
+  const lngInput = row.querySelector('.txt-lng');
+  
+  const address = addressInput.value.trim();
+  if (!address) {
+    showToast("Inserisci prima un indirizzo!", "error");
+    return;
+  }
+  
+  btn.disabled = true;
+  btn.textContent = "Cerca...";
+  
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(address)}`, {
+      headers: {
+        'Accept-Language': 'it'
+      }
+    });
+    if (!res.ok) throw new Error("Nominatim API non raggiungibile");
+    const data = await res.json();
+    if (data && data.length > 0) {
+      latInput.value = parseFloat(data[0].lat).toFixed(6);
+      lngInput.value = parseFloat(data[0].lon).toFixed(6);
+      showToast("Indirizzo geocodificato con successo!", "success");
+    } else {
+      showToast("Indirizzo non trovato! Verifica l'indirizzo scritto.", "error");
+    }
+  } catch (e) {
+    console.error(e);
+    showToast("Errore di connessione o geocodifica", "error");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "🔍 Cerca";
+  }
+};
+
+window.saveHomePosition = async function(deviceId, triggerElement) {
+  const row = triggerElement.closest('tr');
+  const addressInput = row.querySelector('.txt-address');
+  const latInput = row.querySelector('.txt-lat');
+  const lngInput = row.querySelector('.txt-lng');
+  
+  const address = addressInput.value.trim();
+  const lat = latInput.value.trim();
+  const lng = lngInput.value.trim();
+  
+  if (address && (!lat || !lng)) {
+    const searchBtn = row.querySelector('button[onclick*="geocodeAddress"]');
+    if (searchBtn) {
+      await window.geocodeAddress(deviceId, searchBtn);
+    }
+  }
+  
+  const finalLat = latInput.value.trim();
+  const finalLng = lngInput.value.trim();
+  
+  try {
+    showToast("Salvataggio in corso...", "info");
+    
+    await updateDoc(doc(db, 'settings', 'devices_names'), {
+      [`${deviceId}.homeAddress`]: address,
+      [`${deviceId}.homeLat`]: finalLat,
+      [`${deviceId}.homeLng`]: finalLng,
+      [`${deviceId}.updatedAt`]: Date.now()
+    });
+    
+    showToast("Posizione salvata con successo!", "success");
+  } catch (e) {
+    console.error(e);
+    try {
+      await setDoc(doc(db, 'settings', 'devices_names'), {
+        [deviceId]: {
+          homeAddress: address,
+          homeLat: finalLat,
+          homeLng: finalLng,
+          updatedAt: Date.now()
+        }
+      }, { merge: true });
+      showToast("Posizione salvata con successo!", "success");
+    } catch (err) {
+      console.error(err);
+      showToast("Errore nel salvataggio: " + err.message, "error");
+    }
+  }
+};
+
+
