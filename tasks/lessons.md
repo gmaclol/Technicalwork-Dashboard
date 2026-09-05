@@ -182,4 +182,16 @@ Un numero eccessivo di letture (20k+) e scritture sono state generate dalla web 
 **Causa:** Durante lo splitting di `css/components.css` in fogli stile specifici per componente, alcune classi trasversali o meno comuni (come `.tecnici-actions` per il flexbox dei bottoni tecnici) sono andate perse. Questo ha causato il disallineamento e lo stretch disordinato di tutte le viste amministrative.
 **Regola:** Quando si ristrutturano o si dividono fogli stile monolitici, verificare con attenzione l'elenco di tutte le classi dichiarate ed usate nel markup dinamico di ciascun modulo JS. Eseguire sempre test visivi completi di tutte le rotte (incluse quelle di livello admin e non comuni) per accertarsi che nessun elemento perda le sue proprietà strutturali.
 
+## Errore: Autenticazione solo client-side e hash password nel repository pubblico
+**Causa:** Memorizzare una costante `USERS` con hash SHA-256 delle password nel codice client in un repository pubblico permette il cracking offline con strumenti GPU (hashcat) e rende il controllo accessi bypassabile via console del browser (`localStorage.tw_session`).
+**Regola:** Nessuna credenziale o logica di autorizzazione deve dipendere dal client. Utilizzare sempre un identity provider gestito (Firebase Authentication) che valida le credenziali server-side, gestisce i token di sessione in modo cifrato e abilita l'applicazione di Security Rules native sul database.
+
+## Errore: Esposizione dati personali e domiciliari dei tecnici (GDPR)
+**Causa:** Salvare indirizzi di residenza e coordinate GPS private dei tecnici nella collezione globale `settings/devices_names` (aperta a tutte le tab e client) esponeva PII senza controlli di ruolo.
+**Regola:** I dati personali sensibili devono essere segregati in una collezione separata (`tecniciPrivate/{deviceId}`) accessibile in lettura e scrittura esclusivamente da account con ruolo verificato (`admin`) tramite Security Rules Firestore.
+
+## Errore: Creazione accidentale di sotto-raccolte in Firebase Console
+**Causa:** Cliccando su "+ Avvia raccolta" nella colonna di dettaglio di un documento esistente, la nuova raccolta viene generata come sotto-raccolta nidificata (es. `/Consumo/ID/userRoles`) invece che a livello radice (`/userRoles`), rendendola invisibile alle query di root e alle security rules.
+**Regola:** Prima di creare una raccolta strutturale globale nella Console Firebase, tornare sempre alla radice (icona 🏠 Home nella barra del breadcrumb) e verificare che il path sia vuoto prima di premere "+ Avvia raccolta" nella prima colonna.
+
 

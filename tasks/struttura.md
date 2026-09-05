@@ -21,7 +21,7 @@
 | Layer | Descrizione | File |
 |-------|-------------|------|
 | Entry Point / Router | Shell HTML, hash routing, theme, presence, offline | `index.html`, `js/app.js` |
-| Autenticazione | Login con hash SHA-256, sessione localStorage | `js/auth.js` |
+| Autenticazione | Firebase Auth (Email/Password), ruoli Firestore userRoles/{uid} | `js/auth.js` |
 | Stato Globale | Config, utente corrente, appalto/data correnti | `js/state.js` |
 | Firebase Init | Inizializzazione Firestore + RTDB, export funzioni | `js/firebase.js` |
 | Core Dati | Fetch liste, render griglia materiali, KPI, snapshot | `js/data.js` |
@@ -48,11 +48,12 @@
 ## 2. Flussi Dati Principali
 
 ### 2.1 Login e Sessione
-1. Utente inserisce credenziali → `auth.js:doLogin()`
-2. Hash SHA-256 della password → confronto con `USERS` in `state.js`
-3. Se ok: `setCurrentUser()`, salva sessione in `localStorage`, chiama `showApp()`
-4. `showApp()` → avvia notifiche globali PFS (admin), preloadCounts, init presence, dispatch hashchange
-5. Al refresh: `checkSession()` in `app.js` ripristina sessione da `localStorage`
+1. Utente inserisce credenziali (username o email) → `auth.js:doLogin()`
+2. `signInWithEmailAndPassword` autentica con Firebase Auth lato server
+3. Al login riuscito: recupera il documento `userRoles/{uid}` da Firestore per il ruolo (`admin` / `viewer`)
+4. Se autorizzato: `setCurrentUser({ uid, email, name, role })`, chiama `showApp()`
+5. `showApp()` → avvia notifiche globali PFS (admin), preloadCounts, init presence, dispatch hashchange
+6. Al refresh o riapertura: `checkSession()` in `auth.js` ascolta `onAuthStateChanged()` ripristinando la sessione nativa Firebase
 
 ### 2.2 Navigazione SPA (Hash Router)
 1. `window.location.hash` cambia → `app.js:handleHashChange()`
@@ -312,7 +313,7 @@ node_modules/, .env, .DS_Store
 
 4. **Dipendenza Firebase via CDN:** La dashboard carica Firebase JS SDK via URL CDN (`https://www.gstatic.com/...`), non via npm. Questo rende il version tracing difficile e impedisce tree-shaking.
 
-5. **Configurazione hardcoded:** Le credenziali Firebase (`firebase.js`) e gli hash utente (`state.js`) sono hardcoded nel bundle. Per sicurezza, dovrebbero essere in variabili d'ambiente o config esterno.
+5. **[Risolto] Credenziali e hash hardcoded:** Rimossa la tabella `USERS` e gli hash SHA-256 da `state.js`; l'autenticazione è ora interamente demandata a Firebase Auth con ruoli in Firestore `userRoles/{uid}`.
 
 6. **Geocoding lato client:** `loadGeo()` chiama Nominatim (OpenStreetMap) senza rate limiting né caching persistente. In caso di molti click su location, si rischia rate limiting.
 
@@ -332,6 +333,6 @@ node_modules/, .env, .DS_Store
 
 ### Rischi Noti
 - `exceljs` caricato via CDN on-demand — se CDN non raggiungibile, export fallisce
-- Hash SHA-256 client-side per login — non sostituisce un vero backend auth
+- [Risolto] Autenticazione backend: migrata a Firebase Authentication nativo con ruoli server-side e security rules
 - Cache 24h per liste materiali — dopo modifica lista su GitHub, admin deve premere "Forza Liste/Appalti"
 - Gestione multi-tab per presenza RTDB funziona ma aggiunge complessità (`connections/` strategy)

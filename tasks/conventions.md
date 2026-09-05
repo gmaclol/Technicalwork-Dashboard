@@ -10,7 +10,7 @@ Questo documento definisce le convenzioni reali utilizzate nel codebase della Da
 * **File CSS:** lowercase, es. `variables.css`, `components.css`, `themes.css`, `responsive.css`. Sotto `css/`.
 * **Funzioni / Metodi:** camelCase descrittivo, es. `doLogin()`, `loadAppalto()`, `renderTecnici()`, `getHiddenTecniciSync()`, `stopAreeListener()`.
 * **Variabili / Parametri:** camelCase, es. `currentAppalto`, `currentDate`, `appaltiData`, `deviceId`.
-* **Costanti Globali o di Configurazione:** UPPER_SNAKE_CASE, es. `APPALTI`, `USERS`, `MAX_VISIBLE_ITEMS`, `BRAND_FILES`.
+* **Costanti Globali o di Configurazione:** UPPER_SNAKE_CASE, es. `APPALTI`, `MAX_VISIBLE_ITEMS`, `BRAND_FILES`.
 * **ID ed Elementi HTML:** kebab-case per componenti strutturali, es. `offline-banner`, `topbar-online`, `kpi-total`, `confirm-overlay`. Per elementi dinamici associati ad entità si usa la forma `nav-{appalto}` o `cnt-{appalto}` o `loc-{tecnicoId}`.
 * **Classi CSS:** kebab-case, es. `btn-outline`, `tecnici-panel`, `toggle-wrap`, `btn-tecnico-action`.
 
@@ -21,8 +21,9 @@ Questo documento definisce le convenzioni reali utilizzate nel codebase della Da
 L'applicazione è una **Single Page Application (SPA)** in puro JavaScript Vanilla (nessun framework UI) strutturata come segue:
 
 * **Entry Point (`js/app.js`):** Inizializza l'interfaccia, gestisce l'Hash Router (`handleHashChange`), orchestra i listener globali di presenza online (RTDB) ed esegue il cleanup dei listener specifici delle viste al cambio tab.
-* **Stato Condiviso (`js/state.js`):** Contiene le costanti predefinite, l'utente correntemente loggato e le variabili globali reattive (`currentAppalto`, `currentDate`). Carica la configurazione da GitHub con cache locale a 24 ore.
-* **Inizializzazione Firebase (`js/firebase.js`):** Carica l'SDK Firebase tramite CDN (gstatic) ed esporta i metodi di Firestore e Realtime Database, centralizzando la dipendenza.
+* **Stato Condiviso (`js/state.js`):** Contiene le costanti predefinite, l'utente correntemente loggato e le variabili globali reattive (`currentAppalto`, `currentDate`). Nessuna password o tabella utenti è memorizzata qui. Carica la configurazione da GitHub con cache locale a 24 ore.
+* **Inizializzazione Firebase (`js/firebase.js`):** Carica l'SDK Firebase tramite CDN (gstatic) ed esporta i metodi di Firestore, Realtime Database e Firebase Authentication, centralizzando la dipendenza.
+* **Autenticazione (`js/auth.js`):** Gestisce il login tramite Firebase Auth, l'assegnazione dei ruoli da `userRoles/{uid}` e l'ascoltatore di sessione nativo `onAuthStateChanged()`.
 * **Moduli di Vista (es. `js/tecnici.js`, `js/pfs.js`, `js/aree.js`, `js/pfsLookup.js`, `js/data.js`):** Ciascun modulo è responsabile del fetching dei dati, del rendering del proprio HTML e del tracking dei propri listener attivi in array locali (es. `_tecniciListeners`). Esportano funzioni di rendering (es. `showTecnici()`) e funzioni di cleanup dei listener (es. `stopTecniciListeners()`).
 * **Modulo Dati Core (`js/data.js`):** Gestisce il caricamento principale delle tabelle materiali degli appalti, i filtri, i calcoli KPI, i mini-editor inline e i badge contatori.
 * **Utilità e Dialog (`js/utils.js`):** Contiene helper generici di formattazione temporale, escaping per XSS, e i dialog interattivi globali (`showToast`, `showConfirm`, `showRenameModal`).
@@ -47,6 +48,12 @@ Per evitare chiamate asincrone ripetute (`getDoc`) a Firestore all'interno di lo
 * Mantenere una cache sincrona locale (es. `_hiddenCache` per i tecnici disattivati).
 * Popolare e tenere aggiornata questa cache tramite un listener `onSnapshot` centralizzato ad avvio app.
 * Esporre metodi sincroni immediati (es. `getHiddenTecniciSync()`) per accedere ai dati.
+
+### 3.4 Autenticazione e Ruoli (Firebase Auth)
+* **Identity Provider**: L'autenticazione è gestita esclusivamente da Firebase Auth (`auth`, `signInWithEmailAndPassword`, `signOut`).
+* **Sessione Reattiva**: Utilizzare sempre `onAuthStateChanged()` per il monitoraggio e il ripristino della sessione; non affidarsi a chiavi custom in `localStorage`.
+* **Segregazione Ruoli**: I ruoli vivono nella collezione Firestore `userRoles/{uid}` e non sono mai scrivibili dal client.
+* **Dati Sensibili (GDPR)**: Qualsiasi informazione personale o di residenza privata dei tecnici deve risiedere in `tecniciPrivate/{deviceId}` ed essere accessibile solo da utenti verificati con ruolo `admin`.
 
 ---
 
