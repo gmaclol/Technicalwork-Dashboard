@@ -114,6 +114,19 @@ Le celle modificabili con doppio click non fornivano affordance o supporto per l
 - Per l'amministratore, l'omissione impediva il ripristino o la diagnosi. Pertanto, nel ramo Admin i documenti nascosti vengono preservati nell'array con la flag `_isHiddenByAdmin = true`.
 - La tabella applica lo stile CSS `opacity: 0.45` e `filter: grayscale(0.5)` all'intera colonna del tecnico (header + celle dati), esponendo in cima al nome il pulsante `👁️ Riabilita Lista` per consentire il ripristino istantaneo senza ricaricare la pagina.
 
+## 2026-09-05 — Migrazione Firebase Authentication & Separazione Dati Sensibili
+
+**Motivazione:**
+Eliminare le credenziali e gli hash SHA-256 memorizzati in chiaro nel frontend pubblico (`js/state.js`) e consentire l'applicazione di Security Rules native su Firestore e RTDB per proteggere i dati personali (GDPR) e l'integrità dei cantieri a costo zero (Piano Spark).
+
+**Decisioni Architetturali:**
+1. **Firebase Authentication nativo**: Sostituita l'autenticazione manuale client-side con Firebase Auth (`signInWithEmailAndPassword`, `signOut`, `onAuthStateChanged`). Supporto trasparente sia per email completa che per username diretto (`Stefano` / `Piero` con dominio automatico `@technicalwork.it`).
+2. **Gestione Ruoli server-side (`userRoles/{uid}`)**: I ruoli (`admin` vs `viewer`) vivono in documenti Firestore con ID = `uid` utente. Le regole di sicurezza impediscono qualsiasi scrittura via client a questa collezione, rendendo i ruoli gestibili unicamente tramite Console Firebase.
+3. **Segregazione Dati Sensibili Tecnici (`tecniciPrivate/{deviceId}`)**: I campi relativi al domicilio privato dei tecnici (`homeAddress`, `homeLat`, `homeLng`) sono stati spostati dalla collezione generale alla collezione riservata `tecniciPrivate`, accessibile e modificabile unicamente da utenti con ruolo `admin`.
+4. **Strategia Regole a Due Fasi (Versione A e B)**: 
+   - *Versione A*: Protegge immediatamente dashboard, ruoli e dati sensibili, mantenendo attive le scritture anonime dei materiali per preservare la compatibilità con l'applicazione Android dei tecnici sul campo.
+   - *Versione B*: Blindatura totale con autenticazione obbligatoria per qualsiasi richiesta (da pubblicare solo dopo aggiornamento dell'app Android con `signInAnonymously`).
+
 ## Stack e Vincoli — Dashboard (tchwrk2)
 
 Stack:

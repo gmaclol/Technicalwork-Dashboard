@@ -60,12 +60,12 @@
     <div class="login-logo">TechnicalWork</div>
     <div class="login-title">Accesso Dashboard</div>
     <div class="login-field">
-      <label for="inp-user">Username</label>
-      <input type="text" id="inp-user" placeholder="username" autocomplete="off">
+      <label for="inp-user">Email o Username</label>
+      <input type="text" id="inp-user" placeholder="es. Stefano oppure email" autocomplete="username" onkeydown="if(event.key==='Enter') document.getElementById('inp-pass').focus()">
     </div>
     <div class="login-field">
       <label for="inp-pass">Password</label>
-      <input type="password" id="inp-pass" placeholder="••••••••" autocomplete="current-password">
+      <input type="password" id="inp-pass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter') doLogin()">
     </div>
     <button class="login-btn" onclick="doLogin()">Accedi</button>
     <div class="login-error" id="login-error">Credenziali non valide.</div>

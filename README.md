@@ -114,6 +114,169 @@ Per compilare la versione ottimizzata per la produzione e pubblicarla online con
 
 ---
 
+## 🔒 Sicurezza & Regole Firebase (Security Rules)
+
+L'applicazione utilizza **Firebase Authentication** con ruoli gestiti sul cloud tramite la collezione protetta `userRoles/{uid}` (solo console Firebase). I dati sensibili di domicilio e coordinate private dei tecnici sono segregati nella collezione `tecniciPrivate/{deviceId}`, accessibile esclusivamente dall'Admin.
+
+---
+
+### 1. Dove incollare le regole nella Console Firebase
+
+#### Firestore Database (Regole Cloud Firestore):
+1. Apri la Console Firebase sul progetto `technicalwork-cloud`.
+2. Nel menu a sinistra vai su **Firestore Database** → clicca sulla scheda in alto **Regole** (o *Rules*).
+3. Cancella il contenuto attuale, incolla le regole della **VERSIONE A** sottostante e clicca su **Pubblica** (*Publish*).
+
+#### Realtime Database (Regole Presenza Online):
+1. Nel menu a sinistra vai su **Realtime Database** → clicca sulla scheda in alto **Regole** (o *Rules*).
+2. Incolla il blocco JSON per RTDB e clicca su **Pubblica** (*Publish*).
+
+---
+
+### VERSIONE A — Da pubblicare adesso (Compatibile con App Android)
+
+Questa versione protegge la dashboard e i ruoli utente, blinda i dati sensibili dei tecnici (`tecniciPrivate`) e impedisce manomissioni dei ruoli, **mantenendo aperte le sincronizzazioni dei materiali dell'app Android** che oggi non usa ancora Firebase Auth.
+
+#### Firestore Rules (Versione A):
+```javascript
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper: verifica se l'utente connesso ha ruolo admin
+    function isAdmin() {
+      return request.auth != null && 
+        get(/databases/$(database)/documents/userRoles/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // 1. Ruoli Utente: leggibile solo da utenti autenticati, NON modificabile dal client
+    match /userRoles/{userId} {
+      allow read: if request.auth != null;
+      allow write: if false; // Solo console Firebase
+    }
+
+    // 2. Dati Sensibili Tecnici (Indirizzi casa, coordinate GPS private): SOLO ADMIN
+    match /tecniciPrivate/{deviceId} {
+      allow read, write: if isAdmin();
+    }
+
+    // 3. Impostazioni Dashboard e Dispositivi
+    match /settings/{docId} {
+      allow read: if true;
+      allow write: if true; // Aperto per consentire registrazione dispositivi dall'app Android
+    }
+
+    // 4. Liste Materiali Cantieri (Elecnor, Sertori, Sirti, Consumo, ecc.)
+    match /{appalto}/{docId} {
+      allow read: if true;
+      allow write: if true; // Compatibilità temporanea con l'app Android esistente
+    }
+
+    // 5. Segnalazioni e Log PFS
+    match /pfs_segnalati/{pfsId} {
+      allow read, write: if true;
+    }
+    match /pfs_logs/{logId} {
+      allow read, write: if true;
+    }
+
+    // 6. Scambi Materiali QR tra tecnici
+    match /exchanges/{exchangeId} {
+      allow read, write: if true;
+    }
+  }
+}
+```
+
+#### Realtime Database Rules (Presenza RTDB):
+```json
+{
+  "rules": {
+    ".read": "auth != null",
+    ".write": "auth != null"
+  }
+}
+```
+
+---
+
+### 2. Checklist di Test Manuale nel Browser
+
+Dopo aver pubblicato la Versione A e avviato la dashboard:
+
+- [ ] **Login Stefano (Admin)**: Inserisci `Stefano` (o `stefano@technicalwork.it`) e la password.  
+  👉 *Esito atteso*: Accesso consentito, voce "Stefano — Esci" in topbar, menu laterale con sezioni "Tecnici", "Pannello PFS", "Aree Preferite", e pulsante "Richiedi Sync".
+- [ ] **Login Piero (Viewer)**: Fai logout e accedi con `Piero` (o `piero@technicalwork.it`) e la password.  
+  👉 *Esito atteso*: Accesso consentito, ma le voci amministrative ("Tecnici", "Richiedi Sync", ecc.) sono nascoste.
+- [ ] **Test Password Sbagliata**: Inserisci una password errata.  
+  👉 *Esito atteso*: Messaggio "Email/Username o password errati", nessun accesso e nessun blocco dell'interfaccia.
+- [ ] **Persistenza Sessione (Reload F5)**: Mentre sei dentro la dashboard, premi F5 o ricarica la scheda.  
+  👉 *Esito atteso*: L'app si riapre direttamente sui dati senza chiedere nuovamente il login.
+- [ ] **Logout Completo**: Clicca su "Esci" in alto a destra e conferma il modale.  
+  👉 *Esito atteso*: Ritorno alla schermata di login con campi password resettati.
+- [ ] **Caricamento Dati**: Verifica che le tabelle dei materiali e le card KPI continuino a popolarsi regolarmente con i dati dei cantieri.
+
+---
+
+### VERSIONE B — Regole Finali Blindate (Da applicare dopo aggiornamento App Android)
+
+> ⚠️ **Nota:** Da applicare **soltanto** quando l'app Android dei tecnici (nel repository separato `Technicalwork-Materiali`) sarà stata aggiornata implementando il login anonimo (`FirebaseAuth.getInstance().signInAnonymously()`). Una volta applicata questa versione, qualsiasi richiesta proveniente da client non autenticati verrà respinta a monte da Google.
+
+#### Firestore Rules (Versione B):
+```javascript
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper: verifica se la richiesta proviene da un utente autenticato (dashboard o app Android)
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper: verifica ruolo admin
+    function isAdmin() {
+      return isAuthenticated() && 
+        get(/databases/$(database)/documents/userRoles/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // 1. Ruoli Utente: consultabile da chi è loggato, modificabile SOLO da console
+    match /userRoles/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+    }
+
+    // 2. Dati Sensibili Tecnici: protetti ermeticamente per il solo Admin
+    match /tecniciPrivate/{deviceId} {
+      allow read, write: if isAdmin();
+    }
+
+    // 3. Impostazioni, Materiali, Segnalazioni e Scambi: accesso riservato ad autenticati
+    match /settings/{docId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /{appalto}/{docId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /pfs_segnalati/{pfsId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /pfs_logs/{logId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /exchanges/{exchangeId} {
+      allow read, write: if isAuthenticated();
+    }
+  }
+}
+```
+
+---
+
 <div align="center">
   <sub>Sviluppato con ❤️ per il monitoraggio centralizzato dei cantieri **Technicalwork**.</sub>
 </div>
+

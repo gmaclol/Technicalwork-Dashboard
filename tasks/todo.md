@@ -1,6 +1,17 @@
 # todo.md — Dashboard (tchwrk2)
 
-## Obiettivi della Sessione Attuale
+## 2026-09-05 — Sessione Migrazione Sicurezza: Firebase Authentication & Security Rules
+- [x] **Step 0: Salvataggio e Branching**: Creato branch di sicurezza `backup-pre-auth` e attivato branch di lavoro `firebase-auth`.
+- [x] **Step 1: Integrazione Firebase Auth SDK**: Aggiornato `js/firebase.js` esportando `auth`, `signInWithEmailAndPassword`, `signOut`, `onAuthStateChanged`. Build di produzione verificata con successo.
+- [x] **Configurazione Firestore `userRoles`**: Creazione documenti per gli UID di Stefano (admin) e Piero (viewer) in Cloud Firestore alla radice.
+- [x] **Step 2: Riscrivere `js/auth.js`**: Login con Firebase Auth, supporto username rapido (`Stefano` / `Piero` auto-completato con `@technicalwork.it`), fetch del ruolo da `userRoles/{uid}`.
+- [x] **Step 3: Censimento e Adattamento `currentUser`**: Verifica ed aggiornamento di tutte le occorrenze di `currentUser` e `role` nel codice.
+- [x] **Step 4: Protezione Dati Sensibili Tecnici**: Spostamento lettura e scrittura `homeLat`, `homeLng`, `homeAddress` nella collezione protetta `tecniciPrivate` (visibile solo Admin), con fallback per dati pregressi.
+- [x] **Step 5: Sessione con `onAuthStateChanged`**: Eliminazione totale di `tw_session` da `localStorage` e gestione sessione tramite token Firebase Auth nativo.
+- [x] **Step 6: Rimozione `USERS` e Hash**: Eliminazione definitiva della costante `USERS` da `js/state.js` e gestione errore utente non autorizzato con logout immediato.
+- [x] **Checkpoint & Security Rules**: Preparate regole Firestore/RTDB Versione A (compatibile app Android) e Versione B (definitiva bloccata), checklist di test e documentazione README.md.
+
+## Obiettivi Sessioni Precedenti
 - [x] Migrazione da fetch statico (`getDocs`) a realtime (`onSnapshot`) su tutte le tab principali (Tecnici, PFS, Aree).
 - [x] Prevenzione leak listener: implementazione distruzione automatica (`stop*Listeners`) in `app.js` al cambio tab.
 - [x] Corretto bug di sfarfallio e ritorno imprevisto alla tab Tecnici (o aree/PFS) per leak dei listener real-time di background.

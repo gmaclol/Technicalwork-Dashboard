@@ -792,6 +792,18 @@ export async function showCasa() {
       const hidden = getHiddenTecniciSync();
       const bannedDeviceIds = Object.keys(webDevices).filter(id => webDevices[id]?.banned);
       
+      // Carica dati sensibili da tecniciPrivate (solo admin)
+      const privateHomeMap = {};
+      try {
+        const privSnap = await getDocs(collection(db, 'tecniciPrivate'));
+        privSnap.forEach(dSnap => {
+          privateHomeMap[dSnap.id.toLowerCase()] = dSnap.data();
+          privateHomeMap[dSnap.id] = dSnap.data();
+        });
+      } catch (errPriv) {
+        console.warn("Lettura tecniciPrivate:", errPriv);
+      }
+
       // Colleziona da appalti (solo Android)
       APPALTI.forEach(appalto => {
         const docs = appaltiData[appalto] || [];
@@ -810,13 +822,14 @@ export async function showCasa() {
 
           if (!allTecnici.has(name)) {
             const devInfo = webDevices[d.id.toLowerCase()] || webDevices[d.id] || {};
+            const privInfo = privateHomeMap[d.id.toLowerCase()] || privateHomeMap[d.id] || {};
             allTecnici.set(name, {
               deviceId: d.id,
               type: 'android',
               friendlyName: name,
-              homeAddress: devInfo.homeAddress || '',
-              homeLat: devInfo.homeLat || '',
-              homeLng: devInfo.homeLng || '',
+              homeAddress: privInfo.homeAddress || devInfo.homeAddress || '',
+              homeLat: privInfo.homeLat || devInfo.homeLat || '',
+              homeLng: privInfo.homeLng || devInfo.homeLng || '',
             });
           }
         });
@@ -977,30 +990,18 @@ window.saveHomePosition = async function(deviceId, triggerElement) {
   try {
     showToast("Salvataggio in corso...", "info");
     
-    await updateDoc(doc(db, 'settings', 'devices_names'), {
-      [`${deviceId}.homeAddress`]: address,
-      [`${deviceId}.homeLat`]: finalLat,
-      [`${deviceId}.homeLng`]: finalLng,
-      [`${deviceId}.updatedAt`]: Date.now()
-    });
+    // Salva nella collezione riservata tecniciPrivate (accessibile solo admin)
+    await setDoc(doc(db, 'tecniciPrivate', deviceId), {
+      homeAddress: address,
+      homeLat: finalLat,
+      homeLng: finalLng,
+      updatedAt: Date.now()
+    }, { merge: true });
     
-    showToast("Posizione salvata con successo!", "success");
-  } catch (e) {
-    console.error(e);
-    try {
-      await setDoc(doc(db, 'settings', 'devices_names'), {
-        [deviceId]: {
-          homeAddress: address,
-          homeLat: finalLat,
-          homeLng: finalLng,
-          updatedAt: Date.now()
-        }
-      }, { merge: true });
-      showToast("Posizione salvata con successo!", "success");
-    } catch (err) {
-      console.error(err);
-      showToast("Errore nel salvataggio: " + err.message, "error");
-    }
+    showToast("Posizione riservata salvata con successo!", "success");
+  } catch (err) {
+    console.error("Errore salvataggio tecniciPrivate:", err);
+    showToast("Errore nel salvataggio: " + err.message, "error");
   }
 };
 

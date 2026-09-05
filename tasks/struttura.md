@@ -118,28 +118,28 @@
 
 **Stato:** stabile
 
-#### `js/auth.js` (92 righe)
-**Responsabilità:** Login/logout con hash SHA-256, ripristino sessione, avvio presence e notifiche dopo login
+#### `js/auth.js`
+**Responsabilità:** Autenticazione con Firebase Authentication (email/password o username con suffissione automatica), lettura ruoli da `userRoles/{uid}` su Firestore, gestione sessione nativa con `onAuthStateChanged`, logout sicuro e pulizia stato.
 
 **Funzioni:** `doLogin()`, `doLogout()`, `checkSession()`, `showApp()`
 
-**Dipendenze:** state.js (USERS, APPALTI, currentUser), utils.js (showConfirm), data.js (preloadCounts), pfs.js (startGlobalPfsNotifications)
+**Dipendenze:** firebase.js (auth, signInWithEmailAndPassword, signOut, onAuthStateChanged, db, doc, getDoc), state.js (APPALTI, currentUser, setCurrentUser), utils.js (showConfirm), data.js (preloadCounts), pfs.js (startGlobalPfsNotifications, stopGlobalPfsNotifications)
 
 **Stato:** stabile
 
-#### `js/state.js` (78 righe)
-**Responsabilità:** Stato globale condiviso (APPALTI, USERS, currentUser, currentAppalto, currentDate). Caricamento configurazione da GitHub (`config.json`) con cache 24h.
+#### `js/state.js`
+**Responsabilità:** Stato globale condiviso (APPALTI, currentUser, currentAppalto, currentDate). Caricamento configurazione da GitHub (`config.json`) con cache 24h. Pub/Sub globale per `devices_names`.
 
-**Funzioni:** `loadConfig()`, `invalidateConfigCache()`, `setCurrentUser()`, `setCurrentAppalto()`, `setCurrentDate()`
+**Funzioni:** `loadConfig()`, `invalidateConfigCache()`, `setCurrentUser()`, `setCurrentAppalto()`, `setCurrentDate()`, `subscribeToDevicesNames()`, `unsubscribeFromDevicesNames()`
 
-**Dipendenze:** nessuna
+**Dipendenze:** firebase.js (db, doc, onSnapshot)
 
-**Stato:** stabile
+**Stato:** stabile — rimossa la costante `USERS` (migrata a Firebase Auth e Firestore `userRoles`)
 
-#### `js/firebase.js` (30 righe)
-**Responsabilità:** Inizializzazione Firebase (Firestore + RTDB), export funzioni SDK
+#### `js/firebase.js`
+**Responsabilità:** Inizializzazione Firebase (Firestore, RTDB, Auth), export funzioni SDK
 
-**Esporta:** `db`, `rtdb`, `FieldPath`, e funzioni Firestore/RTDB (collection, doc, getDocs, setDoc, updateDoc, onSnapshot, ref, onValue, set, update, onDisconnect, serverTimestamp, disableNetwork, enableNetwork)
+**Esporta:** `db`, `rtdb`, `auth`, `FieldPath`, funzioni Firestore/RTDB (collection, doc, getDocs, setDoc, updateDoc, onSnapshot, ref, onValue, set, update, onDisconnect, serverTimestamp) e funzioni Auth (signInWithEmailAndPassword, signOut, onAuthStateChanged)
 
 **Dipendenze:** Firebase SDK via CDN
 

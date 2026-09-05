@@ -8,6 +8,9 @@ import {
 import {
   getDatabase, ref, onValue, set, update, onDisconnect, serverTimestamp, get
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+import {
+  getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAF6vv0cHkzNaheOsNG52fGI9kLeuV4UJg",
@@ -22,10 +25,12 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 export const rtdb = getDatabase(app);
+export const auth = getAuth(app);
 
 export {
   collection, getDocs, doc, setDoc, getDoc, onSnapshot, deleteDoc, updateDoc, deleteField,
   ref, onValue, set, update, onDisconnect, serverTimestamp, get as rtdbGet,
-  disableNetwork, enableNetwork, FieldPath
+  disableNetwork, enableNetwork, FieldPath,
+  signInWithEmailAndPassword, signOut, onAuthStateChanged
 };
 
