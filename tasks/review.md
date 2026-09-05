@@ -504,4 +504,37 @@
 **Follow-up consigliati:**
 - Eseguire un check visivo completo in modalità light theme per confermare che l'ombreggiatura e il contrasto dei pulsanti ed input siano ottimali anche di giorno.
 
+## 2026-09-05 — Sessione Migrazione Sicurezza: Firebase Authentication & Security Rules
+
+**Cosa è stato fatto:**
+- **Integrazione Firebase Authentication SDK**: Aggiornato `js/firebase.js` esportando `auth`, `signInWithEmailAndPassword`, `signOut`, `onAuthStateChanged`.
+- **Risoluzione vulnerabilità credenziali hardcoded**: Rimossa definitivamente la costante `USERS` e gli hash SHA-256 da `js/state.js`.
+- **Riscrittura del modulo di accesso**: Aggiornato `js/auth.js` per autenticare gli utenti via Firebase Auth con lettura ruoli da `userRoles/{uid}`. Implementato supporto trasparente all'inserimento del solo username (`Stefano` / `Piero` auto-completato con `@technicalwork.it`).
+- **Segregazione dati sensibili tecnici (GDPR)**: Modificato `js/tecnici.js` per leggere e salvare indirizzi di residenza e coordinate geografiche private dei tecnici nella nuova collezione `tecniciPrivate/{deviceId}` accessibile esclusivamente all'Admin.
+- **Sessione nativa e pulizia**: Sostituito il salvataggio in `localStorage.tw_session` con l'observer nativo `onAuthStateChanged`, aggiungendo la pulizia automatica delle vecchie chiavi all'avvio.
+- **Aggiornamento layout login**: Modificata la schermata di login in `index.html` con etichetta "Email o Username" e gestione navigazione tramite tasto Enter.
+- **Regole di sicurezza e documentazione**: Redatte in `README.md` le Security Rules per Firestore e RTDB in versione A (transizione per compatibilità app Android) e versione B (blindatura finale post-aggiornamento app).
+- **Merge e allineamento branch**: Completate le verifiche, unito il branch `firebase-auth` nel branch principale `main`.
+
+**Perché:**
+- Sanare le gravi vulnerabilità riscontrate dal security audit (Firestore aperto, bypass client-side banale, hash SHA-256 esposti nel repo pubblico, dati personali dei tecnici liberamente accessibili).
+- Mantenere la compatibilità al 100% con l'app Android dei tecnici esistente a costo zero (Piano Spark).
+
+**File modificati:**
+- `js/firebase.js`
+- `js/auth.js`
+- `js/state.js`
+- `js/tecnici.js`
+- `index.html`
+- `README.md`
+- `docs/*` (bundle di produzione rigenerato)
+- `tasks/todo.md`, `tasks/struttura.md`, `tasks/decisions.md`, `tasks/review.md`
+
+**Rischi residui:**
+- L'app Android dei tecnici continuerà a scrivere temporaneamente con le regole aperte della Versione A finché non verrà aggiornata con `signInAnonymously()`. La dashboard e i dati sensibili sono comunque protetti.
+
+**Follow-up consigliati:**
+- Eseguire il push su GitHub tramite `aggiorna_github.bat`.
+- Pianificare l'aggiornamento dell'app Android nel repository `Technicalwork-Materiali` per abilitare l'autenticazione anonima e passare alla Versione B delle regole.
+
 
