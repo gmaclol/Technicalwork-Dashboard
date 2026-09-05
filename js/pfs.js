@@ -2,6 +2,7 @@ import { db, collection, doc, deleteDoc, onSnapshot } from './firebase.js';
 import { escapeHtml, showToast, showConfirm } from './utils.js';
 
 import { currentUser } from './state.js';
+import { notifyPfsReport, clearPfsBadge } from './notifications.js';
 
 let _pfsListeners = [];
 let _globalPfsListener = null;
@@ -9,11 +10,7 @@ let _unseenPfsCount = 0;
 
 export function clearUnseenPfsCount() {
   _unseenPfsCount = 0;
-  const badge = document.getElementById('cnt-pfs');
-  if (badge) {
-    badge.style.display = 'none';
-    badge.textContent = '0';
-  }
+  clearPfsBadge();
 }
 
 export function requestNotificationPermission() {
@@ -43,32 +40,20 @@ export function startGlobalPfsNotifications() {
         const tech = data.tecnico || 'Tecnico';
         const bodyText = `${tech} ha segnalato il PFS ${data.nome_pfs}\nIndirizzo: ${data.nuovo_indirizzo}`;
         
-        // Show System Notification se la finestra è in background
-        if ('Notification' in window && Notification.permission === 'granted' && document.visibilityState !== 'visible') {
-          const notification = new Notification(title, {
-            body: bodyText,
-            icon: 'icon-192.png'
-          });
-          notification.onclick = () => {
-            window.focus();
-            window.location.hash = '#/admin/pfs';
-            notification.close();
-          };
-        } else {
-          // Mostra Toast in-app (asHtml = true), escapando prima i campi utente!
-          const safeTech = escapeHtml(tech);
-          const safeNome = escapeHtml(data.nome_pfs);
-          const safeIndirizzo = escapeHtml(data.nuovo_indirizzo);
-          showToast(`🚨 <b>${title}</b><br>${safeTech}: ${safeNome}<br><small>${safeIndirizzo}</small>`, 'info', 10000, true);
-        }
+        const safeTech = escapeHtml(tech);
+        const safeNome = escapeHtml(data.nome_pfs);
+        const safeIndirizzo = escapeHtml(data.nuovo_indirizzo);
 
-        // Se non siamo sulla tab PFS, incrementa il badge
+        // Mostra Toast in-app
+        showToast(`🚨 <b>${title}</b><br>${safeTech}: ${safeNome}<br><small>${safeIndirizzo}</small>`, 'info', 10000, true);
+
+        // Se non siamo sulla tab PFS, incrementa contatore, badge e manda notifica di sistema Android
         if (window.location.hash !== '#/admin/pfs') {
-          _unseenPfsCount++;
+          notifyPfsReport(tech, data.nome_pfs, data.nuovo_indirizzo);
           const badge = document.getElementById('cnt-pfs');
           if (badge) {
             badge.style.display = 'inline-flex';
-            badge.textContent = _unseenPfsCount;
+            badge.textContent = parseInt(badge.textContent || 0) + 1;
           }
         }
       }

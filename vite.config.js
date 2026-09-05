@@ -27,6 +27,7 @@ export default defineConfig(({ mode }) => ({
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
         cleanupOutdatedCaches: true,
+        importScripts: ['sw-custom.js'],
         runtimeCaching: [
           {
             // Caching API Github (liste materiali e config)

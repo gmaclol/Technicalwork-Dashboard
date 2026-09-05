@@ -11,6 +11,7 @@ import { showPfsDashboard, toggleAllPfs, updatePfsToolbar, deletePfsItem, delete
 import { showAreeDashboard, savePfsAreas, deleteDeviceAreas, renameDevice, stopAreeListener } from './aree.js';
 import { initPfsLookup, initPfsLookupSidebar, pfsLookupSearch, pfsLookupSelectArea, pfsLookupToggleStar, pfsItemToggle, pfsSubmitAddress, pfsCopyAddress, pfsToggleRegion, pfsRegionSearch, pfsRegionToggleStar, getWebDeviceId, stopPfsLookupListener, showPfsRegionBrowser } from './pfsLookup.js';
 import { doLogin, doLogout, checkSession } from './auth.js';
+import { clearTecniciBadge, clearPfsBadge, clearBannedBadge } from './notifications.js';
 
 // ── OFFLINE BANNER ──
 function updateOnlineStatus() {
@@ -367,11 +368,20 @@ function handleHashChange() {
       const sub = parts[1] || 'tecnici';
       const navEl = document.getElementById('nav-' + sub);
       if (navEl) navEl.classList.add('active');
-      if (sub === 'tecnici') showTecnici();
+      if (sub === 'tecnici') {
+        showTecnici();
+        clearTecniciBadge();
+      }
       else if (sub === 'casa') showCasa();
-      else if (sub === 'pfs') showPfsDashboard();
+      else if (sub === 'pfs') {
+        showPfsDashboard();
+        clearPfsBadge();
+      }
       else if (sub === 'aree') showAreeDashboard();
-      else if (sub === 'banned') showBanned();
+      else if (sub === 'banned') {
+        showBanned();
+        clearBannedBadge();
+      }
     } else if (section === 'pfs-lookup') {
       const area = parts[1] || '';
       const navEl = document.getElementById('nav-pfs-lookup');

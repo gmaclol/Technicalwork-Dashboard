@@ -94,6 +94,177 @@ export function stopBannedListeners() {
   unsubscribeFromDevicesNames('tecnici_banned');
 }
 
+// ── HELPER: timestamp ordinabile per tecnici web ──
+function getWebLastActivityTs(deviceId, info, statusData) {
+  const status = statusData[deviceId] || {};
+  const isOnline = status.state === 'online' || (status.connections && Object.keys(status.connections).length > 0);
+  if (isOnline) return Infinity;
+  if (status.last_changed) return new Date(status.last_changed).getTime();
+  if (info.updatedAt) return new Date(info.updatedAt).getTime();
+  return 0;
+}
+
+// ── NUOVO TECNICO WATCHER (solo admin) ──
+let _newTecWatcherListeners = [];
+let _newTecWatcherInitialized = false;
+
+export function startNewTecniciWatcher(onNewTecnico) {
+  if (_newTecWatcherInitialized) return;
+  _newTecWatcherInitialized = true;
+
+  // Chiave localStorage per tecnici già noti
+  const KNOWN_KEY = 'tw_known_tecnici';
+  let knownIds;
+  try {
+    knownIds = new Set(JSON.parse(localStorage.getItem(KNOWN_KEY) || '[]'));
+  } catch(e) {
+    knownIds = new Set();
+  }
+
+  let initialized = false; // flag per ignorare il carico iniziale
+
+  function saveKnown() {
+    try { localStorage.setItem(KNOWN_KEY, JSON.stringify([...knownIds])); } catch(e) {}
+  }
+
+  // Ascolta nuovi device web da devices_names
+  subscribeToDevicesNames('new_tec_watcher', (data) => {
+    Object.entries(data).forEach(([deviceId, info]) => {
+      if (!info || info.banned) return;
+      const key = 'web:' + deviceId;
+      if (!initialized) {
+        knownIds.add(key);
+      } else if (!knownIds.has(key)) {
+        knownIds.add(key);
+        saveKnown();
+        const name = info.name || info.baseName || deviceId;
+        onNewTecnico({ name, type: 'web', deviceId });
+      }
+    });
+    // Primo ciclo: segna tutti come noti
+    if (!initialized) {
+      initialized = true;
+      saveKnown();
+    }
+  });
+
+  // Ascolta nuovi tecnici Android da Firestore (ogni appalto)
+  // Importiamo APPALTI e collection/onSnapshot già disponibili
+  const { APPALTI: _APPALTI } = { APPALTI };
+  _APPALTI.forEach(appalto => {
+    const unsub = onSnapshot(collection(db, appalto), (snap) => {
+      snap.docs
+        .filter(d => !/_\d{4}-\d{2}-\d{2}$/.test(d.id))
+        .forEach(d => {
+          const data = d.data();
+          if (data.type === 'web') return;
+          const name = data.tecnico || d.id;
+          const key = 'android:' + d.id;
+          if (!initialized) {
+            knownIds.add(key);
+          } else if (!knownIds.has(key)) {
+            knownIds.add(key);
+            saveKnown();
+            onNewTecnico({ name, type: 'android', deviceId: d.id });
+          }
+        });
+    }, () => {});
+    _newTecWatcherListeners.push(unsub);
+  });
+}
+
+export function stopNewTecniciWatcher() {
+  _newTecWatcherListeners.forEach(u => { if (typeof u === 'function') u(); });
+  _newTecWatcherListeners = [];
+  unsubscribeFromDevicesNames('new_tec_watcher');
+  _newTecWatcherInitialized = false;
+}
+
+// ── KILLSWITCH / BANNED ACCESS ATTEMPT WATCHER ──
+let _bannedWatcherListeners = [];
+let _bannedDevicesCache = new Set();
+let _bannedDeviceNames = new Map();
+let _lastBannedAlertTs = new Map();
+let _bannedWatcherInitialized = false;
+
+export function startBannedAccessWatcher(onBannedAttempt) {
+  if (_bannedWatcherInitialized) return;
+  _bannedWatcherInitialized = true;
+
+  const watcherStartTime = Date.now();
+
+  // 1. Sottoscrizione ai dispositivi bannati da settings/devices_names
+  subscribeToDevicesNames('banned_access_watcher', (data) => {
+    const nextSet = new Set();
+    const nextNames = new Map();
+    Object.entries(data).forEach(([deviceId, info]) => {
+      if (info && info.banned) {
+        nextSet.add(deviceId);
+        nextNames.set(deviceId, info.name || info.webName || info.baseName || deviceId);
+      }
+    });
+    _bannedDevicesCache = nextSet;
+    _bannedDeviceNames = nextNames;
+  });
+
+  // 2. Ascolta connessioni e presenze RTDB (/status)
+  const statusRef = ref(rtdb, '/status');
+  const unsubStatus = onValue(statusRef, (snap) => {
+    const val = snap.val() || {};
+    Object.entries(val).forEach(([deviceId, status]) => {
+      if (!_bannedDevicesCache.has(deviceId)) return;
+      
+      const isOnline = status && (status.state === 'online' || (status.connections && Object.keys(status.connections).length > 0));
+      const lastChanged = status && status.last_changed ? status.last_changed : 0;
+
+      // Se il dispositivo bloccato è online o ha inviato un heartbeat dopo l'avvio del watcher
+      if (isOnline || lastChanged > watcherStartTime) {
+        const lastAlert = _lastBannedAlertTs.get(deviceId) || 0;
+        // Cooldown 60s per evitare notifiche a raffica
+        if (Date.now() - lastAlert > 60000) {
+          _lastBannedAlertTs.set(deviceId, Date.now());
+          const name = _bannedDeviceNames.get(deviceId) || deviceId;
+          onBannedAttempt({ deviceId, name, source: 'presence' });
+        }
+      }
+    });
+  }, () => {});
+  _bannedWatcherListeners.push(unsubStatus);
+
+  // 3. Ascolta tentativi di sincronizzazione nei cantieri Firestore
+  APPALTI.forEach(appalto => {
+    let initialSkip = true;
+    const unsub = onSnapshot(collection(db, appalto), (snap) => {
+      if (initialSkip) {
+        initialSkip = false;
+        return;
+      }
+      snap.docChanges().forEach((change) => {
+        if (change.type === 'modified' || change.type === 'added') {
+          const docId = change.doc.id;
+          if (/_\d{4}-\d{2}-\d{2}$/.test(docId)) return;
+          if (_bannedDevicesCache.has(docId)) {
+            const lastAlert = _lastBannedAlertTs.get(docId) || 0;
+            if (Date.now() - lastAlert > 60000) {
+              _lastBannedAlertTs.set(docId, Date.now());
+              const name = _bannedDeviceNames.get(docId) || change.doc.data().tecnico || docId;
+              onBannedAttempt({ deviceId: docId, name, source: 'firestore' });
+            }
+          }
+        }
+      });
+    }, () => {});
+    _bannedWatcherListeners.push(unsub);
+  });
+}
+
+export function stopBannedAccessWatcher() {
+  _bannedWatcherListeners.forEach(u => { if (typeof u === 'function') u(); });
+  _bannedWatcherListeners = [];
+  unsubscribeFromDevicesNames('banned_access_watcher');
+  _bannedWatcherInitialized = false;
+}
+
 // ── SHOW TECNICI PAGE ──
 export async function showTecnici() {
   document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
@@ -161,7 +332,15 @@ export async function showTecnici() {
       // Escludi i bannati leggendoli da webDevices (che contiene tutti i device registrati)
       const bannedDeviceIds = Object.keys(webDevices).filter(id => webDevices[id]?.banned);
       
-      const androidTecnici = [...allTecnici.entries()].filter(([, info]) => info.type !== 'web' && !bannedDeviceIds.includes(info.deviceId));
+      // Android: ordina per ultimo aggiornamento (più recente prima)
+      const androidTecnici = [...allTecnici.entries()]
+        .filter(([, info]) => info.type !== 'web' && !bannedDeviceIds.includes(info.deviceId))
+        .sort(([, a], [, b]) => {
+          const tsA = a.ultimo && a.ultimo !== '—' ? new Date(a.ultimo.replace(/^(\d{2})\/(\d{2})\/(\d{4})/, '$3-$2-$1')).getTime() || 0 : 0;
+          const tsB = b.ultimo && b.ultimo !== '—' ? new Date(b.ultimo.replace(/^(\d{2})\/(\d{2})\/(\d{4})/, '$3-$2-$1')).getTime() || 0 : 0;
+          return tsB - tsA;
+        });
+
       // Web users come directly from webDevices (settings/devices_names) e integrano RTDB presence
       const webTecniciEntries = Object.entries(webDevices)
         .filter(([, info]) => (info?.type === 'web' || info?.os || info?.browser) && !info?.banned)
@@ -178,12 +357,16 @@ export async function showTecnici() {
             lastSessionStr = new Date(info.updatedAt).toLocaleString('it-IT', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
           }
 
+          // Calcola timestamp ordinabile
+          const sortTs = getWebLastActivityTs(deviceId, info, statusData);
+
           return [deviceId, {
             docIds:      {},
             dispositivo: '—',
             versione:    '',
             appalti:     info.pfsAreas || [],
             ultimo:      lastSessionStr,
+            sortTs,
             type:    'web',
             os:      info.os || null,
             browser: info.browser || null,
@@ -193,7 +376,9 @@ export async function showTecnici() {
             deviceId,
             isOnline
           }];
-        });
+        })
+        // Ordina: online ora (Infinity) → timestamp più recente → mai connessi (0)
+        .sort(([, a], [, b]) => b.sortTs - a.sortTs);
 
       async function buildCard([name, info]) {
         const visible      = !hidden.some(h => h.toLowerCase() === name.toLowerCase());

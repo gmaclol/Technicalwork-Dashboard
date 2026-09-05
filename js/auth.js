@@ -1,9 +1,10 @@
-// ── Authentication con Firebase Auth & Firestore userRoles ──
 import { auth, signInWithEmailAndPassword, signOut, onAuthStateChanged, db, doc, getDoc } from './firebase.js';
 import { APPALTI, currentUser, setCurrentUser } from './state.js';
-import { showConfirm } from './utils.js';
+import { showConfirm, showToast } from './utils.js';
 import { preloadCounts } from './data.js';
 import { startGlobalPfsNotifications, stopGlobalPfsNotifications } from './pfs.js';
+import { startNewTecniciWatcher, stopNewTecniciWatcher, startBannedAccessWatcher, stopBannedAccessWatcher } from './tecnici.js';
+import { notifyNewTecnico, notifyBannedAccessAttempt, requestNotificationPermission } from './notifications.js';
 
 function showLoginError(msg) {
   const err = document.getElementById('login-error');
@@ -114,6 +115,14 @@ export function showApp() {
   }
 
   preloadCounts();
+
+  // Avvia watcher nuovi tecnici e allarme killswitch dispositivi bloccati (solo admin)
+  if (currentUser.role === 'admin') {
+    requestNotificationPermission();
+    startNewTecniciWatcher(notifyNewTecnico);
+    startBannedAccessWatcher(notifyBannedAccessAttempt);
+  }
+
   if (!window.location.hash || window.location.hash === '#/') {
     window.location.hash = `#/appalti/${APPALTI[0]}/live`;
   } else {
@@ -139,6 +148,8 @@ export function doLogout() {
 
     // Ferma eventuali notifiche in background
     stopGlobalPfsNotifications();
+    stopNewTecniciWatcher();
+    stopBannedAccessWatcher();
 
     try {
       await signOut(auth);
