@@ -184,7 +184,7 @@
 #### `js/tecnici.js` (680 righe)
 **Responsabilità:** Sezione admin "Tecnici" — elenco in tempo reale con separazione Android/Web. Rinomina, nascondi/mostra, eliminazione completa. Gestione blocco dispositivi (killswitch) con conteggio documenti, eliminazione dati su blocco. Device name resolution (reverse lookup marca→modello).
 
-**Funzioni:** `showTecnici()`, `showBanned()`, `deleteTecnico()`, `renameTecnico()`, `toggleTecnico()`, `renameWebTecnico()`, `deleteWebTecnico()`, `resolveDeviceName()`, `stopTecniciListeners()`, `stopBannedListeners()`
+**Funzioni:** `showTecnici()`, `showBanned()`, `deleteTecnico()`, `renameTecnico()`, `toggleTecnico()`, `handleTogglePfsAccess()`, `handleToggleTechActive()`, `renameWebTecnico()`, `deleteWebTecnico()`, `resolveDeviceName()`, `stopTecniciListeners()`, `stopBannedListeners()`
 
 **Dipendenze:** firebase.js, state.js, utils.js, data.js
 

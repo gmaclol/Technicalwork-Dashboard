@@ -388,8 +388,16 @@
     font-size: 13px;
     padding: 10px 14px;
   }
-  .toggle-wrap .toggle {
+  .toggle-wrap .toggle,
+  .toggle-wrap .switch {
     margin-left: auto;
+  }
+  .tech-switches-group {
+    width: 100%;
+    justify-content: space-around;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+    margin-top: 4px;
   }
   .toggle-wrap .btn-outline {
     width: 100%;

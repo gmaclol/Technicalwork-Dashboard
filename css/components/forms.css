@@ -26,18 +26,64 @@
 .toggle-info { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
 .toggle-name { font-size: 14px; font-weight: 600; color: var(--text); }
 .toggle-device { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); word-break: break-word; }
-.toggle { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
-.toggle input { opacity: 0; width: 0; height: 0; }
-.toggle-slider {
+.toggle, .switch { position: relative; width: 44px; height: 24px; flex-shrink: 0; display: inline-block; }
+.toggle input, .switch input { opacity: 0; width: 0; height: 0; }
+.toggle-slider, .slider.round {
   position: absolute; inset: 0; cursor: pointer;
   background: rgba(255,255,255,0.1); border-radius: 99px; transition: all 0.3s;
 }
-.toggle-slider::before {
+.toggle-slider::before, .slider.round::before {
   content: ''; position: absolute; width: 18px; height: 18px;
   left: 3px; top: 3px; background: white; border-radius: 50%; transition: all 0.3s;
 }
-.toggle input:checked + .toggle-slider { background: var(--green); }
-.toggle input:checked + .toggle-slider::before { transform: translateX(20px); }
+.toggle input:checked + .toggle-slider,
+.switch input:checked + .slider.round { background: var(--green); }
+.toggle input:checked + .toggle-slider::before,
+.switch input:checked + .slider.round::before { transform: translateX(20px); }
+
+/* ── TECH SWITCHES GROUP (Dual Slider con Etichette Superiori) ── */
+.tech-switches-group {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.switch-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.switch-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-muted, #94a3b8);
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  user-select: none;
+  text-align: center;
+}
+
+.switch-label-pfs {
+  color: #38bdf8;
+}
+
+[data-theme="light"] .switch-label {
+  color: #64748b;
+}
+
+[data-theme="light"] .switch-label-pfs {
+  color: #0284c7;
+}
+
+[data-theme="light"] .toggle-slider,
+[data-theme="light"] .slider.round {
+  background: rgba(0, 0, 0, 0.15);
+}
+
 
 .tecnici-actions {
   display: flex;

@@ -1,5 +1,12 @@
 # todo.md — Dashboard (tchwrk2)
 
+## 2026-09-05 — Sessione Feature Toggle: Accesso PFS per Dispositivo con Etichette Superiori
+- [x] **Step 1: Stili CSS Slider Duali**: Aggiunte classi `.tech-switches-group`, `.switch-item`, `.switch-label`, `.switch-label-pfs` in `css/components/forms.css` e supporto responsive in `css/responsive.css`.
+- [x] **Step 2: Logica JavaScript `tecnici.js`**: Implementato `handleTogglePfsAccess`, aggiornato `toggleTecnico` e `buildCard` per visualizzare i due slider affiancati con label ("VISIBILITÀ DASHBOARD" e "ACCESSO PFS APP").
+- [x] **Step 3: Integrazione Entry Point `app.js`**: Esportati su `window` i metodi `handleTogglePfsAccess` e `handleToggleTechActive`.
+- [x] **Step 4: Build & Validazione**: Eseguito `npm run build` con successo (exit code 0).
+- [x] **Step 5: Documentazione**: Aggiornato `tasks/struttura.md` e checklist.
+
 ## 2026-09-05 — Sessione Migrazione Sicurezza: Firebase Authentication & Security Rules
 - [x] **Step 0: Salvataggio e Branching**: Creato branch di sicurezza `backup-pre-auth` e attivato branch di lavoro `firebase-auth`.
 - [x] **Step 1: Integrazione Firebase Auth SDK**: Aggiornato `js/firebase.js` esportando `auth`, `signInWithEmailAndPassword`, `signOut`, `onAuthStateChanged`. Build di produzione verificata con successo.

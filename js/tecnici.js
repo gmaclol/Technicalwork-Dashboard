@@ -200,7 +200,9 @@ export async function showTecnici() {
         const friendlyDevice = await resolveDeviceName(info.dispositivo);
         const versionBadge   = info.versione ? ` · <span style="color:var(--accent)">${info.versione}</span>` : '';
         const escapedName    = name.replace(/'/g, "\\'");
+        const escapedDeviceId = (info.deviceId || '').replace(/'/g, "\\'");
         const docIdsJson     = JSON.stringify(info.docIds).replace(/'/g, "&#39;").replace(/"/g, '&quot;');
+        const isPfsEnabled   = Boolean(webDevices[info.deviceId]?.pfs_enabled);
 
         const typeBadge = `<span class="tecnico-type-badge tecnico-type-android">📱 Android</span>`;
         const deviceIcon = '📱';
@@ -223,10 +225,22 @@ export async function showTecnici() {
             <button class="btn-tecnico-action btn-rename" onclick="renameTecnico('${escapedName}', '${docIdsJson}')" title="Rinomina">✏️ Rinomina</button>
             <button class="btn-tecnico-action" onclick="toggleBanTecnico('${info.deviceId}', true)" title="Blocca questo dispositivo" style="color: #D32F2F; border-color: #D32F2F;">🚫 Blocca</button>
             <button class="btn-tecnico-action btn-delete" onclick="deleteTecnico('${escapedName}', '${docIdsJson}')" title="Elimina definitivamente">🗑️ Elimina</button>
-            <label class="toggle">
-              <input type="checkbox" ${visible ? 'checked' : ''} onchange="toggleTecnico('${escapedName}', this.checked)">
-              <span class="toggle-slider"></span>
-            </label>
+            <div class="tech-switches-group">
+              <div class="switch-item">
+                <span class="switch-label">Visibilità Dashboard</span>
+                <label class="toggle">
+                  <input type="checkbox" class="tech-toggle-active" data-device-id="${escapedDeviceId}" ${visible ? 'checked' : ''} onchange="toggleTecnico('${escapedName}', this.checked, '${escapedDeviceId}')">
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              <div class="switch-item">
+                <span class="switch-label switch-label-pfs">Accesso PFS App</span>
+                <label class="toggle">
+                  <input type="checkbox" class="tech-toggle-pfs" data-device-id="${escapedDeviceId}" ${isPfsEnabled ? 'checked' : ''} onchange="handleTogglePfsAccess('${escapedDeviceId}', this.checked, '${escapedName}')">
+                  <span class="toggle-slider slider-pfs"></span>
+                </label>
+              </div>
+            </div>
           </div>
         </div>`;
       }
@@ -476,18 +490,77 @@ export async function renameTecnico(oldName, docIdsJsonStr) {
 }
 
 // ── TOGGLE TECNICO VISIBILITY ──
-export async function toggleTecnico(name, visible) {
+export async function toggleTecnico(name, visible, deviceId = null) {
   let hidden = getHiddenTecniciSync();
   if (visible) { hidden = hidden.filter(n => n !== name); }
   else { if (!hidden.includes(name)) hidden.push(name); }
   try {
     await saveHiddenTecnici(hidden);
+    if (deviceId) {
+      try {
+        await updateDoc(doc(db, 'settings', 'devices_names'), {
+          [`${deviceId}.disabled`]: !visible,
+          [`${deviceId}.updatedAt`]: Date.now()
+        });
+      } catch (e) {
+        await setDoc(doc(db, 'settings', 'devices_names'), {
+          [deviceId]: { disabled: !visible, updatedAt: Date.now() }
+        }, { merge: true });
+      }
+    }
     showToast(visible ? `Tecnico "${name}" attivato` : `Tecnico "${name}" disattivato`, 'success');
   } catch(e) {
     showToast('Errore durante la modifica della visibilità', 'error');
     console.error(e);
   }
 }
+
+// ── TOGGLE PFS ACCESS (PER DEVICE) ──
+/**
+ * Abilita o disabilita l'accesso alla sezione PFS per uno specifico dispositivo.
+ * @param {string} deviceId ID hardware del dispositivo
+ * @param {boolean} isEnabled Nuovo stato (true = abilitato, false = disabilitato)
+ * @param {string} [techName] Nome del tecnico per il feedback toast
+ */
+export async function handleTogglePfsAccess(deviceId, isEnabled, techName = '') {
+  if (!deviceId) {
+    showToast('Errore: ID dispositivo non valido', 'error');
+    return;
+  }
+  try {
+    const devicesRef = doc(db, 'settings', 'devices_names');
+    try {
+      await updateDoc(devicesRef, {
+        [`${deviceId}.pfs_enabled`]: isEnabled,
+        [`${deviceId}.updatedAt`]: Date.now()
+      });
+    } catch (e) {
+      await setDoc(devicesRef, {
+        [deviceId]: { pfs_enabled: isEnabled, updatedAt: Date.now() }
+      }, { merge: true });
+    }
+
+    const displayName = techName || deviceId;
+    if (isEnabled) {
+      showToast(`PFS abilitato per ${displayName}`, 'success');
+    } else {
+      showToast(`PFS disabilitato per ${displayName}`, 'info');
+    }
+  } catch (error) {
+    console.error("Errore aggiornamento PFS per device " + deviceId, error);
+    showToast("Errore durante l'aggiornamento PFS: " + error.message, 'error');
+    const checkbox = document.querySelector(`.tech-toggle-pfs[data-device-id="${deviceId}"]`);
+    if (checkbox) checkbox.checked = !isEnabled;
+  }
+}
+
+/**
+ * Wrapper di compatibilità per il toggle attività/visibilità tecnico
+ */
+export async function handleToggleTechActive(deviceId, isActive, techName = '') {
+  return toggleTecnico(techName || deviceId, isActive, deviceId);
+}
+
 
 // 🔥 KILLSWITCH / BANNED LOGIC 🔥
 export function showBanned() {
