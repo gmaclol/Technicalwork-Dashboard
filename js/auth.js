@@ -57,14 +57,16 @@ export async function doLogin() {
       return;
     }
 
-    setCurrentUser({
+    const userData = {
       uid: firebaseUser.uid,
       email: firebaseUser.email,
       name: roleData.name || (firebaseUser.email ? firebaseUser.email.split('@')[0] : 'Utente'),
       role: roleData.role
-    });
+    };
+    setCurrentUser(userData);
 
-    // Pulisci vecchie chiavi legacy se presenti
+    // Salva sessione in cache per avvio istantaneo senza sfarfallio
+    try { localStorage.setItem('tw_auth_user', JSON.stringify(userData)); } catch(e) {}
     try { localStorage.removeItem('tw_session'); } catch(e) {}
 
     showApp();
@@ -123,10 +125,13 @@ export function showApp() {
     startBannedAccessWatcher(notifyBannedAccessAttempt);
   }
 
-  if (!window.location.hash || window.location.hash === '#/') {
-    window.location.hash = `#/appalti/${APPALTI[0]}/live`;
-  } else {
-    window.dispatchEvent(new HashChangeEvent("hashchange"));
+  if (!window._appShown) {
+    window._appShown = true;
+    if (!window.location.hash || window.location.hash === '#/') {
+      window.location.hash = `#/appalti/${APPALTI[0]}/live`;
+    } else {
+      window.dispatchEvent(new HashChangeEvent("hashchange"));
+    }
   }
 
   // Registra presenza (funziona sia per login fresco che ripristino sessione)
@@ -143,6 +148,8 @@ export function doLogout() {
   }).then(async confirmed => {
     if (!confirmed) return;
 
+    window._appShown = false;
+
     // Pulisci presenza dashboard
     if (typeof window._stopPresence === 'function') window._stopPresence();
 
@@ -158,10 +165,16 @@ export function doLogout() {
     }
 
     setCurrentUser(null);
-    try { localStorage.removeItem('tw_session'); } catch(e) {}
+    try {
+      localStorage.removeItem('tw_auth_user');
+      localStorage.removeItem('tw_session');
+    } catch(e) {}
 
     const loginScreen = document.getElementById('login-screen');
-    if (loginScreen) loginScreen.style.display = 'flex';
+    if (loginScreen) {
+      loginScreen.style.display = 'flex';
+      loginScreen.classList.add('fade-in');
+    }
 
     const appEl = document.getElementById('app');
     if (appEl) appEl.style.display = 'none';
@@ -180,6 +193,19 @@ export function checkSession() {
   if (_authObserverInitialized) return;
   _authObserverInitialized = true;
 
+  // 1. Verifica immediata sessione in cache per avvio istantaneo e 0 flash
+  let cachedUser = null;
+  try {
+    const raw = localStorage.getItem('tw_auth_user');
+    if (raw) cachedUser = JSON.parse(raw);
+  } catch(e) {}
+
+  if (cachedUser && cachedUser.uid && cachedUser.role) {
+    setCurrentUser(cachedUser);
+    showApp();
+  }
+
+  // 2. Verifica asincrona autorevole con Firebase Auth
   onAuthStateChanged(auth, async (firebaseUser) => {
     if (firebaseUser) {
       try {
@@ -187,12 +213,14 @@ export function checkSession() {
         if (roleSnap.exists()) {
           const roleData = roleSnap.data();
           if (roleData && roleData.role) {
-            setCurrentUser({
+            const freshUser = {
               uid: firebaseUser.uid,
               email: firebaseUser.email,
               name: roleData.name || (firebaseUser.email ? firebaseUser.email.split('@')[0] : 'Utente'),
               role: roleData.role
-            });
+            };
+            setCurrentUser(freshUser);
+            try { localStorage.setItem('tw_auth_user', JSON.stringify(freshUser)); } catch(e) {}
             showApp();
             return;
           }
@@ -200,22 +228,49 @@ export function checkSession() {
 
         // Utente autenticato ma senza record in userRoles
         console.warn("Utente non autorizzato in userRoles:", firebaseUser.uid);
+        window._appShown = false;
+        try { localStorage.removeItem('tw_auth_user'); } catch(e) {}
         await signOut(auth);
         setCurrentUser(null);
         showLoginError("Utente non autorizzato. Contatta l'amministratore.");
+        const appEl = document.getElementById('app');
+        if (appEl) appEl.style.display = 'none';
+        const loginScreen = document.getElementById('login-screen');
+        if (loginScreen) {
+          loginScreen.style.display = 'flex';
+          loginScreen.classList.add('fade-in');
+        }
       } catch (err) {
         console.error("Errore recupero permessi utente:", err);
+        // Se offline e avevamo già una sessione valida in cache, mantieni la sessione
+        if (!navigator.onLine && cachedUser) {
+          return;
+        }
+        window._appShown = false;
+        try { localStorage.removeItem('tw_auth_user'); } catch(e) {}
         await signOut(auth);
         setCurrentUser(null);
         showLoginError("Errore durante la verifica dei permessi.");
+        const appEl = document.getElementById('app');
+        if (appEl) appEl.style.display = 'none';
+        const loginScreen = document.getElementById('login-screen');
+        if (loginScreen) {
+          loginScreen.style.display = 'flex';
+          loginScreen.classList.add('fade-in');
+        }
       }
     } else {
+      window._appShown = false;
+      try { localStorage.removeItem('tw_auth_user'); } catch(e) {}
       setCurrentUser(null);
       const appEl = document.getElementById('app');
       if (appEl && appEl.style.display === 'flex') {
         appEl.style.display = 'none';
-        const loginScreen = document.getElementById('login-screen');
-        if (loginScreen) loginScreen.style.display = 'flex';
+      }
+      const loginScreen = document.getElementById('login-screen');
+      if (loginScreen) {
+        loginScreen.style.display = 'flex';
+        loginScreen.classList.add('fade-in');
       }
     }
   });

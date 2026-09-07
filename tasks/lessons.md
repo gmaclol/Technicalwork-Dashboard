@@ -1,15 +1,19 @@
 # lessons.md — Dashboard (tchwrk2)
 
 ## Errore Reset Scroll e Re-render Distruttivo sui Toggle/Interazioni Real-Time
-Quando un utente aziona un controllo interattivo locale (ad es. switch visibilità dashboard o switch permessi PFS di un tecnico, eliminazione PFS o salvataggio aree), la scrittura su Firestore scatena i listener `onSnapshot` / Pub-Sub. Se il modulo ricrea l'intero DOM (`content.innerHTML = ...` con classi `.fade-in` sulla testata e sui pannelli):
-1. La pagina sfarfalla rifacendo l'animazione di fade-in da capo.
-2. La posizione di scroll viene azzerata sia a livello desktop (`content.scrollTop`) sia mobile (`.tecnici-panel.scrollTop`, `window.scrollY`), facendo risalire l'utente forzatamente in cima.
-3. Il fuoco di navigazione da tastiera o screen reader viene perso.
+Quando un utente aziona un controllo interattivo locale (ad es. switch visibilità dashboard o switch permessi PFS di un tecnico, eliminazione PFS o salvataggio aree), la scrittura su Firestore scatena i listener `onSnapshot` / Pub-Sub. Se il modulo ricrea il DOM (`existingContainer.innerHTML = cards`):
+1. **Collasso dell'altezza e Scroll Clamping**: Wipando `innerHTML`, l'altezza del container scende a 0 istantaneamente. Il motore del browser clampa `scrollTop` a 0. Se il restore avviene prima del completamento del layout, lo scroll rimane inchiodato a 0.
+2. **Il tranello del `.focus()` post-render**: Chiamare `.focus()` (anche con `preventScroll: true`) su nodi appena inseriti che si trovano temporaneamente a offset (0, 0) attiva l'algoritmo di scrolling nativo del browser verso (0, 0), facendo saltare la pagina in cima! Non forzare mai `.focus()` dopo click del puntatore/touch.
+3. **In-Place Synchronization (Zero DOM Destruction)**: Per cambi di stato booleani (es. visibilità tecnico, permessi PFS, nascondimento colonna Admin), non distruggere le card o le tabelle! Aggiornare direttamente gli attributi `.checked`, le classi e gli stili sui nodi già montati (es. `syncHiddenSwitchesInDOM()`, `syncHiddenColInTable()`). In questo modo l'altezza non varia di un solo pixel e il salto dello scroll è matematicamente impossibile.
+4. **Doppio `requestAnimationFrame`**: Quando un re-render strutturale è inevitabile, catturare lo scroll *immediatamente prima* della mutazione e ripristinarlo a valle del reflow con doppio `requestAnimationFrame`.
+
+## Flash della Schermata di Login su Sessione Attiva
+Se `#login-screen` non è nascosto per default nel markup HTML iniziale (`index.html`), il browser lo renderizza all'avvio mentre Firebase Auth legge il token da IndexedDB (`onAuthStateChanged` asincrono, 100-400ms). L'utente subisce un fastidioso sfarfallio del box di login.
 *Soluzione:*
-1. **Preservazione dello Scroll**: Salvare sempre `content.scrollTop`, `.tecnici-panel.scrollTop` e `window.scrollY` all'inizio della callback di render e ripristinarli immediatamente dopo la scrittura del DOM.
-2. **Partial DOM Update**: Non distruggere l'intero contenitore `.content` o `.content-header` se la struttura è già montata. Aggiornare esclusivamente il contenitore interno specifico (es. `#tecnici-cards-container`, `#pfs-content-container`, `#casa-table-body`, `#aree-devices-container`).
-3. **Preservazione del Focus**: Catturare `data-device-id` o l'ID dell'elemento attivo prima del re-render e ripristinarlo con `element.focus({ preventScroll: true })`.
-4. **Niente refresh manuali distruttivi**: Mai chiamare `showPfsDashboard()` o simili dopo una delete o toggle locale; lasciare che sia l'`onSnapshot` ad aggiornare i dati in modo trasparente.
+1. Impostare `#login-screen` con `style="display:none;"` nel markup HTML.
+2. Salvare una copia del profilo utente verificato in `localStorage` (`tw_auth_user`) al login o alla conferma di `onAuthStateChanged`.
+3. In `checkSession()`, verificare immediatamente se esiste `tw_auth_user`: se presente, mostrare subito `#app` sincronicamente (0ms delay, zero flash), lasciando a `onAuthStateChanged` la verifica autorevole in background. Se non c'è sessione, solo allora mostrare `#login-screen` con animazione fluida `.fade-in`.
+
 
 ## Errore Toast HTML
 I toast nativi custom `showToast` facevano per design l'escape HTML dei messaggi per limitare XSS. Volendo implementare grassetti `<br>` e `<b>` per le notifiche, le tag apparivano come plaintext.

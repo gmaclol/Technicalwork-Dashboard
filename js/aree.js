@@ -23,13 +23,6 @@ export async function showAreeDashboard() {
   stopAreeListener();
 
   subscribeToDevicesNames('aree_dashboard', (data) => {
-    // Preserve scroll position
-    const prevScroll = {
-      content: content ? content.scrollTop : 0,
-      panel: content?.querySelector('.tecnici-panel')?.scrollTop || 0,
-      window: window.scrollY
-    };
-
     // Preserve focus and selection
     const activeId = document.activeElement ? document.activeElement.id : null;
     const selectionStart = activeId ? document.activeElement.selectionStart : null;
@@ -117,6 +110,12 @@ export async function showAreeDashboard() {
       }
     }
 
+    const prevScroll = {
+      content: content ? content.scrollTop : 0,
+      panel: content?.querySelector('.tecnici-panel')?.scrollTop || 0,
+      window: window.scrollY || document.documentElement.scrollTop || 0
+    };
+
     const existingContainer = document.getElementById('aree-devices-container');
     if (existingContainer) {
       existingContainer.innerHTML = devicesHtml;
@@ -140,18 +139,23 @@ export async function showAreeDashboard() {
       `;
     }
 
-    if (prevScroll.content) content.scrollTop = prevScroll.content;
-    const panel = content.querySelector('.tecnici-panel');
-    if (panel && prevScroll.panel) panel.scrollTop = prevScroll.panel;
-    if (prevScroll.window) window.scrollTo(0, prevScroll.window);
+    const restoreAreeScroll = () => {
+      if (prevScroll.content) content.scrollTop = prevScroll.content;
+      const panel = content.querySelector('.tecnici-panel');
+      if (panel && prevScroll.panel) panel.scrollTop = prevScroll.panel;
+      if (prevScroll.window) window.scrollTo(0, prevScroll.window);
+    };
+    restoreAreeScroll();
+    requestAnimationFrame(restoreAreeScroll);
 
     // Restore focus and selection
-    if (activeId) {
+    if (activeId && activeValue !== null) {
       const el = document.getElementById(activeId);
       if (el) {
         try { el.focus({ preventScroll: true }); } catch(e) { el.focus(); }
-        if (activeValue !== null) el.value = activeValue;
+        el.value = activeValue;
         try { el.setSelectionRange(selectionStart, selectionEnd); } catch(e){}
+        restoreAreeScroll();
       }
     }
   }, (e) => {

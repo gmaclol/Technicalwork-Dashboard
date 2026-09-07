@@ -746,11 +746,17 @@ function _renderRegionBrowser(content) {
   // ── Partial update (search): only update areas + subtitle ──
   const existingAreas = document.getElementById('region-areas-container');
   if (existingAreas) {
+    const scrollWrap = document.querySelector('.pfs-scroll-wrap');
+    const prevWrapScroll = scrollWrap ? scrollWrap.scrollTop : 0;
     existingAreas.innerHTML = emptyContent;
     const sub = document.getElementById('region-browser-subtitle');
     if (sub) sub.textContent = subtitleText;
     const cw = document.getElementById('region-chips-wrap');
     if (cw) cw.innerHTML = chipsHtml;
+    if (scrollWrap && prevWrapScroll) {
+      scrollWrap.scrollTop = prevWrapScroll;
+      requestAnimationFrame(() => { scrollWrap.scrollTop = prevWrapScroll; });
+    }
     return;
   }
 

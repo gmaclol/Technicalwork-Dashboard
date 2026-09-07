@@ -9,7 +9,12 @@
 - [x] **Step 6: Accessibilità Focus e Fluidità Mobile CSS (`forms.css`, `responsive.css`)**: Implementazione outline visibile `:focus-visible` per i checkbox switch e scrolling fluido touch con `overscroll-behavior-y: contain` per `.tecnici-panel`.
 - [x] **Step 7: PWA Performance & QoL (`sw-custom.js`, `app.js`)**: Risoluzione URL assoluta in `client.navigate()` e aggiornamento dinamico `<meta name="theme-color">` al cambio tema.
 - [x] **Step 8: Build e Validazione**: Esecuzione `npm run build` e verifica di conformità (exit code 0, docs/ e sw.js rigenerati).
-- [x] **Step 9: Aggiornamento Documentazione**: Aggiornato `tasks/todo.md`, `tasks/lessons.md` e creazione walkthrough.
+- [x] **Step 10: Hotfix Zero-Flash Login & Zero-Jump Visibility Toggles (2026-09-07)**:
+  - **Zero-Flash Login (`index.html`, `auth.js`)**: Impostato `#login-screen` con `display:none;` nativo. Implementata cache sicura `tw_auth_user` per ripristino sincrono istantaneo (0ms, 0 sfarfallio) mentre `onAuthStateChanged` convalida autorevolmente il token Firebase Auth in background.
+  - **In-Place Visibility Sync (`tecnici.js`)**: Sostituito il re-render distruttivo di tutte le card su `unsubHidden` e `devices_names` con `syncHiddenSwitchesInDOM()`. I checkbox vengono sincronizzati direttamente nel DOM senza distruzione di nodi, evitando il collasso dell'altezza del pannello e azzerando completamente lo scatto ad inizio pagina.
+  - **Rimozione Focus Intrusivo (`tecnici.js`, `aree.js`)**: Eliminata la chiamata automatica a `.focus()` sui controlli appena ri-renderizzati, che causava l'involontario scroll-to-top del browser verso offset (0, 0).
+  - **In-Place Column Visibility (`data.js`)**: Implementato `syncHiddenColInTable()` per aggiornare opacità, filtri e testo pulsanti della colonna del tecnico in-place per l'Admin, senza invocare re-render della tabella né toccare lo scroll orizzontale o verticale.
+  - **Doppio `requestAnimationFrame`**: Aggiunto ripristino di precisione per lo scroll della tabella e dei pannelli a valle del reflow del browser.
 
 ## 2026-09-05 — Sessione Feature Toggle: Accesso PFS per Dispositivo con Etichette Superiori
 - [x] **Step 1: Stili CSS Slider Duali**: Aggiunte classi `.tech-switches-group`, `.switch-item`, `.switch-label`, `.switch-label-pfs` in `css/components/forms.css` e supporto responsive in `css/responsive.css`.

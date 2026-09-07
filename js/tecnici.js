@@ -325,17 +325,6 @@ export async function showTecnici() {
         return; 
       }
       
-      // Capture scroll & focus state before generating DOM
-      const prevScroll = {
-        content: content ? content.scrollTop : 0,
-        panel: content?.querySelector('.tecnici-panel')?.scrollTop || 0,
-        window: window.scrollY
-      };
-      const activeEl = document.activeElement;
-      const activeDeviceId = activeEl?.dataset?.deviceId || null;
-      const activeClass = activeEl?.classList?.contains('tech-toggle-pfs') ? 'tech-toggle-pfs'
-                        : (activeEl?.classList?.contains('tech-toggle-active') ? 'tech-toggle-active' : null);
-
       let cards = '';
       const hidden = getHiddenTecniciSync();
  
@@ -418,21 +407,21 @@ export async function showTecnici() {
             <span class="toggle-device">${deviceIcon} ${friendlyDevice}${versionBadge}${telemetryStr}${info.appalti.length ? ' · ' + info.appalti.join(', ') : ''} · Ultimo sync: ${info.ultimo}</span>
           </div>
           <div class="tecnici-actions">
-            <button class="btn-tecnico-action btn-rename" onclick="renameTecnico('${escapedName}', '${docIdsJson}')" title="Rinomina" aria-label="Rinomina ${escapedName}">✏️ Rinomina</button>
-            <button class="btn-tecnico-action" onclick="toggleBanTecnico('${info.deviceId}', true)" title="Blocca questo dispositivo" aria-label="Blocca dispositivo ${escapedName}" style="color: #D32F2F; border-color: #D32F2F;">🚫 Blocca</button>
-            <button class="btn-tecnico-action btn-delete" onclick="deleteTecnico('${escapedName}', '${docIdsJson}')" title="Elimina definitivamente" aria-label="Elimina definitivamente ${escapedName}">🗑️ Elimina</button>
+            <button type="button" class="btn-tecnico-action btn-rename" onclick="renameTecnico('${escapedName}', '${docIdsJson}')" title="Rinomina" aria-label="Rinomina ${escapedName}">✏️ Rinomina</button>
+            <button type="button" class="btn-tecnico-action" onclick="toggleBanTecnico('${info.deviceId}', true)" title="Blocca questo dispositivo" aria-label="Blocca dispositivo ${escapedName}" style="color: #D32F2F; border-color: #D32F2F;">🚫 Blocca</button>
+            <button type="button" class="btn-tecnico-action btn-delete" onclick="deleteTecnico('${escapedName}', '${docIdsJson}')" title="Elimina definitivamente" aria-label="Elimina definitivamente ${escapedName}">🗑️ Elimina</button>
             <div class="tech-switches-group">
               <div class="switch-item">
                 <span class="switch-label">Visibilità Dashboard</span>
                 <label class="toggle">
-                  <input type="checkbox" class="tech-toggle-active" data-device-id="${escapedDeviceId}" ${visible ? 'checked' : ''} onchange="toggleTecnico('${escapedName}', this.checked, '${escapedDeviceId}')" aria-label="Visibilità in dashboard per ${escapedName}">
+                  <input type="checkbox" class="tech-toggle-active" data-device-id="${escapedDeviceId}" data-tech-name="${escapedName}" ${visible ? 'checked' : ''} onchange="toggleTecnico('${escapedName}', this.checked, '${escapedDeviceId}', event)" aria-label="Visibilità in dashboard per ${escapedName}">
                   <span class="toggle-slider"></span>
                 </label>
               </div>
               <div class="switch-item">
                 <span class="switch-label switch-label-pfs">Accesso PFS App</span>
                 <label class="toggle">
-                  <input type="checkbox" class="tech-toggle-pfs" data-device-id="${escapedDeviceId}" ${isPfsEnabled ? 'checked' : ''} onchange="handleTogglePfsAccess('${escapedDeviceId}', this.checked, '${escapedName}')" aria-label="Accesso PFS app per ${escapedName}">
+                  <input type="checkbox" class="tech-toggle-pfs" data-device-id="${escapedDeviceId}" ${isPfsEnabled ? 'checked' : ''} onchange="handleTogglePfsAccess('${escapedDeviceId}', this.checked, '${escapedName}', event)" aria-label="Accesso PFS app per ${escapedName}">
                   <span class="toggle-slider slider-pfs"></span>
                 </label>
               </div>
@@ -459,6 +448,13 @@ export async function showTecnici() {
         }
       }
 
+      // Capture scroll IMMEDIATELY before modifying DOM to ensure accuracy
+      const prevScroll = {
+        content: content ? content.scrollTop : 0,
+        panel: content?.querySelector('.tecnici-panel')?.scrollTop || 0,
+        window: window.scrollY || document.documentElement.scrollTop || 0
+      };
+
       const existingContainer = document.getElementById('tecnici-cards-container');
       if (existingContainer) {
         existingContainer.innerHTML = cards;
@@ -478,18 +474,16 @@ export async function showTecnici() {
           </div>`;
       }
 
-      // Restore scroll & focus immediately
-      if (prevScroll.content) content.scrollTop = prevScroll.content;
-      const panel = content.querySelector('.tecnici-panel');
-      if (panel && prevScroll.panel) panel.scrollTop = prevScroll.panel;
-      if (prevScroll.window) window.scrollTo(0, prevScroll.window);
-
-      if (activeDeviceId && activeClass) {
-        const matchingEl = content.querySelector(`.${activeClass}[data-device-id="${activeDeviceId}"]`);
-        if (matchingEl) {
-          try { matchingEl.focus({ preventScroll: true }); } catch (e) { matchingEl.focus(); }
-        }
-      }
+      // Restore scroll positions immediately AND across next frames so layout engine settles without jumping
+      const restoreScroll = () => {
+        if (content && prevScroll.content) content.scrollTop = prevScroll.content;
+        const panel = content?.querySelector('.tecnici-panel');
+        if (panel && prevScroll.panel) panel.scrollTop = prevScroll.panel;
+        if (prevScroll.window) window.scrollTo(0, prevScroll.window);
+      };
+      restoreScroll();
+      requestAnimationFrame(restoreScroll);
+      setTimeout(restoreScroll, 50);
     } catch(e) {
       console.error(e);
     }
@@ -511,8 +505,8 @@ export async function showTecnici() {
         <span style="font-size:10px; color:var(--text-muted); font-family:var(--font-mono)">${deviceId}</span>
       </div>
       <div class="tecnici-actions">
-        <button class="btn-tecnico-action btn-rename" onclick="renameWebTecnico('${escapedId}', '${escapedDisplayName}')" title="Rinomina" aria-label="Rinomina utente web ${escapedDisplayName}">✏️ Rinomina</button>
-        <button class="btn-tecnico-action btn-delete" onclick="deleteWebTecnico('${escapedId}')" title="Rimuovi dal registro" aria-label="Rimuovi utente web ${escapedDisplayName}">🗑️ Rimuovi</button>
+        <button type="button" class="btn-tecnico-action btn-rename" onclick="renameWebTecnico('${escapedId}', '${escapedDisplayName}')" title="Rinomina" aria-label="Rinomina utente web ${escapedDisplayName}">✏️ Rinomina</button>
+        <button type="button" class="btn-tecnico-action btn-delete" onclick="deleteWebTecnico('${escapedId}')" title="Rimuovi dal registro" aria-label="Rimuovi utente web ${escapedDisplayName}">🗑️ Rimuovi</button>
       </div>
     </div>`;
   }
@@ -544,8 +538,24 @@ export async function showTecnici() {
 
   // Listen to web users from devices_names via global subscription
   subscribeToDevicesNames('tecnici_web', (data) => {
-    webDevices = data;
-    renderTecnici(); // re-render with updated web users
+    const prevKeys = Object.keys(webDevices).sort().join(',');
+    const newKeys = Object.keys(data || {}).sort().join(',');
+    webDevices = data || {};
+    const container = document.getElementById('tecnici-cards-container');
+    if (container && prevKeys === newKeys) {
+      // Keys haven't changed: sync PFS switches in-place without destroying DOM or resetting scroll
+      container.querySelectorAll('.tech-toggle-pfs').forEach(input => {
+        const devId = input.dataset.deviceId;
+        if (devId && webDevices[devId] !== undefined) {
+          const isPfs = Boolean(webDevices[devId]?.pfs_enabled);
+          if (input.checked !== isPfs) {
+            input.checked = isPfs;
+          }
+        }
+      });
+    } else {
+      renderTecnici(); // re-render with updated web users
+    }
   });
 
   // Listen to hidden_tecnici in real time
@@ -555,9 +565,31 @@ export async function showTecnici() {
     } else {
       setHiddenCache([]);
     }
-    renderTecnici();
+    const container = document.getElementById('tecnici-cards-container');
+    if (container) {
+      // Se le card sono già montate, sincronizza gli switch in-place senza distruggere il DOM né lo scroll
+      syncHiddenSwitchesInDOM();
+    } else {
+      renderTecnici();
+    }
   }, () => {});
   _tecniciListeners.push(unsubHidden);
+}
+
+// ── SYNC HIDDEN SWITCHES IN-PLACE (evita re-render distruttivo e reset dello scroll) ──
+export function syncHiddenSwitchesInDOM() {
+  const container = document.getElementById('tecnici-cards-container');
+  if (!container) return;
+  const hidden = getHiddenTecniciSync();
+  container.querySelectorAll('.tech-toggle-active').forEach(input => {
+    const techName = input.dataset.techName;
+    if (techName) {
+      const isVisible = !hidden.some(h => h.toLowerCase() === techName.toLowerCase());
+      if (input.checked !== isVisible) {
+        input.checked = isVisible;
+      }
+    }
+  });
 }
 
 // ── RENAME WEB TECNICO ──
@@ -704,7 +736,8 @@ export async function renameTecnico(oldName, docIdsJsonStr) {
 }
 
 // ── TOGGLE TECNICO VISIBILITY ──
-export async function toggleTecnico(name, visible, deviceId = null) {
+export async function toggleTecnico(name, visible, deviceId = null, evt = null) {
+  if (evt && evt.stopPropagation) evt.stopPropagation();
   let hidden = getHiddenTecniciSync();
   if (visible) { hidden = hidden.filter(n => n !== name); }
   else { if (!hidden.includes(name)) hidden.push(name); }
@@ -735,8 +768,10 @@ export async function toggleTecnico(name, visible, deviceId = null) {
  * @param {string} deviceId ID hardware del dispositivo
  * @param {boolean} isEnabled Nuovo stato (true = abilitato, false = disabilitato)
  * @param {string} [techName] Nome del tecnico per il feedback toast
+ * @param {Event} [evt] Evento di click/change
  */
-export async function handleTogglePfsAccess(deviceId, isEnabled, techName = '') {
+export async function handleTogglePfsAccess(deviceId, isEnabled, techName = '', evt = null) {
+  if (evt && evt.stopPropagation) evt.stopPropagation();
   if (!deviceId) {
     showToast('Errore: ID dispositivo non valido', 'error');
     return;
@@ -1127,11 +1162,6 @@ export async function showCasa() {
         return;
       }
       
-      const prevScroll = {
-        content: content ? content.scrollTop : 0,
-        panel: content?.querySelector('.tecnici-panel')?.scrollTop || 0,
-        window: window.scrollY
-      };
       const activeEl = document.activeElement;
       const activeDeviceId = activeEl?.closest('tr')?.dataset?.deviceId || null;
       const activeFieldClass = activeEl?.classList?.contains('txt-address') ? 'txt-address'
@@ -1163,16 +1193,22 @@ export async function showCasa() {
               <div style="display:flex; gap:6px; align-items:center;">
                 <input type="text" class="rename-field txt-lat" placeholder="Lat" value="${escapeHtml(info.homeLat)}" style="width:75px; margin:0; padding:6px; font-size:13px; font-family:var(--font-mono); text-align:center;" aria-label="Latitudine per ${escapeHtml(name)}">
                 <input type="text" class="rename-field txt-lng" placeholder="Lng" value="${escapeHtml(info.homeLng)}" style="width:75px; margin:0; padding:6px; font-size:13px; font-family:var(--font-mono); text-align:center;" aria-label="Longitudine per ${escapeHtml(name)}">
-                <button class="btn-outline" style="padding:6px 10px; font-size:12px;" onclick="geocodeAddress('${info.deviceId}', this)" title="Cerca coordinate da indirizzo" aria-label="Cerca coordinate per ${escapeHtml(name)}">🔍 Cerca</button>
+                <button type="button" class="btn-outline" style="padding:6px 10px; font-size:12px;" onclick="geocodeAddress('${info.deviceId}', this)" title="Cerca coordinate da indirizzo" aria-label="Cerca coordinate per ${escapeHtml(name)}">🔍 Cerca</button>
               </div>
             </td>
             <td style="text-align:right;">
-              <button class="login-btn btn-save-home" style="padding:6px 12px; font-size:13px; font-weight:600; width:auto; display:inline-block;" onclick="saveHomePosition('${info.deviceId}', this)" aria-label="Salva posizione per ${escapeHtml(name)}">Salva</button>
+              <button type="button" class="login-btn btn-save-home" style="padding:6px 12px; font-size:13px; font-weight:600; width:auto; display:inline-block;" onclick="saveHomePosition('${info.deviceId}', this)" aria-label="Salva posizione per ${escapeHtml(name)}">Salva</button>
             </td>
           </tr>
         `;
       }
       
+      const prevScroll = {
+        content: content ? content.scrollTop : 0,
+        panel: content?.querySelector('.tecnici-panel')?.scrollTop || 0,
+        window: window.scrollY || document.documentElement.scrollTop || 0
+      };
+
       const existingTbody = document.getElementById('casa-table-body');
       if (existingTbody) {
         existingTbody.innerHTML = rowsHtml;
@@ -1205,16 +1241,20 @@ export async function showCasa() {
         `;
       }
 
-      if (prevScroll.content) content.scrollTop = prevScroll.content;
-      const panel = content.querySelector('.tecnici-panel');
-      if (panel && prevScroll.panel) panel.scrollTop = prevScroll.panel;
-      if (prevScroll.window) window.scrollTo(0, prevScroll.window);
+      const restoreCasaScroll = () => {
+        if (content && prevScroll.content) content.scrollTop = prevScroll.content;
+        const panel = content?.querySelector('.tecnici-panel');
+        if (panel && prevScroll.panel) panel.scrollTop = prevScroll.panel;
+        if (prevScroll.window) window.scrollTo(0, prevScroll.window);
+      };
+      restoreCasaScroll();
+      requestAnimationFrame(restoreCasaScroll);
 
-      if (activeDeviceId && activeFieldClass) {
+      if (activeDeviceId && activeFieldClass && activeVal !== null) {
         const row = content.querySelector(`tr[data-device-id="${activeDeviceId}"]`);
         const inp = row?.querySelector(`.${activeFieldClass}`);
         if (inp) {
-          if (activeVal !== null && activeVal !== inp.value) {
+          if (activeVal !== inp.value) {
             inp.value = activeVal;
           }
           try {
@@ -1223,6 +1263,7 @@ export async function showCasa() {
               inp.setSelectionRange(activeSelStart, activeSelEnd);
             }
           } catch(e) { inp.focus(); }
+          restoreCasaScroll();
         }
       }
       

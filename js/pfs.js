@@ -256,10 +256,14 @@ export async function showPfsDashboard() {
     });
     updatePfsToolbar();
 
-    if (prevScroll.content) content.scrollTop = prevScroll.content;
-    const panel = content.querySelector('.tecnici-panel');
-    if (panel && prevScroll.panel) panel.scrollTop = prevScroll.panel;
-    if (prevScroll.window) window.scrollTo(0, prevScroll.window);
+    const restorePfsScroll = () => {
+      if (prevScroll.content) content.scrollTop = prevScroll.content;
+      const panel = content.querySelector('.tecnici-panel');
+      if (panel && prevScroll.panel) panel.scrollTop = prevScroll.panel;
+      if (prevScroll.window) window.scrollTo(0, prevScroll.window);
+    };
+    restorePfsScroll();
+    requestAnimationFrame(restorePfsScroll);
   }
 
   const unsubSigs = onSnapshot(collection(db, 'pfs_segnalati'), (snap) => {

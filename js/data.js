@@ -422,13 +422,72 @@ export function getHiddenTodaySync(dateKey = currentDate || 'live') {
   return _hiddenTodayCache[dk] || [];
 }
 
+// ── AGGIORNAMENTO IN-PLACE COLONNA NASCOSTA/RIABILITATA (Zero scroll jump per Admin) ──
+export function syncHiddenColInTable(techNameOrId, isHidden) {
+  const table = document.getElementById('tb-appalto');
+  if (!table) return false;
+  const lower = (techNameOrId || '').toLowerCase();
+  
+  // Trova il th corrispondente
+  const ths = table.querySelectorAll('thead th[data-tech-id]');
+  let matchedTh = null;
+  ths.forEach(th => {
+    const tid = (th.dataset.techId || '').toLowerCase();
+    const nameEl = th.querySelector('.tech-name');
+    const name = nameEl ? nameEl.textContent.trim().toLowerCase() : '';
+    if (tid === lower || name.includes(lower)) {
+      matchedTh = th;
+    }
+  });
+
+  if (!matchedTh) return false;
+
+  const techId = matchedTh.dataset.techId;
+  matchedTh.style.opacity = isHidden ? '0.45' : '';
+  matchedTh.style.filter = isHidden ? 'grayscale(0.5)' : '';
+
+  const btn = matchedTh.querySelector('.btn-hide-tech');
+  if (btn) {
+    btn.textContent = isHidden ? '👁️ Riabilita Lista' : '🙈 Nascondi Lista';
+    btn.style.background = isHidden ? 'rgba(99, 102, 241, 0.2)' : 'rgba(239, 68, 68, 0.15)';
+    btn.style.color = isHidden ? '#818cf8' : '#f87171';
+    btn.style.borderColor = isHidden ? 'rgba(99, 102, 241, 0.4)' : 'rgba(239, 68, 68, 0.3)';
+  }
+
+  // Aggiorna le celle td della stessa colonna
+  if (techId) {
+    table.querySelectorAll(`tbody td[data-tech-id="${techId}"]`).forEach(td => {
+      td.style.opacity = isHidden ? '0.45' : '';
+      td.style.filter = isHidden ? 'grayscale(0.5)' : '';
+    });
+  }
+
+  return true;
+}
+
 export function initGlobalHiddenListsListener() {
   if (_globalHiddenListsListener) return;
   _globalHiddenListsListener = onSnapshot(doc(db, 'settings', 'hidden_lists_daily'), (snap) => {
     _hiddenTodayCache = snap.exists() ? (snap.data() || {}) : {};
     updateSidebarCountsForDate(currentDate);
     if (currentAppalto && document.getElementById('tb-appalto') && _lastAllDocs.length > 0) {
-      triggerTableRenderWithHidden();
+      const isAdminUser = currentUser && currentUser.role === 'admin';
+      if (isAdminUser) {
+        // Aggiorna colonne in-place per l'admin senza distruggere la tabella
+        const dk = (!currentDate || currentDate === 'live') ? 'today' : currentDate;
+        const hiddenDaily = getHiddenTodaySync(dk);
+        const hiddenPerm = getHiddenTecniciSync();
+        _lastAllDocs.forEach(d => {
+          const isPermHidden = isHiddenDoc(d, hiddenPerm);
+          const isDailyHidden = isHiddenDoc(d, hiddenDaily);
+          const isHidden = isPermHidden || isDailyHidden;
+          d._isHiddenByAdmin = isHidden;
+          syncHiddenColInTable(d.id, isHidden);
+          if (d.tecnico) syncHiddenColInTable(d.tecnico, isHidden);
+        });
+      } else {
+        triggerTableRenderWithHidden();
+      }
     }
   }, (e) => {
     console.error("Errore listener hidden_lists_daily:", e);
@@ -466,6 +525,7 @@ export async function toggleHideTecnico(techNameOrId) {
   
   let newHiddenList;
   const exists = currentHiddenToday.some(h => (h || '').toLowerCase() === lowerTarget);
+  const isNowHidden = !exists;
   if (exists) {
     newHiddenList = currentHiddenToday.filter(h => (h || '').toLowerCase() !== lowerTarget);
     showToast(`Lista per ${techNameOrId} riabilitata (${dk === 'today' ? 'Oggi' : dk})`, 'info');
@@ -475,8 +535,22 @@ export async function toggleHideTecnico(techNameOrId) {
   }
   
   _hiddenTodayCache[dk] = newHiddenList;
-  _lastRenderedKey = null; // Forza il re-render completo della griglia
   
+  // Se l'utente è admin e la colonna è montata nel DOM, aggiorna in-place per evitare scroll jump
+  const isAdminUser = currentUser && currentUser.role === 'admin';
+  let inPlaceSuccess = false;
+  if (isAdminUser) {
+    inPlaceSuccess = syncHiddenColInTable(techNameOrId, isNowHidden);
+    if (inPlaceSuccess) {
+      _lastAllDocs.forEach(d => {
+        if ((d.id && d.id.toLowerCase() === lowerTarget) || (d.tecnico && d.tecnico.toLowerCase() === lowerTarget)) {
+          d._isHiddenByAdmin = isNowHidden;
+        }
+      });
+      updateSidebarCountsForDate(currentDate);
+    }
+  }
+
   try {
     const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
     await setDoc(doc(db, 'settings', 'hidden_lists_daily'), {
@@ -485,8 +559,12 @@ export async function toggleHideTecnico(techNameOrId) {
   } catch(e) {
     console.error('Errore salvataggio nascosti giornalieri', e);
   }
-  
-  triggerTableRenderWithHidden();
+
+  // Se non è stato possibile aggiornare in-place (es. utente non-admin dove la colonna scompare), riesegui render
+  if (!inPlaceSuccess) {
+    _lastRenderedKey = null;
+    triggerTableRenderWithHidden();
+  }
 }
 
 async function fetchRawMasterList(appalto) {
@@ -1464,7 +1542,8 @@ function renderTable(appalto, tecnici, container, dateKey = 'live', allDocs = []
   const prevTableScroll = {
     left: container.querySelector('.table-scroll')?.scrollLeft || 0,
     top: container.querySelector('.table-scroll')?.scrollTop || 0,
-    containerTop: container.scrollTop
+    containerTop: container.scrollTop || 0,
+    windowY: window.scrollY || document.documentElement.scrollTop || 0
   };
 
   // ── Full render ──
@@ -1704,13 +1783,21 @@ function renderTable(appalto, tecnici, container, dateKey = 'live', allDocs = []
   html += `</div>`;
   container.innerHTML = html;
 
-  // Restore scroll positions immediately
-  const newTableScroll = container.querySelector('.table-scroll');
-  if (newTableScroll) {
-    if (prevTableScroll.left) newTableScroll.scrollLeft = prevTableScroll.left;
-    if (prevTableScroll.top) newTableScroll.scrollTop = prevTableScroll.top;
-  }
-  if (prevTableScroll.containerTop) container.scrollTop = prevTableScroll.containerTop;
+  // Restore scroll positions immediately and on next animation frames so layout settles
+  const restoreTableScroll = () => {
+    const newTableScroll = container.querySelector('.table-scroll');
+    if (newTableScroll) {
+      if (prevTableScroll.left) newTableScroll.scrollLeft = prevTableScroll.left;
+      if (prevTableScroll.top) newTableScroll.scrollTop = prevTableScroll.top;
+    }
+    if (prevTableScroll.containerTop) container.scrollTop = prevTableScroll.containerTop;
+    if (prevTableScroll.windowY) window.scrollTo(0, prevTableScroll.windowY);
+  };
+  restoreTableScroll();
+  requestAnimationFrame(() => {
+    restoreTableScroll();
+    requestAnimationFrame(restoreTableScroll);
+  });
  
   // Save references for export
   window._lastTecnici = tecnici;

@@ -1,16 +1,16 @@
 # Graph Report - tchwrk2  (2026-09-07)
 
 ## Corpus Check
-- 51 files · ~418,898 words
+- 51 files · ~420,040 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1018 nodes · 1915 edges · 68 communities (63 shown, 5 thin omitted)
-- Extraction: 97% EXTRACTED · 3% INFERRED · 0% AMBIGUOUS · INFERRED: 49 edges (avg confidence: 0.7)
+- 1021 nodes · 1930 edges · 68 communities (64 shown, 4 thin omitted)
+- Extraction: 97% EXTRACTED · 3% INFERRED · 0% AMBIGUOUS · INFERRED: 54 edges (avg confidence: 0.69)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `a2ce7ec5`
+- Built from commit: `fd204dcd`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -19,7 +19,7 @@
 - Workflow Operativo AI-Assisted per Progetti Software
 - 3.1 JavaScript Core
 - pfsLookup.js
-- index-Dj5MVw6x.js
+- index-BshJaYP4.js
 - auth.js
 - Node.js Best Practices
 - Node.js Backend Patterns
@@ -34,7 +34,7 @@
 - app.js
 - package.json
 - 16. Graphify — Mappa della Conoscenza
-- preloadCounts
+- loadAppalto
 - Rolldown Migration (Vite 8)
 - WCAG 2.2 Quick Reference
 - Accessibility (a11y)
@@ -58,7 +58,7 @@
 - 9. Verifica Prima del Completamento
 - F
 - Build and SSR
-- pfs.js
+- notifications.js
 - P
 - Vite Configuration
 - Z
@@ -69,7 +69,7 @@
 - Integrazione Dashboard: Feature Toggle Accesso PFS per Dispositivo
 - Vite-Specific Hooks
 - i
-- .A
+- Key Config Options
 - Perceivable
 - Common issues by impact
 - frontend-design/SKILL.md
@@ -78,37 +78,37 @@
 - h
 
 ## God Nodes (most connected - your core abstractions)
-1. `lessons.md — Dashboard (tchwrk2)` - 42 edges
+1. `lessons.md — Dashboard (tchwrk2)` - 43 edges
 2. `showToast()` - 39 edges
-3. `n()` - 30 edges
+3. `n()` - 36 edges
 4. `o()` - 30 edges
-5. `F()` - 28 edges
-6. `jr()` - 25 edges
-7. `handleHashChange()` - 25 edges
-8. `t()` - 23 edges
-9. `escapeHtml()` - 23 edges
-10. `Workflow Operativo AI-Assisted per Progetti Software` - 22 edges
+5. `F()` - 29 edges
+6. `handleHashChange()` - 25 edges
+7. `escapeHtml()` - 23 edges
+8. `Workflow Operativo AI-Assisted per Progetti Software` - 22 edges
+9. `t()` - 21 edges
+10. `review.md — Dashboard (tchwrk2)` - 20 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `addMaterialRow()` --indirect_call--> `t()`  [INFERRED]
-  js/data.js → docs/assets/index-Dj5MVw6x.js
-- `loadAppalto()` --indirect_call--> `d()`  [INFERRED]
-  js/data.js → docs/workbox-4b126c97.js
+  js/data.js → docs/assets/index-BshJaYP4.js
 - `renderTable()` --indirect_call--> `d()`  [INFERRED]
+  js/data.js → docs/workbox-4b126c97.js
+- `initGlobalHiddenListsListener()` --indirect_call--> `d()`  [INFERRED]
+  js/data.js → docs/workbox-4b126c97.js
+- `loadAppalto()` --indirect_call--> `d()`  [INFERRED]
   js/data.js → docs/workbox-4b126c97.js
 - `triggerTableRenderWithHidden()` --indirect_call--> `d()`  [INFERRED]
   js/data.js → docs/workbox-4b126c97.js
-- `deleteCacheAndMetadata()` --indirect_call--> `t()`  [INFERRED]
-  docs/workbox-4b126c97.js → docs/assets/index-Dj5MVw6x.js
 
 ## Import Cycles
 - None detected.
 
-## Communities (68 total, 5 thin omitted)
+## Communities (68 total, 4 thin omitted)
 
 ### Community 0 - "workbox-4b126c97.js"
-Cohesion: 0.36
-Nodes (5): constructor(), d(), deleteCacheAndMetadata(), M, nt()
+Cohesion: 0.27
+Nodes (7): constructor(), ct(), deleteCacheAndMetadata(), ht(), M, nt(), W()
 
 ### Community 1 - "Workflow Operativo AI-Assisted per Progetti Software"
 Cohesion: 0.12
@@ -119,16 +119,16 @@ Cohesion: 0.04
 Nodes (48): 1. Architettura Generale, 2.1 Login e Sessione, 2.2 Navigazione SPA (Hash Router), 2.3 Caricamento Griglia Materiali (Flusso Principale), 2.4 Presenza Online (RTDB), 2.5 PFS Lookup (Ricerca Aree), 2.6 Notifiche Globali PFS, 2.7 Export e Stampa (+40 more)
 
 ### Community 3 - "pfsLookup.js"
-Cohesion: 0.10
-Nodes (42): _activeRegions, _allAreas, _allPfsParsed, buildPfsItemsHtml(), _cacheArea(), _currentFilteredList, DEFAULT_FAVORITES, discoverAvailableRegions() (+34 more)
+Cohesion: 0.09
+Nodes (41): _activeRegions, _allAreas, _allPfsParsed, buildPfsItemsHtml(), _cacheArea(), _currentFilteredList, DEFAULT_FAVORITES, discoverAvailableRegions() (+33 more)
 
-### Community 4 - "index-Dj5MVw6x.js"
+### Community 4 - "index-BshJaYP4.js"
 Cohesion: 0.06
-Nodes (106): An(), ar(), at(), B(), be(), bn(), br(), ce() (+98 more)
+Nodes (103): An(), ar(), At(), be(), Br(), bt(), ce(), Cn() (+95 more)
 
 ### Community 5 - "auth.js"
-Cohesion: 0.12
-Nodes (28): initPresence(), checkSession(), doLogin(), doLogout(), showApp(), showLoginError(), finishEdit(), app (+20 more)
+Cohesion: 0.15
+Nodes (24): checkSession(), doLogin(), doLogout(), showApp(), showLoginError(), requestNotificationPermission(), stopGlobalPfsNotifications(), APPALTI (+16 more)
 
 ### Community 6 - "Node.js Best Practices"
 Cohesion: 0.05
@@ -143,8 +143,8 @@ Cohesion: 0.09
 Nodes (21): 1. Naming Conventions, 2. Architettura — Dove Vive la Logica, 3.1 Real-Time (onSnapshot / onValue) vs Statico (getDocs), 3.2 Prevenzione Memory Leak e Sovrascritture DOM, 3.3 Cache Sincrona in RAM, 3.4 Autenticazione e Ruoli (Firebase Auth), 3. Gestione dello Stato e Firebase, 4.1 Gestione delle Exception (+13 more)
 
 ### Community 9 - "showToast"
-Cohesion: 0.17
-Nodes (25): deleteDeviceAreas(), renameDevice(), savePfsAreas(), showAreeDashboard(), stopAreeListener(), addMaterialRow(), buildCustomSelect(), deleteMaterialRow() (+17 more)
+Cohesion: 0.14
+Nodes (31): deleteDeviceAreas(), renameDevice(), savePfsAreas(), showAreeDashboard(), stopAreeListener(), addMaterialRow(), buildCustomSelect(), deleteMaterialRow() (+23 more)
 
 ### Community 10 - "SEO optimization"
 Cohesion: 0.06
@@ -164,15 +164,15 @@ Nodes (22): Asset Import Queries, Built-in Constants, CSS Modules, Custom Querie
 
 ### Community 14 - "lessons.md — Dashboard (tchwrk2)"
 Cohesion: 0.05
-Nodes (42): Errore: `100vh` su iOS causa overflow layout, Errore: `appearance: none` senza prefisso iOS, Errore: Async callback dentro `onSnapshot` senza try/catch, Errore: Autenticazione solo client-side e hash password nel repository pubblico, Errore Billing Spike Firestore (Reads e Writes), Errore: Celle interattive e controlli in-app inaccessibili da tastiera e screen reader, Errore: Crash di WebKit/Safari su iOS con liste DOM massicce (~5000+ nodi), Errore Crash Ricerca iOS e Accessibilità (+34 more)
+Nodes (43): Errore: `100vh` su iOS causa overflow layout, Errore: `appearance: none` senza prefisso iOS, Errore: Async callback dentro `onSnapshot` senza try/catch, Errore: Autenticazione solo client-side e hash password nel repository pubblico, Errore Billing Spike Firestore (Reads e Writes), Errore: Celle interattive e controlli in-app inaccessibili da tastiera e screen reader, Errore: Crash di WebKit/Safari su iOS con liste DOM massicce (~5000+ nodi), Errore Crash Ricerca iOS e Accessibilità (+35 more)
 
 ### Community 15 - "tecnici.js"
-Cohesion: 0.12
-Nodes (21): getCountListeners(), getHiddenTecnici(), getHiddenTecniciSync(), resetHiddenCache(), resetLastRenderedKey(), saveHiddenTecnici(), _bannedDeviceNames, _bannedDevicesCache (+13 more)
+Cohesion: 0.10
+Nodes (25): getCountListeners(), getHiddenTecnici(), resetHiddenCache(), resetLastRenderedKey(), saveHiddenTecnici(), setHiddenCache(), _bannedDeviceNames, _bannedDevicesCache (+17 more)
 
 ### Community 16 - "app.js"
-Cohesion: 0.12
-Nodes (31): applyTheme(), buildSidebar(), _deviceNamesCache, handleHashChange(), stopPresence(), toggleTheme(), closeDrawer(), closeSnapshotDropdown() (+23 more)
+Cohesion: 0.09
+Nodes (35): applyTheme(), buildSidebar(), _deviceNamesCache, handleHashChange(), initPresence(), stopPresence(), toggleTheme(), updateSidebarHrefsAndCounts() (+27 more)
 
 ### Community 17 - "package.json"
 Cohesion: 0.09
@@ -182,9 +182,9 @@ Nodes (21): baseline-browser-mapping, caniuse-lite, author, dependencies, baseli
 Cohesion: 0.29
 Nodes (7): 16. Graphify — Mappa della Conoscenza, Aggiornamento Intelligente (risparmio quota gratuita), Build del grafo, Comandi utili, Credenziali, Output, Prerequisiti
 
-### Community 19 - "preloadCounts"
-Cohesion: 0.33
-Nodes (10): updateSidebarHrefsAndCounts(), getHiddenTodaySync(), initGlobalHiddenListener(), initGlobalHiddenListsListener(), isHiddenDoc(), preloadCounts(), toggleHideTecnico(), triggerTableRenderWithHidden() (+2 more)
+### Community 19 - "loadAppalto"
+Cohesion: 0.34
+Nodes (14): d(), getHiddenTecniciSync(), getHiddenTodaySync(), initGlobalHiddenListener(), initGlobalHiddenListsListener(), isHiddenDoc(), loadAppalto(), preloadCounts() (+6 more)
 
 ### Community 20 - "Rolldown Migration (Vite 8)"
 Cohesion: 0.17
@@ -271,36 +271,36 @@ Cohesion: 0.67
 Nodes (3): 9. Verifica Prima del Completamento, Domanda Finale, Verifiche obbligatorie
 
 ### Community 42 - "F"
-Cohesion: 0.24
-Nodes (7): ct(), F, ht(), s, W(), loadBrandModels(), resolveDeviceName()
+Cohesion: 0.23
+Nodes (6): F, s, st(), y(), loadBrandModels(), resolveDeviceName()
 
 ### Community 43 - "Build and SSR"
 Cohesion: 0.25
 Nodes (7): Build and SSR, Library Mode, Multi-Page App, Multiple Entries, Output Formats, Package.json Setup, SSR Development
 
-### Community 45 - "pfs.js"
-Cohesion: 0.21
-Nodes (17): clearBannedBadge(), clearPfsBadge(), clearTecniciBadge(), notifyBannedAccessAttempt(), notifyNewTecnico(), notifyPfsReport(), sendSystemNotification(), updateHomescreenBadge() (+9 more)
+### Community 45 - "notifications.js"
+Cohesion: 0.47
+Nodes (8): clearBannedBadge(), clearPfsBadge(), clearTecniciBadge(), notifyBannedAccessAttempt(), notifyNewTecnico(), notifyPfsReport(), sendSystemNotification(), updateHomescreenBadge()
 
 ### Community 46 - "P"
-Cohesion: 0.23
-Nodes (4): L(), P, r, x()
+Cohesion: 0.20
+Nodes (6): B(), nt(), L(), P, r, x()
 
 ### Community 48 - "Vite Configuration"
-Cohesion: 0.17
-Nodes (12): Async Config, Basic Setup, build.target, Conditional Config, define (Global Constants), Key Config Options, plugins, resolve.alias (+4 more)
+Cohesion: 0.29
+Nodes (6): Async Config, Basic Setup, Conditional Config, TypeScript Intellisense, Using Environment Variables in Config, Vite Configuration
 
 ### Community 49 - "Z"
 Cohesion: 0.16
 Nodes (4): et, G(), V, Z
 
 ### Community 50 - "get"
-Cohesion: 0.19
-Nodes (4): a, get(), k(), st()
+Cohesion: 0.21
+Nodes (3): a, get(), k()
 
 ### Community 51 - "data.js"
 Cohesion: 0.16
-Nodes (28): checkStaleHashes(), _countListeners, filterMaterials(), _geoCache, _hiddenTodayCache, _lastAllDocs, _lastRenderedTecNames, _lastRenderedValues (+20 more)
+Nodes (27): checkStaleHashes(), _countListeners, filterMaterials(), _geoCache, _hiddenTodayCache, _lastAllDocs, _lastRenderedTecNames, _lastRenderedValues (+19 more)
 
 ### Community 53 - "Vite Plugin API"
 Cohesion: 0.29
@@ -318,6 +318,10 @@ Nodes (10): 1. Contesto & Obiettivo di Sicurezza, 2. Struttura Dati Firestore, 3
 Cohesion: 0.33
 Nodes (6): config, configResolved, configureServer, handleHotUpdate, transformIndexHtml, Vite-Specific Hooks
 
+### Community 58 - "Key Config Options"
+Cohesion: 0.33
+Nodes (6): build.target, define (Global Constants), Key Config Options, plugins, resolve.alias, server.proxy
+
 ### Community 59 - "Perceivable"
 Cohesion: 0.50
 Nodes (4): Color contrast (1.4.3, 1.4.6), Media alternatives (1.2), Perceivable, Text alternatives (1.1)
@@ -331,23 +335,23 @@ Cohesion: 0.20
 Nodes (9): 📌 1. Riepilogo di quanto già fatto sulla Dashboard (`Technicalwork-Dashboard`), 📱 2. Cosa bisogna fare sull'App Android (`Technicalwork-Materiali`), 🔒 3. Cosa fare su Firestore dopo aver aggiornato l'App Android (VERSIONE B - Blindatura Totale), 🧹 4. Pulizia opzionale finale dei dati vecchi (GDPR), 🛡️ Guida di Sicurezza: Migrazione Dashboard & Tasklist per App Android, Procedura:, 📋 Prompt pronto da incollare quando aprirai la sessione sul repo Android:, Regole Cloud Firestore (VERSIONE B - Definitiva): (+1 more)
 
 ## Knowledge Gaps
-- **483 isolated node(s):** `_deviceNamesCache`, `_staleCacheMap`, `_lastAllDocs`, `_countListeners`, `_liveCounts` (+478 more)
+- **484 isolated node(s):** `_deviceNamesCache`, `_staleCacheMap`, `_lastAllDocs`, `_countListeners`, `_liveCounts` (+479 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **5 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **4 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `t()` connect `index-Dj5MVw6x.js` to `workbox-4b126c97.js`, `showToast`, `get`, `P`?**
-  _High betweenness centrality (0.063) - this node is a cross-community bridge._
-- **Why does `addMaterialRow()` connect `showToast` to `index-Dj5MVw6x.js`, `auth.js`, `P`, `tecnici.js`, `app.js`, `data.js`, `preloadCounts`?**
+- **Why does `t()` connect `index-BshJaYP4.js` to `workbox-4b126c97.js`, `showToast`, `get`, `P`?**
+  _High betweenness centrality (0.064) - this node is a cross-community bridge._
+- **Why does `addMaterialRow()` connect `showToast` to `index-BshJaYP4.js`, `P`, `app.js`, `loadAppalto`, `data.js`?**
   _High betweenness centrality (0.061) - this node is a cross-community bridge._
-- **Why does `d()` connect `workbox-4b126c97.js` to `app.js`, `preloadCounts`, `data.js`?**
+- **Why does `d()` connect `loadAppalto` to `workbox-4b126c97.js`, `data.js`?**
   _High betweenness centrality (0.013) - this node is a cross-community bridge._
-- **Are the 8 inferred relationships involving `n()` (e.g. with `jn()` and `kr()`) actually correct?**
-  _`n()` has 8 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 9 inferred relationships involving `n()` (e.g. with `ct()` and `ft()`) actually correct?**
+  _`n()` has 9 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `_deviceNamesCache`, `_staleCacheMap`, `_lastAllDocs` to the rest of the system?**
-  _483 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _484 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Workflow Operativo AI-Assisted per Progetti Software` be split into smaller, more focused modules?**
   _Cohesion score 0.11764705882352941 - nodes in this community are weakly interconnected._
 - **Should `3.1 JavaScript Core` be split into smaller, more focused modules?**
