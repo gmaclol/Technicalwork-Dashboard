@@ -1,5 +1,16 @@
 # todo.md — Dashboard (tchwrk2)
 
+## 2026-09-07 — Sessione Accessibilità, Performance PWA e Risoluzione Scroll Jump / Interazioni
+- [x] **Step 1: Preservazione Scroll e Partial DOM in `tecnici.js`**: Cattura e ripristino di `content.scrollTop`, `.tecnici-panel.scrollTop` e `window.scrollY` in `renderTecnici()` e `renderCasaList()`. Aggiornamento del solo contenitore `#tecnici-cards-container` se la struttura è già montata per evitare reset e sfarfallio.
+- [x] **Step 2: Accessibilità Controlli e Toggles (`tecnici.js`)**: Aggiunta di `aria-label` descrittivi per gli switch di visibilità dashboard, accesso PFS e pulsanti di azione (rinomina, elimina, blocca).
+- [x] **Step 3: Stabilità e Accessibilità Gestione PFS (`pfs.js`)**: Rimozione delle chiamate distruttive manuali `showPfsDashboard()` in `deletePfsItem` e `deleteSelectedPfs`. Salvataggio e ripristino scroll in `renderIfReady()` e aggiunta `aria-label`.
+- [x] **Step 4: Preservazione Scroll e A11y Aree Preferite (`aree.js`)**: Memorizzazione e ripristino posizione scroll in `subscribeToDevicesNames('aree_dashboard')` e aggiunta `aria-label` ai pulsanti.
+- [x] **Step 5: Preservazione Scroll Tabella Materiali (`data.js`)**: Memorizzazione e ripristino di `.table-scroll` (`scrollLeft`, `scrollTop`) e `container.scrollTop` sui render completi della griglia.
+- [x] **Step 6: Accessibilità Focus e Fluidità Mobile CSS (`forms.css`, `responsive.css`)**: Implementazione outline visibile `:focus-visible` per i checkbox switch e scrolling fluido touch con `overscroll-behavior-y: contain` per `.tecnici-panel`.
+- [x] **Step 7: PWA Performance & QoL (`sw-custom.js`, `app.js`)**: Risoluzione URL assoluta in `client.navigate()` e aggiornamento dinamico `<meta name="theme-color">` al cambio tema.
+- [x] **Step 8: Build e Validazione**: Esecuzione `npm run build` e verifica di conformità (exit code 0, docs/ e sw.js rigenerati).
+- [x] **Step 9: Aggiornamento Documentazione**: Aggiornato `tasks/todo.md`, `tasks/lessons.md` e creazione walkthrough.
+
 ## 2026-09-05 — Sessione Feature Toggle: Accesso PFS per Dispositivo con Etichette Superiori
 - [x] **Step 1: Stili CSS Slider Duali**: Aggiunte classi `.tech-switches-group`, `.switch-item`, `.switch-label`, `.switch-label-pfs` in `css/components/forms.css` e supporto responsive in `css/responsive.css`.
 - [x] **Step 2: Logica JavaScript `tecnici.js`**: Implementato `handleTogglePfsAccess`, aggiornato `toggleTecnico` e `buildCard` per visualizzare i due slider affiancati con label ("VISIBILITÀ DASHBOARD" e "ACCESSO PFS APP").

@@ -1,7 +1,13 @@
 // ── Custom Service Worker Events (Notification Click & Android PWA Focus) ──
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const targetUrl = (event.notification.data && event.notification.data.url) || './';
+  const rawUrl = (event.notification.data && event.notification.data.url) || './';
+  let targetUrl;
+  try {
+    targetUrl = new URL(rawUrl, self.location.href).href;
+  } catch (e) {
+    targetUrl = rawUrl;
+  }
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {

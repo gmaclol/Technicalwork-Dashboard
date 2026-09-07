@@ -325,6 +325,17 @@ export async function showTecnici() {
         return; 
       }
       
+      // Capture scroll & focus state before generating DOM
+      const prevScroll = {
+        content: content ? content.scrollTop : 0,
+        panel: content?.querySelector('.tecnici-panel')?.scrollTop || 0,
+        window: window.scrollY
+      };
+      const activeEl = document.activeElement;
+      const activeDeviceId = activeEl?.dataset?.deviceId || null;
+      const activeClass = activeEl?.classList?.contains('tech-toggle-pfs') ? 'tech-toggle-pfs'
+                        : (activeEl?.classList?.contains('tech-toggle-active') ? 'tech-toggle-active' : null);
+
       let cards = '';
       const hidden = getHiddenTecniciSync();
  
@@ -407,21 +418,21 @@ export async function showTecnici() {
             <span class="toggle-device">${deviceIcon} ${friendlyDevice}${versionBadge}${telemetryStr}${info.appalti.length ? ' · ' + info.appalti.join(', ') : ''} · Ultimo sync: ${info.ultimo}</span>
           </div>
           <div class="tecnici-actions">
-            <button class="btn-tecnico-action btn-rename" onclick="renameTecnico('${escapedName}', '${docIdsJson}')" title="Rinomina">✏️ Rinomina</button>
-            <button class="btn-tecnico-action" onclick="toggleBanTecnico('${info.deviceId}', true)" title="Blocca questo dispositivo" style="color: #D32F2F; border-color: #D32F2F;">🚫 Blocca</button>
-            <button class="btn-tecnico-action btn-delete" onclick="deleteTecnico('${escapedName}', '${docIdsJson}')" title="Elimina definitivamente">🗑️ Elimina</button>
+            <button class="btn-tecnico-action btn-rename" onclick="renameTecnico('${escapedName}', '${docIdsJson}')" title="Rinomina" aria-label="Rinomina ${escapedName}">✏️ Rinomina</button>
+            <button class="btn-tecnico-action" onclick="toggleBanTecnico('${info.deviceId}', true)" title="Blocca questo dispositivo" aria-label="Blocca dispositivo ${escapedName}" style="color: #D32F2F; border-color: #D32F2F;">🚫 Blocca</button>
+            <button class="btn-tecnico-action btn-delete" onclick="deleteTecnico('${escapedName}', '${docIdsJson}')" title="Elimina definitivamente" aria-label="Elimina definitivamente ${escapedName}">🗑️ Elimina</button>
             <div class="tech-switches-group">
               <div class="switch-item">
                 <span class="switch-label">Visibilità Dashboard</span>
                 <label class="toggle">
-                  <input type="checkbox" class="tech-toggle-active" data-device-id="${escapedDeviceId}" ${visible ? 'checked' : ''} onchange="toggleTecnico('${escapedName}', this.checked, '${escapedDeviceId}')">
+                  <input type="checkbox" class="tech-toggle-active" data-device-id="${escapedDeviceId}" ${visible ? 'checked' : ''} onchange="toggleTecnico('${escapedName}', this.checked, '${escapedDeviceId}')" aria-label="Visibilità in dashboard per ${escapedName}">
                   <span class="toggle-slider"></span>
                 </label>
               </div>
               <div class="switch-item">
                 <span class="switch-label switch-label-pfs">Accesso PFS App</span>
                 <label class="toggle">
-                  <input type="checkbox" class="tech-toggle-pfs" data-device-id="${escapedDeviceId}" ${isPfsEnabled ? 'checked' : ''} onchange="handleTogglePfsAccess('${escapedDeviceId}', this.checked, '${escapedName}')">
+                  <input type="checkbox" class="tech-toggle-pfs" data-device-id="${escapedDeviceId}" ${isPfsEnabled ? 'checked' : ''} onchange="handleTogglePfsAccess('${escapedDeviceId}', this.checked, '${escapedName}')" aria-label="Accesso PFS app per ${escapedName}">
                   <span class="toggle-slider slider-pfs"></span>
                 </label>
               </div>
@@ -448,19 +459,37 @@ export async function showTecnici() {
         }
       }
 
-      content.innerHTML = `
-        <div class="content-header fade-in">
-          <div>
-            <div class="content-title">Tecnici</div>
-            <div class="content-subtitle">Abilita, disabilita e rinomina i tecnici registrati</div>
+      const existingContainer = document.getElementById('tecnici-cards-container');
+      if (existingContainer) {
+        existingContainer.innerHTML = cards;
+      } else {
+        content.innerHTML = `
+          <div class="content-header fade-in">
+            <div>
+              <div class="content-title">Tecnici</div>
+              <div class="content-subtitle">Abilita, disabilita e rinomina i tecnici registrati</div>
+            </div>
           </div>
-        </div>
-        <div class="tecnici-panel fade-in">
-          <div class="tecnici-note">⚠ I tecnici disattivati vengono nascosti dalla tabella e dai conteggi. Il loro sync continua normalmente.</div>
-          <div style="display:flex; flex-direction:column; gap:10px; margin-top:20px;">
-            ${cards}
-          </div>
-        </div>`;
+          <div class="tecnici-panel fade-in">
+            <div class="tecnici-note">⚠ I tecnici disattivati vengono nascosti dalla tabella e dai conteggi. Il loro sync continua normalmente.</div>
+            <div id="tecnici-cards-container" style="display:flex; flex-direction:column; gap:10px; margin-top:20px;">
+              ${cards}
+            </div>
+          </div>`;
+      }
+
+      // Restore scroll & focus immediately
+      if (prevScroll.content) content.scrollTop = prevScroll.content;
+      const panel = content.querySelector('.tecnici-panel');
+      if (panel && prevScroll.panel) panel.scrollTop = prevScroll.panel;
+      if (prevScroll.window) window.scrollTo(0, prevScroll.window);
+
+      if (activeDeviceId && activeClass) {
+        const matchingEl = content.querySelector(`.${activeClass}[data-device-id="${activeDeviceId}"]`);
+        if (matchingEl) {
+          try { matchingEl.focus({ preventScroll: true }); } catch (e) { matchingEl.focus(); }
+        }
+      }
     } catch(e) {
       console.error(e);
     }
@@ -482,8 +511,8 @@ export async function showTecnici() {
         <span style="font-size:10px; color:var(--text-muted); font-family:var(--font-mono)">${deviceId}</span>
       </div>
       <div class="tecnici-actions">
-        <button class="btn-tecnico-action btn-rename" onclick="renameWebTecnico('${escapedId}', '${escapedDisplayName}')" title="Rinomina">✏️ Rinomina</button>
-        <button class="btn-tecnico-action btn-delete" onclick="deleteWebTecnico('${escapedId}')" title="Rimuovi dal registro">🗑️ Rimuovi</button>
+        <button class="btn-tecnico-action btn-rename" onclick="renameWebTecnico('${escapedId}', '${escapedDisplayName}')" title="Rinomina" aria-label="Rinomina utente web ${escapedDisplayName}">✏️ Rinomina</button>
+        <button class="btn-tecnico-action btn-delete" onclick="deleteWebTecnico('${escapedId}')" title="Rimuovi dal registro" aria-label="Rimuovi utente web ${escapedDisplayName}">🗑️ Rimuovi</button>
       </div>
     </div>`;
   }
@@ -1098,6 +1127,20 @@ export async function showCasa() {
         return;
       }
       
+      const prevScroll = {
+        content: content ? content.scrollTop : 0,
+        panel: content?.querySelector('.tecnici-panel')?.scrollTop || 0,
+        window: window.scrollY
+      };
+      const activeEl = document.activeElement;
+      const activeDeviceId = activeEl?.closest('tr')?.dataset?.deviceId || null;
+      const activeFieldClass = activeEl?.classList?.contains('txt-address') ? 'txt-address'
+        : (activeEl?.classList?.contains('txt-lat') ? 'txt-lat'
+        : (activeEl?.classList?.contains('txt-lng') ? 'txt-lng' : null));
+      const activeVal = activeEl && activeFieldClass ? activeEl.value : null;
+      const activeSelStart = activeEl?.selectionStart;
+      const activeSelEnd = activeEl?.selectionEnd;
+
       let rowsHtml = '';
       const sortedTechs = [...allTecnici.entries()].sort((a, b) => a[0].localeCompare(b[0]));
       
@@ -1114,48 +1157,74 @@ export async function showCasa() {
               <div style="font-size:11px; color:var(--text-muted); font-family:var(--font-mono); margin-top:2px;">${info.deviceId} (${typeLabel})</div>
             </td>
             <td>
-              <input type="text" class="rename-field txt-address" placeholder="Es: Via Roma 1, Torino" value="${escapeHtml(info.homeAddress)}" style="width:100%; margin:0; padding:6px 10px; font-size:13px;" onkeydown="if(event.key==='Enter') saveHomePosition('${info.deviceId}', this)">
+              <input type="text" class="rename-field txt-address" placeholder="Es: Via Roma 1, Torino" value="${escapeHtml(info.homeAddress)}" style="width:100%; margin:0; padding:6px 10px; font-size:13px;" onkeydown="if(event.key==='Enter') saveHomePosition('${info.deviceId}', this)" aria-label="Indirizzo casa per ${escapeHtml(name)}">
             </td>
             <td>
               <div style="display:flex; gap:6px; align-items:center;">
-                <input type="text" class="rename-field txt-lat" placeholder="Lat" value="${escapeHtml(info.homeLat)}" style="width:75px; margin:0; padding:6px; font-size:13px; font-family:var(--font-mono); text-align:center;">
-                <input type="text" class="rename-field txt-lng" placeholder="Lng" value="${escapeHtml(info.homeLng)}" style="width:75px; margin:0; padding:6px; font-size:13px; font-family:var(--font-mono); text-align:center;">
-                <button class="btn-outline" style="padding:6px 10px; font-size:12px;" onclick="geocodeAddress('${info.deviceId}', this)" title="Cerca coordinate da indirizzo">🔍 Cerca</button>
+                <input type="text" class="rename-field txt-lat" placeholder="Lat" value="${escapeHtml(info.homeLat)}" style="width:75px; margin:0; padding:6px; font-size:13px; font-family:var(--font-mono); text-align:center;" aria-label="Latitudine per ${escapeHtml(name)}">
+                <input type="text" class="rename-field txt-lng" placeholder="Lng" value="${escapeHtml(info.homeLng)}" style="width:75px; margin:0; padding:6px; font-size:13px; font-family:var(--font-mono); text-align:center;" aria-label="Longitudine per ${escapeHtml(name)}">
+                <button class="btn-outline" style="padding:6px 10px; font-size:12px;" onclick="geocodeAddress('${info.deviceId}', this)" title="Cerca coordinate da indirizzo" aria-label="Cerca coordinate per ${escapeHtml(name)}">🔍 Cerca</button>
               </div>
             </td>
             <td style="text-align:right;">
-              <button class="login-btn btn-save-home" style="padding:6px 12px; font-size:13px; font-weight:600; width:auto; display:inline-block;" onclick="saveHomePosition('${info.deviceId}', this)">Salva</button>
+              <button class="login-btn btn-save-home" style="padding:6px 12px; font-size:13px; font-weight:600; width:auto; display:inline-block;" onclick="saveHomePosition('${info.deviceId}', this)" aria-label="Salva posizione per ${escapeHtml(name)}">Salva</button>
             </td>
           </tr>
         `;
       }
       
-      content.innerHTML = `
-        <div class="content-header fade-in">
-          <div>
-            <div class="content-title">Posizione Casa Tecnici</div>
-            <div class="content-subtitle">Imposta l'indirizzo di casa dei tecnici per i calcoli di percorso</div>
+      const existingTbody = document.getElementById('casa-table-body');
+      if (existingTbody) {
+        existingTbody.innerHTML = rowsHtml;
+      } else {
+        content.innerHTML = `
+          <div class="content-header fade-in">
+            <div>
+              <div class="content-title">Posizione Casa Tecnici</div>
+              <div class="content-subtitle">Imposta l'indirizzo di casa dei tecnici per i calcoli di percorso</div>
+            </div>
           </div>
-        </div>
-        <div class="tecnici-panel fade-in">
-          <div class="tecnici-note">Inserisci l'indirizzo di casa del tecnico e premi Cerca per geocodificare le coordinate di latitudine e longitudine, poi clicca Salva.</div>
-          <div class="table-scroll" style="margin-top:20px; padding:0;">
-            <table class="tecnici-table">
-              <thead>
-                <tr>
-                  <th>Tecnico</th>
-                  <th>Indirizzo Casa</th>
-                  <th>Coordinate (Lat / Lng)</th>
-                  <th style="text-align:right;">Azione</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${rowsHtml}
-              </tbody>
-            </table>
+          <div class="tecnici-panel fade-in">
+            <div class="tecnici-note">Inserisci l'indirizzo di casa del tecnico e premi Cerca per geocodificare le coordinate di latitudine e longitudine, poi clicca Salva.</div>
+            <div class="table-scroll" style="margin-top:20px; padding:0;">
+              <table class="tecnici-table">
+                <thead>
+                  <tr>
+                    <th>Tecnico</th>
+                    <th>Indirizzo Casa</th>
+                    <th>Coordinate (Lat / Lng)</th>
+                    <th style="text-align:right;">Azione</th>
+                  </tr>
+                </thead>
+                <tbody id="casa-table-body">
+                  ${rowsHtml}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
-      `;
+        `;
+      }
+
+      if (prevScroll.content) content.scrollTop = prevScroll.content;
+      const panel = content.querySelector('.tecnici-panel');
+      if (panel && prevScroll.panel) panel.scrollTop = prevScroll.panel;
+      if (prevScroll.window) window.scrollTo(0, prevScroll.window);
+
+      if (activeDeviceId && activeFieldClass) {
+        const row = content.querySelector(`tr[data-device-id="${activeDeviceId}"]`);
+        const inp = row?.querySelector(`.${activeFieldClass}`);
+        if (inp) {
+          if (activeVal !== null && activeVal !== inp.value) {
+            inp.value = activeVal;
+          }
+          try {
+            inp.focus({ preventScroll: true });
+            if (activeSelStart !== null && activeSelEnd !== null) {
+              inp.setSelectionRange(activeSelStart, activeSelEnd);
+            }
+          } catch(e) { inp.focus(); }
+        }
+      }
       
     } catch (e) {
       console.error(e);

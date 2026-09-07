@@ -123,44 +123,39 @@ export async function showPfsDashboard() {
   function renderIfReady() {
     if (!signalsLoaded || !logsLoaded) return;
 
-    // Salva le checkbox selezionate prima del render
-    const checkedSigs = Array.from(document.querySelectorAll('.sig-check:checked')).map(cb => cb.closest('.pfs-card').dataset.id);
-    const checkedLogs = Array.from(document.querySelectorAll('.log-check:checked')).map(cb => cb.closest('.pfs-card').dataset.id);
+    const prevScroll = {
+      content: content ? content.scrollTop : 0,
+      panel: content?.querySelector('.tecnici-panel')?.scrollTop || 0,
+      window: window.scrollY
+    };
 
-    let html = `
-      <div class="content-header fade-in">
-        <div>
-          <div class="content-title">Gestione PFS</div>
-          <div class="content-subtitle">Elimina o gestisci segnalazioni ed accessi</div>
-        </div>
-      </div>
-      <div class="tecnici-panel fade-in">
-        <div id="pfs-delete-toolbar" class="delete-toolbar">
-          <span id="pfs-delete-count" style="font-size:14px; font-weight:600; color:var(--red)">0 selezionati</span>
-          <button class="btn-bulk-delete" onclick="deleteSelectedPfs()">Elimina Selezionati</button>
-        </div>`;
+    // Salva le checkbox selezionate prima del render
+    const checkedSigs = Array.from(document.querySelectorAll('.sig-check:checked')).map(cb => cb.closest('.pfs-card')?.dataset?.id).filter(Boolean);
+    const checkedLogs = Array.from(document.querySelectorAll('.log-check:checked')).map(cb => cb.closest('.pfs-card')?.dataset?.id).filter(Boolean);
+
+    let sectionsHtml = '';
 
     // ── Section 1: Signals ──
-    html += `<div style="margin-bottom:48px">
+    sectionsHtml += `<div style="margin-bottom:48px">
       <h3 class="pfs-section-title pfs-section-red">
         <span class="pfs-section-dot" style="background:var(--red)"></span>
         Nuovi Indirizzi
         <span class="pfs-badge">${signals.length}</span>
         ${signals.length > 0 ? `<label class="pfs-check-wrapper" style="margin-left:8px" title="Seleziona tutti">
-          <input type="checkbox" onclick="toggleAllPfs('sig', this.checked)">
+          <input type="checkbox" onclick="toggleAllPfs('sig', this.checked)" aria-label="Seleziona tutte le segnalazioni">
           <span class="pfs-check-custom"></span>
         </label>` : ''}
       </h3>`;
 
     if (signals.length === 0) {
-      html += `<div class="pfs-empty">Nessuna segnalazione.</div>`;
+      sectionsHtml += `<div class="pfs-empty">Nessuna segnalazione.</div>`;
     } else {
       signals.forEach(s => {
         const mapUrl = s.lat && s.lng ? `https://www.google.com/maps?q=${s.lat},${s.lng}` : null;
-        html += `<div class="pfs-card" data-id="${escapeHtml(s.id)}" data-coll="pfs_segnalati">
+        sectionsHtml += `<div class="pfs-card" data-id="${escapeHtml(s.id)}" data-coll="pfs_segnalati">
           <div class="pfs-card-check">
             <label class="pfs-check-wrapper">
-              <input type="checkbox" class="sig-check" onclick="updatePfsToolbar()">
+              <input type="checkbox" class="sig-check" onclick="updatePfsToolbar()" aria-label="Seleziona segnalazione per ${escapeHtml(s.nome_pfs || 'PFS')}">
               <span class="pfs-check-custom"></span>
             </label>
           </div>
@@ -174,61 +169,81 @@ export async function showPfsDashboard() {
             </div>
           </div>
           <div class="pfs-card-actions">
-            ${mapUrl ? `<a href="${mapUrl}" target="_blank" rel="noopener noreferrer" class="pfs-action-btn pfs-action-map" title="Mappa">📍</a>` : ''}
-            <button class="pfs-action-btn pfs-action-del" onclick="deletePfsItem('${escapeHtml(s.id)}', 'pfs_segnalati')" title="Elimina">
+            ${mapUrl ? `<a href="${mapUrl}" target="_blank" rel="noopener noreferrer" class="pfs-action-btn pfs-action-map" title="Mappa" aria-label="Visualizza mappa per ${escapeHtml(s.nome_pfs)}">📍</a>` : ''}
+            <button class="pfs-action-btn pfs-action-del" onclick="deletePfsItem('${escapeHtml(s.id)}', 'pfs_segnalati')" title="Elimina" aria-label="Elimina segnalazione per ${escapeHtml(s.nome_pfs)}">
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
             </button>
           </div>
         </div>`;
       });
     }
-    html += `</div>`;
+    sectionsHtml += `</div>`;
 
     // ── Section 2: Logs ──
-    html += `<div>
+    sectionsHtml += `<div>
       <h3 class="pfs-section-title pfs-section-accent">
         <span class="pfs-section-dot" style="background:var(--accent)"></span>
         Log Accessi (Accuracy)
         <span class="pfs-badge">${logs.length}</span>
         ${logs.length > 0 ? `<label class="pfs-check-wrapper" style="margin-left:8px" title="Seleziona tutti">
-          <input type="checkbox" onclick="toggleAllPfs('log', this.checked)">
+          <input type="checkbox" onclick="toggleAllPfs('log', this.checked)" aria-label="Seleziona tutti i log">
           <span class="pfs-check-custom"></span>
         </label>` : ''}
       </h3>`;
 
     if (logs.length === 0) {
-      html += `<div class="pfs-empty">Nessun log.</div>`;
+      sectionsHtml += `<div class="pfs-empty">Nessun log.</div>`;
     } else {
-      logs.slice(0, 100).forEach(l => {
-        const mapUrl = `https://www.google.com/maps?q=${l.lat},${l.lng}`;
-        html += `<div class="pfs-card" data-id="${escapeHtml(l.id)}" data-coll="pfs_logs">
+      logs.forEach(l => {
+        const mapUrl = l.lat != null && l.lng != null ? `https://www.google.com/maps?q=${l.lat},${l.lng}` : null;
+        sectionsHtml += `<div class="pfs-card" data-id="${escapeHtml(l.id)}" data-coll="pfs_logs">
           <div class="pfs-card-check">
             <label class="pfs-check-wrapper">
-              <input type="checkbox" class="log-check" onclick="updatePfsToolbar()">
+              <input type="checkbox" class="log-check" onclick="updatePfsToolbar()" aria-label="Seleziona log per ${escapeHtml(l.nome_pfs || 'PFS')}">
               <span class="pfs-check-custom"></span>
             </label>
           </div>
           <div class="pfs-card-body">
             <div class="pfs-card-title">${escapeHtml(l.nome_pfs)}</div>
-            <div class="pfs-card-sub">${escapeHtml(l.indirizzo_pfs || '')}</div>
+            <div class="pfs-card-sub">${l.lat != null && l.lng != null ? `Lat: ${l.lat.toFixed(5)}, Lng: ${l.lng.toFixed(5)}` : 'Coordinate non disponibili'}${l.accuracy != null ? ` (Precisione: ±${Math.round(l.accuracy)}m)` : ''}</div>
             <div class="pfs-card-meta">
-              <span class="pfs-meta-item">👷 ${escapeHtml(l.tecnico)}</span>
+              <span class="pfs-meta-item">📱 ${escapeHtml(l.tecnico)}</span>
               <span class="pfs-meta-item pfs-meta-time">🕐 ${escapeHtml(l.orario)}</span>
-              <span class="pfs-meta-item pfs-meta-coords">📌 ${l.lat != null && l.lng != null ? `${l.lat.toFixed(5)}, ${l.lng.toFixed(5)}` : '—'}</span>
+              ${l.comune ? `<span class="pfs-meta-item">🏘️ ${escapeHtml(l.comune)}</span>` : ''}
             </div>
           </div>
           <div class="pfs-card-actions">
-            <a href="${mapUrl}" target="_blank" rel="noopener noreferrer" class="pfs-action-btn pfs-action-map" title="Controlla">📍</a>
-            <button class="pfs-action-btn pfs-action-del" onclick="deletePfsItem('${escapeHtml(l.id)}', 'pfs_logs')" title="Elimina">
+            ${mapUrl ? `<a href="${mapUrl}" target="_blank" rel="noopener noreferrer" class="pfs-action-btn pfs-action-map" title="Controlla" aria-label="Visualizza mappa per ${escapeHtml(l.nome_pfs)}">📍</a>` : ''}
+            <button class="pfs-action-btn pfs-action-del" onclick="deletePfsItem('${escapeHtml(l.id)}', 'pfs_logs')" title="Elimina" aria-label="Elimina log per ${escapeHtml(l.nome_pfs)}">
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
             </button>
           </div>
         </div>`;
       });
     }
-    html += `</div></div>`;
+    sectionsHtml += `</div>`;
 
-    content.innerHTML = html;
+    const existingContainer = document.getElementById('pfs-content-container');
+    if (existingContainer) {
+      existingContainer.innerHTML = sectionsHtml;
+    } else {
+      content.innerHTML = `
+        <div class="content-header fade-in">
+          <div>
+            <div class="content-title">Gestione PFS</div>
+            <div class="content-subtitle">Elimina o gestisci segnalazioni ed accessi</div>
+          </div>
+        </div>
+        <div class="tecnici-panel fade-in">
+          <div id="pfs-delete-toolbar" class="delete-toolbar">
+            <span id="pfs-delete-count" style="font-size:14px; font-weight:600; color:var(--red)">0 selezionati</span>
+            <button class="btn-bulk-delete" onclick="deleteSelectedPfs()" aria-label="Elimina elementi selezionati">Elimina Selezionati</button>
+          </div>
+          <div id="pfs-content-container">
+            ${sectionsHtml}
+          </div>
+        </div>`;
+    }
 
     // Ripristina le checkbox selezionate
     checkedSigs.forEach(id => {
@@ -240,6 +255,11 @@ export async function showPfsDashboard() {
       if (cb) cb.checked = true;
     });
     updatePfsToolbar();
+
+    if (prevScroll.content) content.scrollTop = prevScroll.content;
+    const panel = content.querySelector('.tecnici-panel');
+    if (panel && prevScroll.panel) panel.scrollTop = prevScroll.panel;
+    if (prevScroll.window) window.scrollTo(0, prevScroll.window);
   }
 
   const unsubSigs = onSnapshot(collection(db, 'pfs_segnalati'), (snap) => {
@@ -294,7 +314,6 @@ export async function deletePfsItem(id, collectionName) {
   try {
     await deleteDoc(doc(db, collectionName, id));
     showToast('Elemento eliminato.', 'success');
-    showPfsDashboard();
   } catch(e) {
     showToast('Errore: ' + e.message, 'error', 5000);
   }
@@ -324,7 +343,6 @@ export async function deleteSelectedPfs() {
     });
     await Promise.all(promises);
     showToast(`${count} element${count === 1 ? 'o eliminato' : 'i eliminati'}.`, 'success');
-    showPfsDashboard();
   } catch(e) {
     showToast('Errore durante la cancellazione multipla: ' + e.message, 'error', 5000);
     if (btn) { btn.textContent = `Elimina Selezionati`; btn.disabled = false; }

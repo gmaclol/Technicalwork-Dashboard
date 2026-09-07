@@ -27,6 +27,10 @@ window.addEventListener('offline', updateOnlineStatus);
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
   try { localStorage.setItem('tw_theme', theme); } catch(e) {}
+  const metaTheme = document.querySelector('meta[name="theme-color"]');
+  if (metaTheme) {
+    metaTheme.setAttribute('content', theme === 'light' ? '#f8fafc' : '#020617');
+  }
 }
 export function toggleTheme() {
   const current = document.documentElement.getAttribute('data-theme') || 'dark';

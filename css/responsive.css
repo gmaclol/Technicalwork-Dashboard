@@ -65,6 +65,9 @@
 
   .tecnici-panel {
     overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
     flex: 1;
     min-height: 0;
   }
@@ -398,6 +401,10 @@
     padding-top: 8px;
     border-top: 1px solid var(--border);
     margin-top: 4px;
+  }
+  .switch-item {
+    min-height: 44px;
+    justify-content: center;
   }
   .toggle-wrap .btn-outline {
     width: 100%;

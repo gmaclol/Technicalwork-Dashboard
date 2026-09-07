@@ -23,6 +23,13 @@ export async function showAreeDashboard() {
   stopAreeListener();
 
   subscribeToDevicesNames('aree_dashboard', (data) => {
+    // Preserve scroll position
+    const prevScroll = {
+      content: content ? content.scrollTop : 0,
+      panel: content?.querySelector('.tecnici-panel')?.scrollTop || 0,
+      window: window.scrollY
+    };
+
     // Preserve focus and selection
     const activeId = document.activeElement ? document.activeElement.id : null;
     const selectionStart = activeId ? document.activeElement.selectionStart : null;
@@ -76,14 +83,14 @@ export async function showAreeDashboard() {
               <span class="toggle-device" style="font-size:0.85rem; margin-left: 8px; opacity: 0.7;">ID: ${escapeHtml(dev.id)}</span>
             </div>
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
-              <button class="btn-outline" onclick="renameDevice('${escapeHtml(dev.id)}', '${escapeHtml(dev.name)}')" style="width: auto; padding: 6px 16px; font-size: 0.85rem; border-color: var(--accent); color: var(--accent);">✏️ Rinomina</button>
-              <button class="btn-outline" onclick="savePfsAreas('${escapeHtml(dev.id)}')" style="width: auto; padding: 6px 16px; font-size: 0.85rem; border-color: var(--accent); color: var(--accent);">💾 Salva Aree</button>
-              <button class="btn-outline" onclick="deleteDeviceAreas('${escapeHtml(dev.id)}')" style="width: auto; padding: 6px 16px; font-size: 0.85rem; border-color: var(--red); color: var(--red);">🗑️ Elimina</button>
+              <button class="btn-outline" onclick="renameDevice('${escapeHtml(dev.id)}', '${escapeHtml(dev.name)}')" style="width: auto; padding: 6px 16px; font-size: 0.85rem; border-color: var(--accent); color: var(--accent);" aria-label="Rinomina ${escapeHtml(dev.name)}">✏️ Rinomina</button>
+              <button class="btn-outline" onclick="savePfsAreas('${escapeHtml(dev.id)}')" style="width: auto; padding: 6px 16px; font-size: 0.85rem; border-color: var(--accent); color: var(--accent);" aria-label="Salva aree preferite per ${escapeHtml(dev.name)}">💾 Salva Aree</button>
+              <button class="btn-outline" onclick="deleteDeviceAreas('${escapeHtml(dev.id)}')" style="width: auto; padding: 6px 16px; font-size: 0.85rem; border-color: var(--red); color: var(--red);" aria-label="Elimina aree preferite per ${escapeHtml(dev.name)}">🗑️ Elimina</button>
             </div>
           </div>
           <div style="display:flex; flex-direction:column; gap:6px;">
             <label for="areas-${dev.id}" style="font-size:0.85rem; color:var(--text-muted); font-weight: 600;">Aree preferite (separate da virgola):</label>
-            <input type="text" id="areas-${escapeHtml(dev.id)}" value="${escapeHtml(areasString)}" class="rename-field" placeholder="Es. Grugliasco, Torino, TOH_1">
+            <input type="text" id="areas-${escapeHtml(dev.id)}" value="${escapeHtml(areasString)}" class="rename-field" placeholder="Es. Grugliasco, Torino, TOH_1" aria-label="Aree preferite per ${escapeHtml(dev.name)}">
           </div>
         </div>
       `;
@@ -110,29 +117,39 @@ export async function showAreeDashboard() {
       }
     }
 
-    content.innerHTML = `
-      <div class="content-header fade-in">
-        <div>
-          <div class="content-title">Aree Preferite</div>
-          <div class="content-subtitle">Gestisci le aree di lavoro preferite per ciascun dispositivo</div>
+    const existingContainer = document.getElementById('aree-devices-container');
+    if (existingContainer) {
+      existingContainer.innerHTML = devicesHtml;
+    } else {
+      content.innerHTML = `
+        <div class="content-header fade-in">
+          <div>
+            <div class="content-title">Aree Preferite</div>
+            <div class="content-subtitle">Gestisci le aree di lavoro preferite per ciascun dispositivo</div>
+          </div>
         </div>
-      </div>
-      <div class="tecnici-panel fade-in">
-        <div class="tecnici-note">
-          Queste sono le aree (comuni, province o PFS) preferite di ogni tecnico (quelle con la stellina attiva).
-          Modificando queste aree e salvando, l'app del tecnico si aggiornerà in tempo reale.
+        <div class="tecnici-panel fade-in">
+          <div class="tecnici-note">
+            Queste sono le aree (comuni, province o PFS) preferite di ogni tecnico (quelle con la stellina attiva).
+            Modificando queste aree e salvando, l'app del tecnico si aggiornerà in tempo reale.
+          </div>
+          <div id="aree-devices-container" style="display:flex; flex-direction:column; gap:16px; margin-top:20px;">
+            ${devicesHtml}
+          </div>
         </div>
-        <div style="display:flex; flex-direction:column; gap:16px; margin-top:20px;">
-          ${devicesHtml}
-        </div>
-      </div>
-    `;
+      `;
+    }
+
+    if (prevScroll.content) content.scrollTop = prevScroll.content;
+    const panel = content.querySelector('.tecnici-panel');
+    if (panel && prevScroll.panel) panel.scrollTop = prevScroll.panel;
+    if (prevScroll.window) window.scrollTo(0, prevScroll.window);
 
     // Restore focus and selection
     if (activeId) {
       const el = document.getElementById(activeId);
       if (el) {
-        el.focus();
+        try { el.focus({ preventScroll: true }); } catch(e) { el.focus(); }
         if (activeValue !== null) el.value = activeValue;
         try { el.setSelectionRange(selectionStart, selectionEnd); } catch(e){}
       }

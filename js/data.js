@@ -1459,8 +1459,13 @@ function renderTable(appalto, tecnici, container, dateKey = 'live', allDocs = []
     return;
   }
 
-  // ── Step 6: Save search value before full re-render ──
+  // ── Step 6: Save search and scroll values before full re-render ──
   const savedSearch = document.getElementById('material-search')?.value || '';
+  const prevTableScroll = {
+    left: container.querySelector('.table-scroll')?.scrollLeft || 0,
+    top: container.querySelector('.table-scroll')?.scrollTop || 0,
+    containerTop: container.scrollTop
+  };
 
   // ── Full render ──
   const todayYMD = new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0') + '-' + String(new Date().getDate()).padStart(2, '0');
@@ -1667,8 +1672,8 @@ function renderTable(appalto, tecnici, container, dateKey = 'live', allDocs = []
       if (isAdmin && dateKey === 'live' && isExtra) {
         adminActionsHtml = `
           <span class="material-row-actions">
-            <button class="btn-mat-action btn-mat-edit" data-material="${escapeHtml(mat)}" onclick="editMaterialRow(this.dataset.material)" title="Modifica nome materiale">✏️</button>
-            <button class="btn-mat-action btn-mat-delete" data-material="${escapeHtml(mat)}" onclick="deleteMaterialRow(this.dataset.material)" title="Elimina intera riga materiale">🗑️</button>
+            <button class="btn-mat-action btn-mat-edit" data-material="${escapeHtml(mat)}" onclick="editMaterialRow(this.dataset.material)" title="Modifica nome materiale" aria-label="Modifica nome materiale ${escapeHtml(mat)}">✏️</button>
+            <button class="btn-mat-action btn-mat-delete" data-material="${escapeHtml(mat)}" onclick="deleteMaterialRow(this.dataset.material)" title="Elimina intera riga materiale" aria-label="Elimina intera riga materiale ${escapeHtml(mat)}">🗑️</button>
           </span>
         `;
       }
@@ -1698,6 +1703,14 @@ function renderTable(appalto, tecnici, container, dateKey = 'live', allDocs = []
  
   html += `</div>`;
   container.innerHTML = html;
+
+  // Restore scroll positions immediately
+  const newTableScroll = container.querySelector('.table-scroll');
+  if (newTableScroll) {
+    if (prevTableScroll.left) newTableScroll.scrollLeft = prevTableScroll.left;
+    if (prevTableScroll.top) newTableScroll.scrollTop = prevTableScroll.top;
+  }
+  if (prevTableScroll.containerTop) container.scrollTop = prevTableScroll.containerTop;
  
   // Save references for export
   window._lastTecnici = tecnici;

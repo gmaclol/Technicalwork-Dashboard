@@ -41,6 +41,14 @@
 .toggle input:checked + .toggle-slider::before,
 .switch input:checked + .slider.round::before { transform: translateX(20px); }
 
+/* Focus visibile per accessibilità da tastiera */
+.toggle input:focus-visible + .toggle-slider,
+.switch input:focus-visible + .slider.round {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 4px var(--accent-glow);
+}
+
 /* ── TECH SWITCHES GROUP (Dual Slider con Etichette Superiori) ── */
 .tech-switches-group {
   display: flex;

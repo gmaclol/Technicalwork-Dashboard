@@ -1,5 +1,16 @@
 # lessons.md — Dashboard (tchwrk2)
 
+## Errore Reset Scroll e Re-render Distruttivo sui Toggle/Interazioni Real-Time
+Quando un utente aziona un controllo interattivo locale (ad es. switch visibilità dashboard o switch permessi PFS di un tecnico, eliminazione PFS o salvataggio aree), la scrittura su Firestore scatena i listener `onSnapshot` / Pub-Sub. Se il modulo ricrea l'intero DOM (`content.innerHTML = ...` con classi `.fade-in` sulla testata e sui pannelli):
+1. La pagina sfarfalla rifacendo l'animazione di fade-in da capo.
+2. La posizione di scroll viene azzerata sia a livello desktop (`content.scrollTop`) sia mobile (`.tecnici-panel.scrollTop`, `window.scrollY`), facendo risalire l'utente forzatamente in cima.
+3. Il fuoco di navigazione da tastiera o screen reader viene perso.
+*Soluzione:*
+1. **Preservazione dello Scroll**: Salvare sempre `content.scrollTop`, `.tecnici-panel.scrollTop` e `window.scrollY` all'inizio della callback di render e ripristinarli immediatamente dopo la scrittura del DOM.
+2. **Partial DOM Update**: Non distruggere l'intero contenitore `.content` o `.content-header` se la struttura è già montata. Aggiornare esclusivamente il contenitore interno specifico (es. `#tecnici-cards-container`, `#pfs-content-container`, `#casa-table-body`, `#aree-devices-container`).
+3. **Preservazione del Focus**: Catturare `data-device-id` o l'ID dell'elemento attivo prima del re-render e ripristinarlo con `element.focus({ preventScroll: true })`.
+4. **Niente refresh manuali distruttivi**: Mai chiamare `showPfsDashboard()` o simili dopo una delete o toggle locale; lasciare che sia l'`onSnapshot` ad aggiornare i dati in modo trasparente.
+
 ## Errore Toast HTML
 I toast nativi custom `showToast` facevano per design l'escape HTML dei messaggi per limitare XSS. Volendo implementare grassetti `<br>` e `<b>` per le notifiche, le tag apparivano come plaintext.
 *Soluzione:* Invece di far passare stringhe libere pericolose (nomi tecnici/indirizzi inseriti da utente), l'architettura sicura è:
