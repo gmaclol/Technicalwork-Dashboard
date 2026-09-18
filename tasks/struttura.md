@@ -1,6 +1,6 @@
 # struttura.md — Dashboard (tchwrk2)
 
-*Ultimo aggiornamento: 2026-07-02 — Fix editing materiali (FieldPath), modale aggiunta tecnici globali, scroll/click-outside modal*
+*Ultimo aggiornamento: 2026-09-18 — Fix presenza online RTDB zombi, Ranking e podio tecnici per utilizzo*
 
 ---
 
@@ -26,7 +26,7 @@
 | Firebase Init | Inizializzazione Firestore + RTDB, export funzioni | `js/firebase.js` |
 | Core Dati | Fetch liste, render griglia materiali, KPI, snapshot | `js/data.js` |
 | Admin: PFS | Gestione segnalazioni e log PFS (real-time) | `js/pfs.js` |
-| Admin: Tecnici | Elenco tecnici, rinomina, nascondi, killswitch/blocco | `js/tecnici.js` |
+| Admin: Tecnici | Elenco tecnici, ranking per utilizzo, rinomina, nascondi, blocco | `js/tecnici.js` |
 | Admin: Aree | Gestione aree preferite per dispositivo | `js/aree.js` |
 | PFS Lookup | Ricerca PFS da GitHub (tutti gli utenti) | `js/pfsLookup.js` |
 | Export | Esportazione Excel e Stampa tabella | `js/export.js` |
@@ -75,11 +75,13 @@
 8. Filtro materiali: `filterMaterials()` opera lato client sul DOM
 
 ### 2.4 Presenza Online (RTDB)
-1. `app.js:initPresence()` → aggancia `.info/connected` su RTDB
-2. Ogni tab apre una connessione univoca (`connections/conId`)
-3. `onDisconnect()` rimuove la connessione quando il client si disconnette
-4. `visibilitychange` → stato offline quando in background, online quando in foreground
-5. Admin vede contatore utenti online da RTDB + nomi custom da `settings/devices_names`
+1. `app.js:initPresence()` → guardia di idempotenza (evita doppie registrazioni) e aggancia `.info/connected` su RTDB
+2. Ogni tab apre una connessione univoca (`connections/conId`) sotto `/status/<deviceId>`
+3. `onDisconnect()` rimuove la chiave di connessione quando il client o tab viene chiuso
+4. Eventi `pagehide` e `beforeunload` rimuovono esplicitamente la connessione e settano `state: 'offline'`
+5. `visibilitychange` → imposta stato offline se la pagina è in background o minimizzata, online quando a fuoco
+6. Valutazione rigorosa di stato: un client web è online SOLO se `state === 'online'` E possiede almeno una connessione attiva (`connections` con chiavi > 0); per client nativi (Android) fa fede `state === 'online'`
+7. Contatore topbar: deduplicazione per nome/utente (più schede dello stesso utente contano come 1 solo utente online)
 
 ### 2.5 PFS Lookup (Ricerca Aree)
 1. `initPfsLookup()` → carica aree preferite da Firestore, fetch JSON regioni da GitHub
@@ -99,6 +101,14 @@
 ### 2.7 Export e Stampa
 1. `export.js:exportToExcel()` → carica ExcelJS (CDN), costruisce workbook, trigger download
 2. `export.js:printTable()` → apre finestra con HTML formattato, scala per A4 landscape, window.print()
+3. `export.js:exportToImage()` → esportazione tabellare PNG e condivisione social nativa
+
+### 2.8 Ranking & Leaderboard Tecnici (`js/tecnici.js`)
+1. Cattura snapshot storici senza letture Firestore extra sfruttando `appaltiSnapshots` già popolati dagli `onSnapshot`
+2. Calcolo `usageCount` per ogni tecnico Android: presenze complessive negli snapshot storici + attività del giorno corrente
+3. Ordinamento predefinito decrescente per utilizzo (`_tecniciSortMode = 'usage'`): il tecnico più attivo in cima
+4. Visualizzazione Podio Top 3 (🥇 1° oro, 🥈 2° argento, 🥉 3° bronzo) con badge di posizione e contatore utilizzi/materiali
+5. Switcher rapido modalità ordinamento: 🏆 Più Utilizzati, 🕒 Ultimo Sync tramite `setTecniciSortMode`
 
 ---
 
@@ -106,8 +116,8 @@
 
 ### 3.1 JavaScript Core
 
-#### `js/app.js` (400 righe)
-**Responsabilità:** Entry point SPA, hash router, orchestra inizializzazione e cleanup listener. Gestisce tema, presence online (RTDB), offline banner, PWA auto-update.
+#### `js/app.js` (420 righe)
+**Responsabilità:** Entry point SPA, hash router, orchestra inizializzazione e cleanup listener. Gestisce tema, presence online (RTDB) con deduplicazione sessioni e logica anti-zombie, offline banner, PWA auto-update.
 
 **Funzioni:** `handleHashChange()`, `buildSidebar()`, `initPresence()`, `stopPresence()`, `applyTheme()`, `toggleTheme()`, `updateOnlineStatus()`
 
@@ -117,7 +127,7 @@
 
 **Side effects:** Scrive su RTDB `/status/*` per presenza, scrive su localStorage per tema
 
-**Stato:** stabile
+**Stato:** stabile — fixati: eliminato auto-reconnect loop `_selfStateUnsub`, isolata presenza reale con `connections` attive, deduplicazione conteggio topbar, pulizia `beforeunload`/`pagehide`.
 
 #### `js/auth.js`
 **Responsabilità:** Autenticazione con Firebase Authentication (email/password o username con suffissione automatica), lettura ruoli da `userRoles/{uid}` su Firestore, gestione sessione nativa con `onAuthStateChanged`, logout sicuro e pulizia stato.
@@ -181,10 +191,10 @@
 
 **Stato:** stabile — fixata XSS (importato escapeHtml, escaping nomi PFS e indirizzi), .catch vuoti convertiti in warn log
 
-#### `js/tecnici.js` (680 righe)
-**Responsabilità:** Sezione admin "Tecnici" — elenco in tempo reale con separazione Android/Web. Rinomina, nascondi/mostra, eliminazione completa. Gestione blocco dispositivi (killswitch) con conteggio documenti, eliminazione dati su blocco. Device name resolution (reverse lookup marca→modello).
+#### `js/tecnici.js` (750 righe)
+**Responsabilità:** Sezione admin "Tecnici" — elenco in tempo reale con separazione Android/Web. Calcolo statistiche d'utilizzo e ranking, podio top 3, switch modalità di ordinamento (usage, sync, nome), badge posizione. Rinomina, nascondi/mostra, eliminazione completa. Gestione blocco dispositivi (killswitch) con conteggio documenti, eliminazione dati su blocco. Device name resolution (reverse lookup marca→modello).
 
-**Funzioni:** `showTecnici()`, `showBanned()`, `deleteTecnico()`, `renameTecnico()`, `toggleTecnico()`, `handleTogglePfsAccess()`, `handleToggleTechActive()`, `renameWebTecnico()`, `deleteWebTecnico()`, `resolveDeviceName()`, `stopTecniciListeners()`, `stopBannedListeners()`
+**Funzioni:** `showTecnici()`, `showBanned()`, `setTecniciSortMode()`, `deleteTecnico()`, `renameTecnico()`, `toggleTecnico()`, `handleTogglePfsAccess()`, `handleToggleTechActive()`, `renameWebTecnico()`, `deleteWebTecnico()`, `resolveDeviceName()`, `stopTecniciListeners()`, `stopBannedListeners()`
 
 **Dipendenze:** firebase.js, state.js, utils.js, data.js
 
@@ -192,7 +202,7 @@
 
 **Side effects:** Scrive su Firestore (rename, hide/show, delete, ban), fetch GitHub per brand models
 
-**Stato:** stabile
+**Stato:** stabile — introdotto sistema di ranking per utilizzo decrescente a costo zero (basato su snapshot già caricati), podio top 3 e pillole di ordinamento rapido.
 
 #### `js/aree.js` (218 righe)
 **Responsabilità:** Sezione admin "Aree Preferite" — modifica in tempo reale delle aree preferite per ogni dispositivo. Supporta legacy (string) e nuovo formato (oggetto). Rinomina dispositivo.
@@ -253,10 +263,10 @@
 
 **Stato:** stabile
 
-#### `css/components.css` (1123 righe)
-**Responsabilità:** Tutti gli stili dei componenti: login, topbar, sidebar, table, toggle switch, content header, snapshot dropdown, button, KPI cards, toast, confirm/rename modals, PFS cards, PFS lookup accordion, region browser, search, spinner, stale badge, scrollbar, status circles, tooltip. Oltre 1100 righe.
+#### `css/components.css`
+**Responsabilità:** File indice principale dei componenti che importa via `@import` tutti i moduli specifici (`forms.css`, `sidebar.css`, `table.css`, `modal.css`, `toast.css`, `kpi.css`, `pfs.css`, `pfs-lookup.css`, `misc.css`).
 
-**Stato:** stabile — candidato a split (1123 righe, molti componenti). Fix: aggiunta `max-height: calc(100vh - 48px)` e `overflow-y: auto` a `.confirm-box` per scrollabilità modali con contenuto lungo.
+**Stato:** stabile
 
 #### `css/themes.css` (126 righe)
 **Responsabilità:** Override tema chiaro per tutti i componenti (sidebar, table, input, modal, KPI, snapshot, search, ecc.)

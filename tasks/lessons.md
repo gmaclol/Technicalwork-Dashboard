@@ -209,4 +209,20 @@ Un numero eccessivo di letture (20k+) e scritture sono state generate dalla web 
 **Causa:** Cliccando su "+ Avvia raccolta" nella colonna di dettaglio di un documento esistente, la nuova raccolta viene generata come sotto-raccolta nidificata (es. `/Consumo/ID/userRoles`) invece che a livello radice (`/userRoles`), rendendola invisibile alle query di root e alle security rules.
 **Regola:** Prima di creare una raccolta strutturale globale nella Console Firebase, tornare sempre alla radice (icona 🏠 Home nella barra del breadcrumb) e verificare che il path sia vuoto prima di premere "+ Avvia raccolta" nella prima colonna.
 
+## Errore: Sessioni Online Zombie e Loop di Auto-Ripristino in Firebase Realtime Database
+**Causa:**
+1. Valutare lo stato online con l'operatore OR permissivo (`state === 'online' || connections > 0`). Quando un browser chiude la finestra, `onDisconnect()` di RTDB rimuove automaticamente la chiave generata sotto `connections/<conId>`. Tuttavia, il campo `state: 'online'` alla radice del nodo rimane invariato sul server. Poiché la condizione usava `||`, l'utente rimaneva calcolato come perennemente online.
+2. Un listener reattivo su se stessi (`_selfStateUnsub`) monitorava `/status/myDeviceId`: non appena un evento di background (`visibilitychange`) o di disconnessione settava `state: 'offline'`, il callback scattava ri-eseguendo immediatamente una scrittura forzata di `state: 'online'`, resuscitando la sessione zombi all'infinito.
+3. Mancanza di deduplicazione nel contatore topbar: aprendo 3 schede dello stesso utente o ricaricando la pagina, il contatore segnava 3 utenti online invece di 1.
+**Regola:**
+- Per i client Web, imporre la condizione AND rigorosa: un utente web è online **SOLO SE** `u.state === 'online' && Boolean(u.connections && Object.keys(u.connections).length > 0)`.
+- MAI registrare listener ricorsivi sul proprio nodo di stato che reagiscono sovrascrivendo lo stato impostato dal server o dagli eventi di unload/visibility.
+- Registrare sempre cleanup proattivo su `beforeunload` e `pagehide` per azzerare la connessione locale.
+- Nel contatore visuale della topbar, calcolare i nominativi unici (`Set`) deduplicando le istanze multiple.
+
+## Errore: Query Aggiuntive per Metriche di Utilizzo e Classifiche (Violazione Spark Tier)
+**Causa:** Per calcolare la classifica dei tecnici in base agli utilizzi ("chi usa di più l'app"), l'istinto iniziale potrebbe essere quello di eseguire query storiche `getDocs` o contare documenti su tutte le collezioni Firestore, generando centinaia o migliaia di letture ad ogni apertura del tab Tecnici.
+**Regola:** Sfruttare sempre i dati già presenti in memoria: l'ascoltatore `onSnapshot(collection(db, appalto))` scarica nativamente l'intera collezione, inclusi tutti i documenti storici archiviati con suffisso data (`_YYYY-MM-DD`). Trattenendo questi documenti in una mappa di snapshot in-memory (`appaltiSnapshots`), è possibile calcolare il volume di utilizzo storico di ciascun tecnico istantaneamente a **costo zero (0 letture aggiuntive)**.
+
+
 

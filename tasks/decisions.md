@@ -127,6 +127,32 @@ Eliminare le credenziali e gli hash SHA-256 memorizzati in chiaro nel frontend p
    - *Versione A*: Protegge immediatamente dashboard, ruoli e dati sensibili, mantenendo attive le scritture anonime dei materiali per preservare la compatibilità con l'applicazione Android dei tecnici sul campo.
    - *Versione B*: Blindatura totale con autenticazione obbligatoria per qualsiasi richiesta (da pubblicare solo dopo aggiornamento dell'app Android con `signInAnonymously`).
 
+## 2026-09-18 — Presenza Online Rigorosa e Anti-Zombie (RTDB)
+
+**Problema:**
+Gli utenti che chiudevano la scheda o la dashboard rimanevano segnati permanentemente come "online" nel contatore della topbar.
+Le cause individuate erano tre:
+1. Valutazione `isOnline` permissiva: `u.state === 'online' || connections > 0`. Quando un browser si disconnette, RTDB cancella correttamente le chiavi in `connections/`, ma il campo `state: 'online'` rimaneva memorizzato a livello radice nel nodo del device; la condizione `||` lo considerava sempre online per l'eternità.
+2. Loop di auto-ripristino distruttivo (`_selfStateUnsub`): un listener locale osservava `/status/myDeviceId` e, non appena `visibilitychange` o una disconnessione impostava `state: 'offline'`, il callback scattava sovrascrivendo forzatamente `state: 'online'`.
+3. Dispositivi Web con identificativi volatili: generavano nodi RTDB orfani che non venivano mai azzerati.
+
+**Decisioni Architetturali:**
+- Per i client Web (`WEB-*`), considerare l'utente online **esclusivamente** se `u.state === 'online' && Boolean(u.connections && Object.keys(u.connections).length > 0)`. L'assenza di connessioni WebSocket aperte decreta inequivocabilmente lo stato offline.
+- Rimosso completamente il loop `_selfStateUnsub`.
+- Registrati listener `beforeunload` e `pagehide` per eseguire il logout pulito e la rimozione istantanea della connessione prima del congelamento o chiusura della scheda.
+- Aggiunta deduplicazione per nome utente nel contatore topbar: più schede aperte dallo stesso utente (es. Stefano su 2 monitor) contano come 1 solo utente online.
+
+## 2026-09-18 — Sistema di Classifica Tecnici & Ranking a Zero Costo Firestore
+
+**Motivazione:**
+Fornire all'amministratore e agli utenti una classifica di produttività e frequenza d'uso dell'applicazione Android da parte dei tecnici (ordinamento per utilizzo, con il più attivo in alto), senza generare letture massive su Firestore che violerebbero i vincoli del piano Spark.
+
+**Decisioni Architetturali:**
+- **Zero Letture Aggiuntive**: L'ascoltatore in tempo reale degli appalti (`onSnapshot(collection(db, appalto))`) scarica già in memoria tutti i documenti dell'appalto, compresi gli snapshot storici archiviati con suffisso data (`_YYYY-MM-DD`). Invece di scartarli o effettuare query separate, questi documenti vengono memorizzati in una mappa in-memory (`appaltiSnapshots`).
+- **Calcolo Utilizzi e Ranking Cumulativo Persistente (`usageCount`)**: Per creare un vero sistema di classifica duraturo nel tempo senza toccare l'app Android, la dashboard registra automaticamente su Firebase Realtime Database (`/sync_stats/<deviceId>/syncs/<timeKey> = 1`) ogni volta che intercetta un orario di sync diverso inviato da un'apertura, salvataggio o condivisione dell'app, oltre a seminare gli snapshot storici passati. Il totale accumulato continua a crescere nei giorni e non viene mai azzerato, calcolando in tempo reale anche il dettaglio del giorno corrente (`+N oggi`).
+- **Ordinamento Predefinito**: L'elenco tecnici Android viene ordinato per default in modo decrescente in base al conteggio di utilizzo (`usage`), posizionando il tecnico con più attività in cima.
+- **UI Podio & Pillole di Ordinamento**: Aggiunto un podio visuale per i primi 3 classificati (🥇 1° oro, 🥈 2° argento, 🥉 3° bronzo) e un gruppo di pulsanti di ordinamento rapido (`🏆 Più Utilizzati`, `🕒 Ultimo Sync`), garantendo una consultazione immediata e intuitiva.
+
 ## Stack e Vincoli — Dashboard (tchwrk2)
 
 Stack:

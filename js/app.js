@@ -13,6 +13,7 @@ import { initPfsLookup, initPfsLookupSidebar, pfsLookupSearch, pfsLookupSelectAr
 import { doLogin, doLogout, checkSession } from './auth.js';
 import { clearTecniciBadge, clearPfsBadge, clearBannedBadge } from './notifications.js';
 
+
 // ── OFFLINE BANNER ──
 function updateOnlineStatus() {
   const banner = document.getElementById('offline-banner');
@@ -79,31 +80,51 @@ async function buildSidebar() {
 }
 
 // ── PRESENCE SYSTEM (Realtime Database) ──
-let _connectedRefUnsub = null;
-let _selfStateUnsub    = null;
-let _presenceUnsub     = null;
-let _deviceNamesCache  = {};
-let _visibilityHandler = null;
-let _lastHiddenTime    = 0;
+let _connectedRefUnsub   = null;
+let _presenceUnsub       = null;
+let _deviceNamesCache    = {};
+let _visibilityHandler   = null;
+let _pageHideHandler     = null;
+let _beforeUnloadHandler = null;
+let _lastHiddenTime      = 0;
+let _presenceInitialized = false;
+let _presenceCurrentUid  = null;
 
 function initPresence() {
   if (!currentUser) return;
 
   const uid = getWebDeviceId() || `WEB-${currentUser.name}`;
+
+  // Se già inizializzato per questo utente, non duplicare i listener
+  if (_presenceInitialized && _presenceCurrentUid === uid && _connectedRefUnsub) {
+    return;
+  }
+
+  // Se cambia utente o reinstall, ferma la presenza precedente
+  if (_presenceInitialized && _presenceCurrentUid !== uid) {
+    stopPresence();
+  }
+
+  _presenceInitialized = true;
+  _presenceCurrentUid = uid;
+
   const userStatusRef = ref(rtdb, `/status/${uid}`);
-  const connectedRef = ref(rtdb, '.info/connected');
+  const connectedRef  = ref(rtdb, '.info/connected');
 
   const conId = Date.now() + '_' + Math.random().toString(36).substr(2, 5);
   const myConRef = ref(rtdb, `/status/${uid}/connections/${conId}`);
 
   _connectedRefUnsub = onValue(connectedRef, (snap) => {
     if (snap.val() === true) {
+      // Quando il client si disconnette, rimuovi questa singola connessione
       onDisconnect(myConRef).remove().then(() => {
+        // Registra la disconnessione generale solo come fallback se non ci sono altre connessioni
         onDisconnect(userStatusRef).update({
           state: 'offline',
           last_changed: serverTimestamp()
         });
 
+        // Connessione attiva
         set(myConRef, true);
         update(userStatusRef, {
           state: 'online',
@@ -111,15 +132,23 @@ function initPresence() {
           name: currentUser.name,
           type: 'web'
         });
+      }).catch(err => {
+        console.warn("Errore setup onDisconnect:", err);
       });
     }
   });
 
-  _selfStateUnsub = onValue(userStatusRef, (snap) => {
-    const data = snap.val();
-    if (!data) return;
-    const connections = data.connections || {};
-    if (data.state === 'offline' || Object.keys(connections).length === 0) {
+  // Gestione visibilità: disconnetti quando la finestra va in background (schermo spento o cambio tab)
+  _visibilityHandler = () => {
+    if (document.hidden) {
+      _lastHiddenTime = Date.now();
+      set(myConRef, null);
+      update(userStatusRef, {
+        state: 'offline',
+        last_changed: serverTimestamp()
+      });
+    } else {
+      // Ritorno in foreground: ripristina connessione e stato online
       set(myConRef, true);
       update(userStatusRef, {
         state: 'online',
@@ -127,21 +156,25 @@ function initPresence() {
         name: currentUser.name,
         type: 'web'
       });
-    }
-  });
-
-  _visibilityHandler = () => {
-    if (document.hidden) {
-      _lastHiddenTime = Date.now();
-      set(myConRef, null);
-      update(userStatusRef, { state: 'offline', last_changed: serverTimestamp() });
-    } else {
       if (_lastHiddenTime && (Date.now() - _lastHiddenTime > 60000)) {
         disableNetwork(db).then(() => enableNetwork(db));
       }
     }
   };
   document.addEventListener('visibilitychange', _visibilityHandler);
+
+  // Gestione chiusura pagina e cambio URL
+  _pageHideHandler = () => {
+    set(myConRef, null);
+    update(userStatusRef, { state: 'offline', last_changed: serverTimestamp() });
+  };
+  window.addEventListener('pagehide', _pageHideHandler);
+
+  _beforeUnloadHandler = () => {
+    set(myConRef, null);
+    update(userStatusRef, { state: 'offline', last_changed: serverTimestamp() });
+  };
+  window.addEventListener('beforeunload', _beforeUnloadHandler);
 
   // Admin online indicator
   if (currentUser.role === 'admin') {
@@ -181,13 +214,33 @@ function initPresence() {
     const updatePresenceUI = () => {
       if (!_lastPresenceSnap) return;
       const data = _lastPresenceSnap.val() || {};
-      const active = Object.keys(data).map(k => {
-        let u = data[k];
-        const isOnline = u && (u.state === 'online' || (u.connections && Object.keys(u.connections).length > 0));
-        if (!isOnline) return null;
-        const deviceName = _deviceNamesCache && _deviceNamesCache[k] ? (_deviceNamesCache[k].name || _deviceNamesCache[k].baseName || k) : k;
+      
+      // Mappa gli utenti effettivamente online
+      const activeMap = new Map();
+
+      Object.keys(data).forEach(k => {
+        const u = data[k];
+        if (!u) return;
+
+        // Criterio rigoroso: per il web deve avere state === 'online' E almeno 1 connessione aperta
+        const hasActiveConnections = Boolean(u.connections && Object.keys(u.connections).length > 0);
+        const isWeb = u.type === 'web' || k.startsWith('WEB-');
+
+        let isOnline = false;
+        if (isWeb) {
+          isOnline = u.state === 'online' && hasActiveConnections;
+        } else {
+          // Android o altro dispositivo
+          const lastChanged = u.last_changed || 0;
+          const isRecent = (Date.now() - lastChanged) < 180000; // 3 minuti
+          isOnline = (u.state === 'online' && hasActiveConnections) || (u.state === 'online' && isRecent);
+        }
+
+        if (!isOnline) return;
+
         const info = _deviceNamesCache && _deviceNamesCache[k] ? _deviceNamesCache[k] : {};
-        const isWeb = info.type === 'web' || k.startsWith('WEB-');
+        const deviceName = info.name || info.baseName || u.name || k;
+        
         let icon = '📱';
         if (isWeb) {
           const os = (info.os || '').toLowerCase();
@@ -197,12 +250,30 @@ function initPresence() {
             icon = '💻';
           }
         }
-        return { id: k, name: deviceName, icon };
-      }).filter(Boolean);
 
-      const userCount = active.length;
+        // Deduplicazione per nome utente: se lo stesso utente ha 2 finestre, contalo una sola volta
+        const normalizedName = deviceName.trim().toLowerCase();
+        if (!activeMap.has(normalizedName)) {
+          activeMap.set(normalizedName, {
+            id: k,
+            name: deviceName,
+            icon,
+            sessions: 1
+          });
+        } else {
+          activeMap.get(normalizedName).sessions += 1;
+        }
+      });
+
+      const activeUsers = Array.from(activeMap.values());
+      const userCount = activeUsers.length;
       countEl.textContent = userCount;
-      const tooltipText = active.map(u => `${u.icon} ${u.name}`).join('\n');
+
+      const tooltipText = activeUsers.map(u => {
+        const sessBadge = u.sessions > 1 ? ` (${u.sessions} schede)` : '';
+        return `${u.icon} ${u.name}${sessBadge}`;
+      }).join('\n');
+
       onlineEl.title = tooltipText;
       const tooltipEl = document.getElementById('online-tooltip');
       if (tooltipEl) tooltipEl.textContent = tooltipText || 'Nessun utente online';
@@ -231,21 +302,34 @@ function initPresence() {
 
 function stopPresence() {
   if (_connectedRefUnsub) { _connectedRefUnsub(); _connectedRefUnsub = null; }
-  if (_selfStateUnsub) { _selfStateUnsub(); _selfStateUnsub = null; }
   if (_presenceUnsub) { _presenceUnsub(); _presenceUnsub = null; }
   unsubscribeFromDevicesNames('app_presence');
+  
   if (_visibilityHandler) {
     document.removeEventListener('visibilitychange', _visibilityHandler);
     _visibilityHandler = null;
   }
+  if (_pageHideHandler) {
+    window.removeEventListener('pagehide', _pageHideHandler);
+    _pageHideHandler = null;
+  }
+  if (_beforeUnloadHandler) {
+    window.removeEventListener('beforeunload', _beforeUnloadHandler);
+    _beforeUnloadHandler = null;
+  }
+
+  _presenceInitialized = false;
+  _presenceCurrentUid = null;
+
   const onlineEl = document.getElementById('topbar-online');
   if (onlineEl) onlineEl.style.display = 'none';
+
   if (currentUser) {
     const uid = getWebDeviceId() || `WEB-${currentUser.name}`;
     update(ref(rtdb, `/status/${uid}`), {
       state: 'offline',
       last_changed: serverTimestamp()
-    });
+    }).catch(() => {});
   }
 }
 

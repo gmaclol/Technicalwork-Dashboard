@@ -1,6 +1,26 @@
 # todo.md — Dashboard (tchwrk2)
 
-## 2026-09-07 — Sessione Accessibilità, Performance PWA e Risoluzione Scroll Jump / Interazioni
+## 2026-09-18 — Sessione Correzione Presenza Online, Sistema Classifica/Ranking Utilizzo Tecnici & Pulizia Minigame
+- [x] **Step 1: Diagnosi e Risoluzione Bug Presenza Online (RTDB)**:
+  - Eliminato il loop di auto-ripristino `_selfStateUnsub` che forzava lo stato online quando andava in background.
+  - Corretta la logica di valutazione `isOnline`: un utente è online SOLO se `state === 'online'` E ha connessioni attive (`connections && Object.keys(connections).length > 0`).
+  - Prevenuta la doppia inizializzazione di `initPresence()` all'avvio con guardia di idempotenza.
+  - Pulizia automatica su `beforeunload` e `pagehide`.
+  - Deduplicazione per nome utente nel contatore della topbar per evitare conteggi moltiplicati da più schede dello stesso utente.
+- [x] **Step 2: Sistema di Classifica & Ranking di Utilizzo nel Tab Tecnici (`tecnici.js`)**:
+  - Calcolo del volume di utilizzo per ciascun tecnico Android sommando le presenze storiche (snapshot giornalieri già in cache) e l'attività live a zero costi Firestore aggiuntivi.
+  - Ordinamento decrescente per numero di utilizzi/sync (il tecnico più attivo in cima).
+  - Visualizzazione del Rank con badge visivi (🥇 1°, 🥈 2°, 🥉 3°, #4...) e contatore utilizzi/sync.
+  - Podio Top 3 per celebrare i tecnici più produttivi.
+  - Selettore di ordinamento rapido (🏆 Più Utilizzati, 🕒 Ultimo Sync).
+- [x] **Step 3: Chiarimento Requisiti e Rimozione Completa Minigame**:
+  - L'utente ha specificato che desiderava unicamente il ranking system per i tecnici e non un minigame arcade.
+  - Rimozione totale di `js/minigame.js`, `css/components/minigame.css`, pulsante topbar `btn-minigame-topbar` e relativi import/riferimenti.
+- [x] **Step 4: Build di Produzione e Validazione**:
+  - Esecuzione `npm run build` con successo (exit code 0, cartella `docs/` e service worker rigenerati).
+- [x] **Step 5: Aggiornamento Documentazione (`struttura.md`, `decisions.md`, `lessons.md`, `review.md`, `todo.md`)**:
+  - Allineamento delle mappe e convenzioni, revisione del codice e documentazione finale.
+
 - [x] **Step 1: Preservazione Scroll e Partial DOM in `tecnici.js`**: Cattura e ripristino di `content.scrollTop`, `.tecnici-panel.scrollTop` e `window.scrollY` in `renderTecnici()` e `renderCasaList()`. Aggiornamento del solo contenitore `#tecnici-cards-container` se la struttura è già montata per evitare reset e sfarfallio.
 - [x] **Step 2: Accessibilità Controlli e Toggles (`tecnici.js`)**: Aggiunta di `aria-label` descrittivi per gli switch di visibilità dashboard, accesso PFS e pulsanti di azione (rinomina, elimina, blocca).
 - [x] **Step 3: Stabilità e Accessibilità Gestione PFS (`pfs.js`)**: Rimozione delle chiamate distruttive manuali `showPfsDashboard()` in `deletePfsItem` e `deleteSelectedPfs`. Salvataggio e ripristino scroll in `renderIfReady()` e aggiunta `aria-label`.

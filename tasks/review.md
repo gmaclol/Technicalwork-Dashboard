@@ -1,5 +1,48 @@
 # review.md — Dashboard (tchwrk2)
 
+## 2026-09-18 — Sessione Correzione Presenza Online, Classifica Utilizzo Tecnici & Pulizia Minigame
+
+**Cosa è stato fatto:**
+- Risolto definitivamente il bug della presenza online fantasma ("zombie presence") in Firebase Realtime Database (`js/app.js`):
+  - Rimosso il loop di ri-connessione automatica `_selfStateUnsub` che forzava lo stato online quando la pagina veniva chiusa o messa in background.
+  - Rafforzata la logica di conteggio e visualizzazione: un utente web è considerato online solo se `state === 'online'` E possiede attivamente almeno una connessione (`connections && Object.keys(connections).length > 0`).
+  - Aggiunti handler di cleanup immediato sugli eventi del ciclo di vita della pagina del browser `pagehide` e `beforeunload`.
+  - Aggiunta protezione contro la doppia inizializzazione (`_presenceInitialized` con verifica dell'UID).
+  - Implementata la deduplicazione degli utenti nella topbar: utenti con più tab/schede aperte vengono contati una sola volta, indicando nei dettagli le sessioni aperte.
+- Implementato il sistema di classifica / ranking cumulativo per utilizzo nel tab "Tecnici" (`js/tecnici.js`, `css/components/misc.css`):
+  - Calcolato il numero di utilizzi/sync per ciascun tecnico Android sfruttando gli snapshot storici già scaricati in memoria e registrando su Firebase RTDB (`/sync_stats/<deviceId>/syncs/<timeKey>`) ogni singolo sync rilevato nel tempo (all'apertura dell'app, salvataggio o condivisione), senza richiedere alcuna modifica o aggiornamento all'app Android dei tecnici.
+  - Il punteggio continua e si accumula nel tempo giorno dopo giorno, mostrando anche il dettaglio giornaliero (`(+N oggi)`).
+  - Ordinamento predefinito decrescente per utilizzo (`_tecniciSortMode = 'usage'`), portando in cima i tecnici più attivi.
+  - Aggiunti badge visivi per posizione (🥇 1° Rank, 🥈 2° Rank, 🥉 3° Rank, #N) e contatore utilizzi totali (`🔥 N utilizzi totali (+N oggi)`).
+  - Creato componente visivo "Podio Top 3" (`.tecnici-podium`) per celebrare i primi 3 tecnici classificati.
+  - Aggiunto selettore di ordinamento rapido con pillole (`🏆 Più Utilizzati`, `🕒 Ultimo Sync`).
+- Rimozione del minigame arcade e pulizia completa:
+  - Su indicazione dell'utente (che ha chiarito di desiderare solo il sistema di classifica e non un videogioco arcade), sono stati rimossi tutti i componenti del minigame precedentemente introdotti (`js/minigame.js`, `css/components/minigame.css`, pulsante `btn-minigame-topbar` in `index.html` e stili correlati).
+  - Verificato che non vi fossero import o riferimenti orfani nell'intero repository.
+- Eseguito il build di produzione `npm run build` con successo (exit code 0, cartella `docs/` e service worker rigenerati).
+
+**Perché:**
+- Nel contatore della topbar, utenti che chiudevano la pagina o perdevano la connessione rimanevano segnati permanentemente come "online" a causa di sessioni pendenti in RTDB e di un listener locale che ripristinava erroneamente lo stato online. Inoltre le sessioni multiple dello stesso utente gonfiavano artificialmente il contatore.
+- L'utente ha richiesto di poter visualizzare nel tab Tecnici una classifica basata sull'utilizzo dell'app Android, in modo da avere subito in alto i tecnici che usano maggiormente l'applicazione.
+- L'inclusione iniziale del minigame arcade era frutto di un fraintendimento delle specifiche utente; è stata prontamente rimossa per mantenere il codice minimale, leggero e privo di codice superfluo.
+
+**File modificati:**
+- `js/app.js`: Correzione presenza RTDB, disconnessione su pagehide/beforeunload, rimozione loop reconnect, deduplicazione sessioni topbar.
+- `js/tecnici.js`: Calcolo `usageCount` in-memory a zero costi, pillole di ordinamento, podio Top 3, badge di rank, reset callback in `stopTecniciListeners`.
+- `css/components/misc.css`: Stili per podio Top 3, pillole di ordinamento e badge medaglia/rank.
+- `index.html`: Rimozione del pulsante modale minigame.
+- `css/components.css`: Rimozione import `minigame.css`.
+- `tasks/struttura.md`, `tasks/decisions.md`, `tasks/lessons.md`, `tasks/todo.md`, `tasks/review.md`: Documentazione aggiornata e allineata.
+- `docs/*`: Bundle di produzione e service worker aggiornati.
+
+**Rischi residui:**
+- Nessuno. L'approccio per la classifica è puramente client-side in-memory e non comporta scritture o letture extra su Firestore.
+
+**Follow-up consigliati:**
+- Verificare sul campo se la soglia di 3 minuti usata per l'inattività dei dispositivi Android nei log di presenza RTDB sia ottimale in base alla frequenza dei sync inviati dall'app mobile.
+
+---
+
 ## 2026-07-04 — Sessione Correzione Bug Leak, Ottimizzazioni e Accessibilità
 
 **Cosa è stato fatto:**

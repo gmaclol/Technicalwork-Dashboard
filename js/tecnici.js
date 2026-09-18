@@ -1,8 +1,41 @@
 // ── Tecnici management ──
-import { db, collection, getDocs, doc, setDoc, deleteDoc, updateDoc, onSnapshot, deleteField, rtdb, ref, onValue } from './firebase.js';
+import { db, collection, getDocs, doc, setDoc, deleteDoc, updateDoc, onSnapshot, deleteField, rtdb, ref, onValue, set, update } from './firebase.js';
 import { APPALTI, currentAppalto, currentDate, currentUser, subscribeToDevicesNames, unsubscribeFromDevicesNames } from './state.js';
-import { escapeHtml, showToast, showConfirm, showRenameModal } from './utils.js';
+import { escapeHtml, showToast, showConfirm, showRenameModal, isToday, parseTimestamp } from './utils.js';
 import { getHiddenTecnici, saveHiddenTecnici, resetHiddenCache, preloadCounts, getCountListeners, loadAppalto, setHiddenCache, getHiddenTecniciSync, resetLastRenderedKey } from './data.js';
+
+let _tecniciSortMode = 'usage'; // 'usage' (default) | 'latest'
+let _latestSortOrder = 'desc';  // 'desc' (più recenti prima) | 'asc' (meno recenti prima)
+let _tecniciRenderFn = null;
+
+window.setTecniciSortMode = function(mode) {
+  if (mode === 'latest') {
+    if (_tecniciSortMode === 'latest') {
+      // Ricliccando inverte l'ordine cronologico
+      _latestSortOrder = _latestSortOrder === 'desc' ? 'asc' : 'desc';
+    } else {
+      _tecniciSortMode = 'latest';
+      _latestSortOrder = 'desc';
+    }
+  } else {
+    _tecniciSortMode = mode;
+  }
+  if (typeof _tecniciRenderFn === 'function') _tecniciRenderFn();
+};
+
+// ── PERSISTENT SYNC TRACKER (senza modifiche all'app Android) ──
+export function recordPersistentSync(deviceId, techName, timeStr) {
+  if (!deviceId || !timeStr || timeStr === '—' || !rtdb) return;
+  const timeKey = timeStr.replace(/[^a-zA-Z0-9]/g, '_');
+  
+  // Salva l'evento su RTDB: la chiave è l'orario stesso, quindi è idempotente
+  set(ref(rtdb, `/sync_stats/${deviceId}/syncs/${timeKey}`), 1).catch(() => {});
+  update(ref(rtdb, `/sync_stats/${deviceId}`), {
+    name: techName || deviceId,
+    last_sync: timeStr,
+    last_updated: Date.now()
+  }).catch(() => {});
+}
 
 // ── DEVICE NAME RESOLVER ──
 const BRAND_FILES = {
@@ -86,6 +119,7 @@ export function stopTecniciListeners() {
   _tecniciListeners.forEach(unsub => { if (typeof unsub === 'function') unsub(); });
   _tecniciListeners = [];
   unsubscribeFromDevicesNames('tecnici_web');
+  _tecniciRenderFn = null;
 }
 
 export function stopBannedListeners() {
@@ -97,7 +131,8 @@ export function stopBannedListeners() {
 // ── HELPER: timestamp ordinabile per tecnici web ──
 function getWebLastActivityTs(deviceId, info, statusData) {
   const status = statusData[deviceId] || {};
-  const isOnline = status.state === 'online' || (status.connections && Object.keys(status.connections).length > 0);
+  const hasCon = Boolean(status.connections && Object.keys(status.connections).length > 0);
+  const isOnline = status.state === 'online' && hasCon;
   if (isOnline) return Infinity;
   if (status.last_changed) return new Date(status.last_changed).getTime();
   if (info.updatedAt) return new Date(info.updatedAt).getTime();
@@ -167,6 +202,9 @@ export function startNewTecniciWatcher(onNewTecnico) {
             saveKnown();
             onNewTecnico({ name, type: 'android', deviceId: d.id });
           }
+          if (data.ultimo_aggiornamento && data.ultimo_aggiornamento !== '—') {
+            recordPersistentSync(d.id, name, data.ultimo_aggiornamento);
+          }
         });
     }, () => {});
     _newTecWatcherListeners.push(unsub);
@@ -214,7 +252,8 @@ export function startBannedAccessWatcher(onBannedAttempt) {
     Object.entries(val).forEach(([deviceId, status]) => {
       if (!_bannedDevicesCache.has(deviceId)) return;
       
-      const isOnline = status && (status.state === 'online' || (status.connections && Object.keys(status.connections).length > 0));
+      const hasCon = Boolean(status && status.connections && Object.keys(status.connections).length > 0);
+      const isOnline = status && status.state === 'online' && hasCon;
       const lastChanged = status && status.last_changed ? status.last_changed : 0;
 
       // Se il dispositivo bloccato è online o ha inviato un heartbeat dopo l'avvio del watcher
@@ -279,10 +318,14 @@ export async function showTecnici() {
 
   stopTecniciListeners();
 
-  let appaltiData  = {};
-  let webDevices   = {}; // from settings/devices_names (type:'web')
-  let statusData   = {}; // from RTDB /status
-  let loadedCount  = 0;
+  let appaltiData      = {};
+  let appaltiSnapshots = {};
+  let syncStatsData    = {}; // from RTDB /sync_stats (accumulatore persistente)
+  let webDevices       = {}; // from settings/devices_names (type:'web')
+  let statusData       = {}; // from RTDB /status
+  let loadedCount      = 0;
+
+  _tecniciRenderFn = renderTecnici;
 
   async function renderTecnici() {
     if (loadedCount < APPALTI.length) return;
@@ -295,6 +338,15 @@ export async function showTecnici() {
         docs.forEach(d => {
           const data = d.data;
           const name = data.tecnico || d.id;
+          const docTime = data.ultimo_aggiornamento || '—';
+          const docTs = (typeof data.last_updated_at === 'number' && data.last_updated_at > 0)
+            ? data.last_updated_at
+            : (parseTimestamp(docTime)?.getTime() || 0);
+
+          const explicitCount = (typeof data.sync_count === 'number') ? data.sync_count 
+            : (typeof data.totale_sync === 'number') ? data.totale_sync
+            : (typeof data.syncCount === 'number') ? data.syncCount : null;
+
           if (!allTecnici.has(name)) {
             allTecnici.set(name, {
               docIds: {},
@@ -304,13 +356,28 @@ export async function showTecnici() {
               batteria: data.batteria || null,
               gpsAttivo: data.gps_attivo !== undefined ? data.gps_attivo : null,
               appalti: [],
-              ultimo: data.ultimo_aggiornamento || '—',
+              ultimo: docTime,
+              sortTs: docTs,
               type: data.type || 'android',
               os: data.os || null,
               browser: data.browser || null,
               cores: data.cores || null,
               memory: data.memory || null,
+              explicitSyncCount: explicitCount,
+              usageCount: 0,
+              totalMaterials: 0
             });
+          } else {
+            const existing = allTecnici.get(name);
+            if (docTs > (existing.sortTs || 0)) {
+              existing.sortTs = docTs;
+              if (docTime && docTime !== '—') existing.ultimo = docTime;
+              if (data.dispositivo && data.dispositivo !== '—') existing.dispositivo = data.dispositivo;
+              if (data.versione_app) existing.versione = data.versione_app;
+            }
+            if (explicitCount !== null && explicitCount > (existing.explicitSyncCount || 0)) {
+              existing.explicitSyncCount = explicitCount;
+            }
           }
           allTecnici.get(name).appalti.push(appalto);
           allTecnici.get(name).docIds[appalto] = d.id;
@@ -324,6 +391,64 @@ export async function showTecnici() {
         content.innerHTML = `<div class="state-box fade-in"><p>Nessun tecnico trovato.</p></div>`; 
         return; 
       }
+
+      // Calcola metriche di utilizzo e materiali per ciascun tecnico
+      allTecnici.forEach((info, name) => {
+        let totalSnapshots = 0;
+        let totalMaterialsQty = 0;
+
+        APPALTI.forEach(appalto => {
+          const snaps = appaltiSnapshots[appalto] || [];
+          snaps.forEach(sd => {
+            const sName = sd.data?.tecnico || sd.id.split('_')[0];
+            const sDevId = sd.id.split('_')[0];
+            if (sName === name || sDevId === info.deviceId) {
+              totalSnapshots++;
+            }
+          });
+
+          const liveDocs = appaltiData[appalto] || [];
+          const liveDoc = liveDocs.find(ld => (ld.data?.tecnico === name || ld.id === info.deviceId));
+          if (liveDoc && liveDoc.data && liveDoc.data.materiali) {
+            Object.values(liveDoc.data.materiali).forEach(val => {
+              const num = parseInt(val, 10);
+              if (!isNaN(num) && num > 0) totalMaterialsQty += num;
+            });
+          }
+        });
+
+        const isLiveToday = isToday(info.ultimo);
+        const devStats = syncStatsData[info.deviceId] || {};
+        const allSyncs = devStats.syncs || {};
+
+        // Conta quanti sync sono avvenuti oggi
+        let todaySyncCount = 0;
+        const tDate = new Date();
+        const dd = String(tDate.getDate()).padStart(2, '0');
+        const mm = String(tDate.getMonth() + 1).padStart(2, '0');
+        const yyyy = String(tDate.getFullYear());
+        const todayPattern = `${dd}_${mm}_${yyyy}`;
+
+        Object.keys(allSyncs).forEach(k => {
+          if (k.includes(todayPattern)) todaySyncCount++;
+        });
+        if (isLiveToday && todaySyncCount === 0) {
+          todaySyncCount = 1;
+        }
+
+        const trackedTotal = Object.keys(allSyncs).length;
+        const fallbackTotal = totalSnapshots + (isLiveToday ? 1 : 0);
+
+        // Punteggio ranking cumulativo che continua nei giorni
+        info.usageCount = Math.max(trackedTotal, fallbackTotal);
+        info.todaySyncCount = todaySyncCount;
+        info.totalMaterials = totalMaterialsQty;
+        info.name = name;
+        if (!info.sortTs && info.ultimo && info.ultimo !== '—') {
+          const parsed = parseTimestamp(info.ultimo);
+          info.sortTs = parsed ? parsed.getTime() : 0;
+        }
+      });
       
       let cards = '';
       const hidden = getHiddenTecniciSync();
@@ -332,21 +457,35 @@ export async function showTecnici() {
       // Escludi i bannati leggendoli da webDevices (che contiene tutti i device registrati)
       const bannedDeviceIds = Object.keys(webDevices).filter(id => webDevices[id]?.banned);
       
-      // Android: ordina per ultimo aggiornamento (più recente prima)
+      // Android: ordina secondo _tecniciSortMode ('usage' di default o 'latest')
       const androidTecnici = [...allTecnici.entries()]
         .filter(([, info]) => info.type !== 'web' && !bannedDeviceIds.includes(info.deviceId))
         .sort(([, a], [, b]) => {
-          const tsA = a.ultimo && a.ultimo !== '—' ? new Date(a.ultimo.replace(/^(\d{2})\/(\d{2})\/(\d{4})/, '$3-$2-$1')).getTime() || 0 : 0;
-          const tsB = b.ultimo && b.ultimo !== '—' ? new Date(b.ultimo.replace(/^(\d{2})\/(\d{2})\/(\d{4})/, '$3-$2-$1')).getTime() || 0 : 0;
-          return tsB - tsA;
+          if (_tecniciSortMode === 'usage') {
+            if (b.usageCount !== a.usageCount) return b.usageCount - a.usageCount;
+            return b.sortTs - a.sortTs;
+          } else { // 'latest'
+            if (_latestSortOrder === 'asc') {
+              // Meno recenti prima (chi non ha mai sincronizzato va in fondo)
+              if (a.sortTs === 0 && b.sortTs !== 0) return 1;
+              if (b.sortTs === 0 && a.sortTs !== 0) return -1;
+              if (a.sortTs !== b.sortTs) return a.sortTs - b.sortTs;
+              return (a.name || '').localeCompare(b.name || '');
+            } else {
+              // Più recenti prima (default)
+              if (b.sortTs !== a.sortTs) return b.sortTs - a.sortTs;
+              return (a.name || '').localeCompare(b.name || '');
+            }
+          }
         });
 
-      // Web users come directly from webDevices (settings/devices_names) e integrano RTDB presence
+      // Web users come directly from webDevices (settings/devices_names) e integrano RTDB presence con hasCon rigoroso
       const webTecniciEntries = Object.entries(webDevices)
         .filter(([, info]) => (info?.type === 'web' || info?.os || info?.browser) && !info?.banned)
         .map(([deviceId, info]) => {
           const status = statusData[deviceId] || {};
-          const isOnline = status.state === 'online' || (status.connections && Object.keys(status.connections).length > 0);
+          const hasCon = Boolean(status.connections && Object.keys(status.connections).length > 0);
+          const isOnline = status.state === 'online' && hasCon;
           
           let lastSessionStr = '—';
           if (isOnline) {
@@ -380,7 +519,7 @@ export async function showTecnici() {
         // Ordina: online ora (Infinity) → timestamp più recente → mai connessi (0)
         .sort(([, a], [, b]) => b.sortTs - a.sortTs);
 
-      async function buildCard([name, info]) {
+      async function buildCard([name, info], index) {
         const visible      = !hidden.some(h => h.toLowerCase() === name.toLowerCase());
         const friendlyDevice = await resolveDeviceName(info.dispositivo);
         const versionBadge   = info.versione ? ` · <span style="color:var(--accent)">${info.versione}</span>` : '';
@@ -392,6 +531,20 @@ export async function showTecnici() {
         const typeBadge = `<span class="tecnico-type-badge tecnico-type-android">📱 Android</span>`;
         const deviceIcon = '📱';
 
+        // Badge di Ranking in base all'ordinamento
+        let rankBadge = '';
+        if (_tecniciSortMode === 'usage') {
+          if (index === 0) {
+            rankBadge = `<span class="tecnico-rank-badge rank-1" title="1° Classificato per Utilizzo">🥇 1° Rank</span>`;
+          } else if (index === 1) {
+            rankBadge = `<span class="tecnico-rank-badge rank-2" title="2° Classificato per Utilizzo">🥈 2° Rank</span>`;
+          } else if (index === 2) {
+            rankBadge = `<span class="tecnico-rank-badge rank-3" title="3° Classificato per Utilizzo">🥉 3° Rank</span>`;
+          } else {
+            rankBadge = `<span class="tecnico-rank-badge rank-other" title="${index + 1}° Classificato">#${index + 1}</span>`;
+          }
+        }
+
         // Telemetria (Batteria e GPS)
         let telemetryStr = '';
         if (info.batteria) {
@@ -401,10 +554,14 @@ export async function showTecnici() {
           telemetryStr += info.gpsAttivo ? ' · 📡 GPS Attivo' : ' · 📡 GPS Disattivato';
         }
 
+        const todayBadge = info.todaySyncCount > 0 
+          ? ` · <span style="color:var(--green); font-weight:700;">(+${info.todaySyncCount} oggi)</span>` 
+          : '';
+
         return `<div class="toggle-wrap">
           <div class="toggle-info">
-            <span class="toggle-name">${name} ${typeBadge}</span>
-            <span class="toggle-device">${deviceIcon} ${friendlyDevice}${versionBadge}${telemetryStr}${info.appalti.length ? ' · ' + info.appalti.join(', ') : ''} · Ultimo sync: ${info.ultimo}</span>
+            <span class="toggle-name">${escapeHtml(name)} ${typeBadge} ${rankBadge}</span>
+            <span class="toggle-device">${deviceIcon} ${friendlyDevice}${versionBadge}${telemetryStr}${info.appalti.length ? ' · ' + info.appalti.join(', ') : ''} · <b style="color:var(--accent-blue)">🔥 ${info.usageCount} utilizzi totali</b>${todayBadge} · Ultimo sync: ${info.ultimo}</span>
           </div>
           <div class="tecnici-actions">
             <button type="button" class="btn-tecnico-action btn-rename" onclick="renameTecnico('${escapedName}', '${docIdsJson}')" title="Rinomina" aria-label="Rinomina ${escapedName}">✏️ Rinomina</button>
@@ -430,9 +587,9 @@ export async function showTecnici() {
         </div>`;
       }
 
-      // Build android group
-      for (const entry of androidTecnici) {
-        cards += await buildCard(entry);
+      // Build android group con rank index
+      for (let i = 0; i < androidTecnici.length; i++) {
+        cards += await buildCard(androidTecnici[i], i);
       }
 
       // Divider + web group from devices_names
@@ -448,6 +605,47 @@ export async function showTecnici() {
         }
       }
 
+      // Costruzione Podio Top 3 se ci sono almeno 3 tecnici e siamo ordinati per utilizzo
+      let podiumHtml = '';
+      if (androidTecnici.length >= 3 && _tecniciSortMode === 'usage') {
+        podiumHtml = `
+          <div class="tecnici-podium">
+            <div class="podium-card podium-2">
+              <div class="podium-medal">🥈 2° Posto</div>
+              <div class="podium-name">${escapeHtml(androidTecnici[1][0])}</div>
+              <div class="podium-stat">🔥 ${androidTecnici[1][1].usageCount} totali</div>
+            </div>
+            <div class="podium-card podium-1">
+              <div class="podium-crown">👑 TOP 1 LEADER</div>
+              <div class="podium-medal">🥇 1° Posto</div>
+              <div class="podium-name">${escapeHtml(androidTecnici[0][0])}</div>
+              <div class="podium-stat">🔥 ${androidTecnici[0][1].usageCount} totali</div>
+            </div>
+            <div class="podium-card podium-3">
+              <div class="podium-medal">🥉 3° Posto</div>
+              <div class="podium-name">${escapeHtml(androidTecnici[2][0])}</div>
+              <div class="podium-stat">🔥 ${androidTecnici[2][1].usageCount} totali</div>
+            </div>
+          </div>`;
+      }
+
+      const latestArrow = _tecniciSortMode === 'latest' 
+        ? (_latestSortOrder === 'desc' ? ' ↓' : ' ↑') 
+        : '';
+      const latestTitle = _tecniciSortMode === 'latest' 
+        ? (_latestSortOrder === 'desc' ? 'Ordinato: dal più recente al meno recente. Clicca per invertire.' : 'Ordinato: dal meno recente al più recente. Clicca per invertire.') 
+        : 'Ordina per data/ora di sync (clicca per invertire)';
+
+      const sortControlsHtml = `
+        <div class="tecnici-header-bar">
+          <div class="tecnici-sort-group">
+            <span class="tecnici-sort-label">Ordina Tecnici:</span>
+            <button type="button" class="btn-sort-pill ${_tecniciSortMode === 'usage' ? 'active' : ''}" onclick="setTecniciSortMode('usage')" aria-label="Ordina per classifica utilizzi">🏆 Più Utilizzati</button>
+            <button type="button" class="btn-sort-pill ${_tecniciSortMode === 'latest' ? 'active' : ''}" onclick="setTecniciSortMode('latest')" title="${latestTitle}" aria-label="${latestTitle}">🕒 Ultimo Sync${latestArrow}</button>
+          </div>
+        </div>
+      `;
+
       // Capture scroll IMMEDIATELY before modifying DOM to ensure accuracy
       const prevScroll = {
         content: content ? content.scrollTop : 0,
@@ -456,19 +654,26 @@ export async function showTecnici() {
       };
 
       const existingContainer = document.getElementById('tecnici-cards-container');
+      const existingPodium    = document.getElementById('tecnici-podium-container');
+      const existingSort      = document.getElementById('tecnici-sort-container');
+
       if (existingContainer) {
+        if (existingPodium) existingPodium.innerHTML = podiumHtml;
+        if (existingSort) existingSort.innerHTML = sortControlsHtml;
         existingContainer.innerHTML = cards;
       } else {
         content.innerHTML = `
           <div class="content-header fade-in">
             <div>
               <div class="content-title">Tecnici</div>
-              <div class="content-subtitle">Abilita, disabilita e rinomina i tecnici registrati</div>
+              <div class="content-subtitle">Abilita, disabilita, classifica per utilizzo e rinomina i tecnici registrati</div>
             </div>
           </div>
           <div class="tecnici-panel fade-in">
             <div class="tecnici-note">⚠ I tecnici disattivati vengono nascosti dalla tabella e dai conteggi. Il loro sync continua normalmente.</div>
-            <div id="tecnici-cards-container" style="display:flex; flex-direction:column; gap:10px; margin-top:20px;">
+            <div id="tecnici-podium-container">${podiumHtml}</div>
+            <div id="tecnici-sort-container">${sortControlsHtml}</div>
+            <div id="tecnici-cards-container" style="display:flex; flex-direction:column; gap:10px; margin-top:14px;">
               ${cards}
             </div>
           </div>`;
@@ -500,7 +705,7 @@ export async function showTecnici() {
 
     return `<div class="toggle-wrap">
       <div class="toggle-info">
-        <span class="toggle-name">${displayName} ${typeBadge}</span>
+        <span class="toggle-name">${escapeHtml(displayName)} ${typeBadge}</span>
         <span class="toggle-device">🖥️ ${details || 'Web Dashboard'} · PFS: ${info.appalti.length ? info.appalti.join(', ') : 'nessuna stella'} · ${statusLabel}</span>
         <span style="font-size:10px; color:var(--text-muted); font-family:var(--font-mono)">${deviceId}</span>
       </div>
@@ -515,7 +720,25 @@ export async function showTecnici() {
     const unsub = onSnapshot(collection(db, appalto), (snap) => {
       appaltiData[appalto] = snap.docs
         .filter(d => !/_\d{4}-\d{2}-\d{2}$/.test(d.id))
-        .map(d => ({ id: d.id, data: d.data() }));
+        .map(d => {
+          const data = d.data();
+          if (data.ultimo_aggiornamento && data.ultimo_aggiornamento !== '—') {
+            recordPersistentSync(d.id, data.tecnico || d.id, data.ultimo_aggiornamento);
+          }
+          return { id: d.id, data };
+        });
+
+      appaltiSnapshots[appalto] = snap.docs
+        .filter(d => /_\d{4}-\d{2}-\d{2}$/.test(d.id))
+        .map(d => {
+          const sDevId = d.id.split('_')[0];
+          const dateSuffix = d.id.slice(sDevId.length + 1);
+          if (sDevId && dateSuffix) {
+            const snapKey = 'snap_' + dateSuffix.replace(/[^a-zA-Z0-9]/g, '_');
+            set(ref(rtdb, `/sync_stats/${sDevId}/syncs/${snapKey}`), 1).catch(() => {});
+          }
+          return { id: d.id, data: d.data() };
+        });
       
       if (loadedCount < APPALTI.length) loadedCount++;
       renderTecnici();
@@ -526,6 +749,15 @@ export async function showTecnici() {
     });
     _tecniciListeners.push(unsub);
   });
+
+  // Ascolta statistiche cumulative da RTDB /sync_stats
+  const unsubSyncStats = onValue(ref(rtdb, '/sync_stats'), (snap) => {
+    syncStatsData = snap.val() || {};
+    renderTecnici();
+  }, (e) => {
+    console.warn("Errore caricamento sync_stats RTDB:", e);
+  });
+  _tecniciListeners.push(unsubSyncStats);
 
   // Listen to presence status from Realtime Database
   const unsubStatus = onValue(ref(rtdb, '/status'), (snap) => {

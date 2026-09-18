@@ -12,26 +12,46 @@ export function escapeHtml(str) {
 }
 
 // ── DATE HELPERS ──
+export function parseTimestamp(timeStr) {
+  if (!timeStr || timeStr === '—') return null;
+  if (typeof timeStr === 'number') return isNaN(timeStr) ? null : new Date(timeStr);
+  if (timeStr instanceof Date) return isNaN(timeStr.getTime()) ? null : timeStr;
+  try {
+    const str = String(timeStr).trim();
+    const parts = str.split(/\s+/);
+    if (parts.length >= 2) {
+      let timePart, datePart;
+      if (parts[0].includes(':') && parts[1].includes('/')) {
+        timePart = parts[0];
+        datePart = parts[1];
+      } else if (parts[0].includes('/') && parts[1].includes(':')) {
+        datePart = parts[0];
+        timePart = parts[1];
+      }
+      if (timePart && datePart) {
+        const [hh, mm, ss] = timePart.split(':').map(Number);
+        const [dd, mo, yyyy] = datePart.split('/').map(Number);
+        if (!isNaN(yyyy) && !isNaN(mo) && !isNaN(dd)) {
+          return new Date(yyyy, mo - 1, dd, hh || 0, mm || 0, ss || 0);
+        }
+      }
+    }
+    const parsed = Date.parse(str);
+    if (!isNaN(parsed)) return new Date(parsed);
+    return null;
+  } catch { return null; }
+}
+
 export function isToday(dateStr) {
   if (!dateStr || dateStr === '—') return false;
   try {
-    const parts = dateStr.split(' ');
-    if (parts.length < 2) return false;
-    const dmy = parts[1];
+    const d = parseTimestamp(dateStr);
+    if (!d) return false;
     const t = new Date();
-    const todayStr = String(t.getDate()).padStart(2, '0') + '/' + String(t.getMonth() + 1).padStart(2, '0') + '/' + t.getFullYear();
-    return dmy === todayStr;
+    return d.getDate() === t.getDate() &&
+           d.getMonth() === t.getMonth() &&
+           d.getFullYear() === t.getFullYear();
   } catch { return false; }
-}
-
-export function parseTimestamp(timeStr) {
-  if (!timeStr || timeStr === '—') return null;
-  try {
-    const [time, date] = timeStr.split(' ');
-    const [hh, mm] = time.split(':');
-    const [dd, mo, yyyy] = date.split('/');
-    return new Date(yyyy, mo - 1, dd, hh, mm);
-  } catch { return null; }
 }
 
 export function relativeTime(timeStr) {
