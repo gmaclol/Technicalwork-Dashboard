@@ -202,3 +202,12 @@
   - Disabilitata la funzione `requestAppaltoSync()` durante la consultazione degli snapshot storici del passato, notificando l'admin che la richiesta di sync è consentita esclusivamente nella vista live di oggi.
 - [x] **Fix Re-render in tempo reale colonna disabilitata Admin (`data.js`):** Risolto il bug per cui nascondere/riabilitare una lista non aggiornava istantaneamente lo stato visivo della colonna dell'Admin senza un refresh di pagina. Aggiornato `triggerTableRenderWithHidden()` e `toggleHideTecnico()` per resettare la cache di rendering incrementale e forzare l'opacità/disattivazione in tempo reale.
 
+## 2026-09-19 — Sessione Classifica Contributi PFS Persistente (Leaderboard RTDB)
+- [x] **Classifica Contributi PFS (`js/pfs.js`, `css/components/pfs.css`):**
+  - Widget posizionato in cima alla pagina Gestione PFS (`#/admin/pfs`), sopra la toolbar eliminazione.
+  - Nessuna modifica all'ordine visivo delle card sottostanti (cronologico, più recenti prima).
+  - Tracciamento cumulativo permanente a costo zero su Firebase RTDB (`/pfs_stats/<tecnico>/signals` e `/logs`): i punti restano memorizzati per sempre anche se l'admin elimina le card.
+  - Podio olimpico (Oro al centro, Argento a sx, Bronzo a dx) e pillole riassuntive per tutti gli altri collaboratori dal 4° posto in poi.
+  - Nessuna modifica necessaria all'app Android.
+
+

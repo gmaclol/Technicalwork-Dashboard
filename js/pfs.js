@@ -1,4 +1,4 @@
-import { db, collection, doc, deleteDoc, onSnapshot } from './firebase.js';
+import { db, collection, doc, deleteDoc, onSnapshot, rtdb, ref, onValue, set, update } from './firebase.js';
 import { escapeHtml, showToast, showConfirm } from './utils.js';
 
 import { currentUser } from './state.js';
@@ -7,6 +7,27 @@ import { notifyPfsReport, clearPfsBadge } from './notifications.js';
 let _pfsListeners = [];
 let _globalPfsListener = null;
 let _unseenPfsCount = 0;
+
+// ── SANITIZER PER CHIAVI FIREBASE RTDB ──
+function sanitizeKey(str) {
+  if (!str) return 'unknown';
+  return String(str).trim().replace(/[.#$/\[\]]/g, '_');
+}
+
+// ── REGISTRAZIONE PERSISTENTE DEI CONTRIBUTI PFS (ZERO COSTO SU RTDB) ──
+export function recordPfsContribution(techName, type, docId) {
+  if (!techName || !docId || !rtdb) return;
+  const safeName = sanitizeKey(techName);
+  const safeId = sanitizeKey(docId);
+  const typeKey = type === 'signal' ? 'signals' : 'logs';
+
+  // Salva l'evento su RTDB: la chiave è l'id stesso del documento, operazione idempotente
+  set(ref(rtdb, `/pfs_stats/${safeName}/${typeKey}/${safeId}`), 1).catch(() => {});
+  update(ref(rtdb, `/pfs_stats/${safeName}`), {
+    name: techName,
+    last_activity: Date.now()
+  }).catch(() => {});
+}
 
 export function clearUnseenPfsCount() {
   _unseenPfsCount = 0;
@@ -36,6 +57,9 @@ export function startGlobalPfsNotifications() {
     snapshot.docChanges().forEach((change) => {
       if (change.type === 'added') {
         const data = change.doc.data();
+        if (data.tecnico) {
+          recordPfsContribution(data.tecnico, 'signal', change.doc.id);
+        }
         const title = 'Nuovo PFS Segnalato';
         const tech = data.tecnico || 'Tecnico';
         const bodyText = `${tech} ha segnalato il PFS ${data.nome_pfs}\nIndirizzo: ${data.nuovo_indirizzo}`;
@@ -117,11 +141,13 @@ export async function showPfsDashboard() {
 
   let signals = [];
   let logs = [];
+  let pfsStatsData = {};
   let signalsLoaded = false;
   let logsLoaded = false;
+  let statsLoaded = false;
 
   function renderIfReady() {
-    if (!signalsLoaded || !logsLoaded) return;
+    if (!signalsLoaded || !logsLoaded || !statsLoaded) return;
 
     const prevScroll = {
       content: content ? content.scrollTop : 0,
@@ -132,6 +158,172 @@ export async function showPfsDashboard() {
     // Salva le checkbox selezionate prima del render
     const checkedSigs = Array.from(document.querySelectorAll('.sig-check:checked')).map(cb => cb.closest('.pfs-card')?.dataset?.id).filter(Boolean);
     const checkedLogs = Array.from(document.querySelectorAll('.log-check:checked')).map(cb => cb.closest('.pfs-card')?.dataset?.id).filter(Boolean);
+
+    // ── Costruzione Classifica PFS persistente ──
+    const userMap = new Map();
+
+    // 1. Carica storico da RTDB /pfs_stats (conserva i punti anche se le card vengono cancellate)
+    if (pfsStatsData && typeof pfsStatsData === 'object') {
+      Object.entries(pfsStatsData).forEach(([safeKey, val]) => {
+        if (!val || typeof val !== 'object') return;
+        const displayName = val.name || safeKey;
+        const normKey = displayName.trim().toLowerCase();
+        if (!userMap.has(normKey)) {
+          userMap.set(normKey, { name: displayName, signalIds: new Set(), logIds: new Set() });
+        }
+        const entry = userMap.get(normKey);
+        if (val.signals && typeof val.signals === 'object') {
+          Object.keys(val.signals).forEach(id => entry.signalIds.add(id));
+        }
+        if (val.logs && typeof val.logs === 'object') {
+          Object.keys(val.logs).forEach(id => entry.logIds.add(id));
+        }
+      });
+    }
+
+    // 2. Unisci dati live da Firestore (idempotente grazie al Set)
+    signals.forEach(s => {
+      const tech = (s.tecnico || '').trim();
+      if (!tech) return;
+      const normKey = tech.toLowerCase();
+      if (!userMap.has(normKey)) {
+        userMap.set(normKey, { name: tech, signalIds: new Set(), logIds: new Set() });
+      }
+      userMap.get(normKey).signalIds.add(sanitizeKey(s.id));
+    });
+
+    logs.forEach(l => {
+      const tech = (l.tecnico || '').trim();
+      if (!tech) return;
+      const normKey = tech.toLowerCase();
+      if (!userMap.has(normKey)) {
+        userMap.set(normKey, { name: tech, signalIds: new Set(), logIds: new Set() });
+      }
+      userMap.get(normKey).logIds.add(sanitizeKey(l.id));
+    });
+
+    // 3. Array ordinato per punteggio totale decrescente
+    const rankingList = Array.from(userMap.values()).map(u => ({
+      name: u.name,
+      signals: u.signalIds.size,
+      logs: u.logIds.size,
+      total: u.signalIds.size + u.logIds.size
+    })).filter(u => u.total > 0).sort((a, b) => {
+      if (b.total !== a.total) return b.total - a.total;
+      if (b.signals !== a.signals) return b.signals - a.signals;
+      return a.name.localeCompare(b.name);
+    });
+
+    const totalContributions = rankingList.reduce((acc, curr) => acc + curr.total, 0);
+
+    let rankingHtml = `
+      <div class="pfs-ranking-box">
+        <div class="pfs-ranking-header">
+          <div class="pfs-ranking-title-group">
+            <span class="pfs-ranking-icon">🏆</span>
+            <div>
+              <div class="pfs-ranking-title">Classifica Contributi PFS</div>
+              <div class="pfs-ranking-subtitle">Chi contribuisce di più al database PFS (segnalazioni e verifiche GPS)</div>
+            </div>
+          </div>
+          <div class="pfs-ranking-stats">
+            <span class="pfs-ranking-stat-pill">👥 ${rankingList.length} Tecnic${rankingList.length === 1 ? 'o' : 'i'}</span>
+            <span class="pfs-ranking-stat-pill">📍 ${totalContributions} Contribut${totalContributions === 1 ? 'o' : 'i'} Total${totalContributions === 1 ? 'e' : 'i'}</span>
+          </div>
+        </div>`;
+
+    if (rankingList.length === 0) {
+      rankingHtml += `
+        <div class="pfs-ranking-empty">
+          <span>ℹ️ Nessun contributo registrato finora. Le segnalazioni di nuovi indirizzi e i log di accesso GPS verranno tracciati qui in tempo reale.</span>
+        </div>`;
+    } else if (rankingList.length >= 3) {
+      const first = rankingList[0];
+      const second = rankingList[1];
+      const third = rankingList[2];
+      const others = rankingList.slice(3);
+
+      rankingHtml += `
+        <div class="pfs-podium">
+          <!-- 2° Posto (Argento) -->
+          <div class="pfs-podium-card pfs-podium-2">
+            <div class="pfs-podium-badge">🥈 2° Posizione</div>
+            <div class="pfs-podium-medal">🥈</div>
+            <div class="pfs-podium-name" title="${escapeHtml(second.name)}">${escapeHtml(second.name)}</div>
+            <div class="pfs-podium-score">${second.total}</div>
+            <div class="pfs-podium-label">Contributi</div>
+            <div class="pfs-podium-breakdown">
+              <span class="pfs-breakdown-tag sig" title="Segnalazioni nuovi indirizzi">📍 ${second.signals} segn.</span>
+              <span class="pfs-breakdown-tag log" title="Log accessi e verifiche GPS">📱 ${second.logs} log</span>
+            </div>
+          </div>
+
+          <!-- 1° Posto (Oro) -->
+          <div class="pfs-podium-card pfs-podium-1">
+            <div class="pfs-podium-badge">🥇 1° Posizione</div>
+            <div class="pfs-podium-medal">🥇</div>
+            <div class="pfs-podium-name" title="${escapeHtml(first.name)}">${escapeHtml(first.name)}</div>
+            <div class="pfs-podium-score">${first.total}</div>
+            <div class="pfs-podium-label">Contributi</div>
+            <div class="pfs-podium-breakdown">
+              <span class="pfs-breakdown-tag sig" title="Segnalazioni nuovi indirizzi">📍 ${first.signals} segn.</span>
+              <span class="pfs-breakdown-tag log" title="Log accessi e verifiche GPS">📱 ${first.logs} log</span>
+            </div>
+          </div>
+
+          <!-- 3° Posto (Bronzo) -->
+          <div class="pfs-podium-card pfs-podium-3">
+            <div class="pfs-podium-badge">🥉 3° Posizione</div>
+            <div class="pfs-podium-medal">🥉</div>
+            <div class="pfs-podium-name" title="${escapeHtml(third.name)}">${escapeHtml(third.name)}</div>
+            <div class="pfs-podium-score">${third.total}</div>
+            <div class="pfs-podium-label">Contributi</div>
+            <div class="pfs-podium-breakdown">
+              <span class="pfs-breakdown-tag sig" title="Segnalazioni nuovi indirizzi">📍 ${third.signals} segn.</span>
+              <span class="pfs-breakdown-tag log" title="Log accessi e verifiche GPS">📱 ${third.logs} log</span>
+            </div>
+          </div>
+        </div>`;
+
+      if (others.length > 0) {
+        rankingHtml += `
+          <div class="pfs-ranking-others">
+            <span class="pfs-ranking-others-label">Altri collaboratori:</span>
+            ${others.map((u, i) => `
+              <div class="pfs-rank-pill" title="${escapeHtml(u.name)}: ${u.signals} segnalazioni, ${u.logs} log">
+                <span class="pfs-rank-pos">#${i + 4}</span>
+                <span class="pfs-rank-name">${escapeHtml(u.name)}</span>
+                <span class="pfs-rank-score">${u.total}</span>
+              </div>
+            `).join('')}
+          </div>`;
+      }
+    } else {
+      // 1 o 2 tecnici
+      rankingHtml += `
+        <div class="pfs-ranking-grid">
+          ${rankingList.map((u, i) => {
+            const isGold = i === 0;
+            const medal = isGold ? '🥇' : '🥈';
+            const badgeClass = isGold ? 'pfs-podium-1' : 'pfs-podium-2';
+            const posLabel = isGold ? '1° Posizione' : '2° Posizione';
+            return `
+            <div class="pfs-podium-card ${badgeClass}">
+              <div class="pfs-podium-badge">${medal} ${posLabel}</div>
+              <div class="pfs-podium-medal">${medal}</div>
+              <div class="pfs-podium-name" title="${escapeHtml(u.name)}">${escapeHtml(u.name)}</div>
+              <div class="pfs-podium-score">${u.total}</div>
+              <div class="pfs-podium-label">Contributi</div>
+              <div class="pfs-podium-breakdown">
+                <span class="pfs-breakdown-tag sig" title="Segnalazioni nuovi indirizzi">📍 ${u.signals} segn.</span>
+                <span class="pfs-breakdown-tag log" title="Log accessi e verifiche GPS">📱 ${u.logs} log</span>
+              </div>
+            </div>`;
+          }).join('')}
+        </div>`;
+    }
+
+    rankingHtml += `</div>`;
 
     let sectionsHtml = '';
 
@@ -224,7 +416,9 @@ export async function showPfsDashboard() {
     sectionsHtml += `</div>`;
 
     const existingContainer = document.getElementById('pfs-content-container');
-    if (existingContainer) {
+    const existingRanking = document.getElementById('pfs-ranking-container');
+    if (existingContainer && existingRanking) {
+      existingRanking.innerHTML = rankingHtml;
       existingContainer.innerHTML = sectionsHtml;
     } else {
       content.innerHTML = `
@@ -235,6 +429,9 @@ export async function showPfsDashboard() {
           </div>
         </div>
         <div class="tecnici-panel fade-in">
+          <div id="pfs-ranking-container">
+            ${rankingHtml}
+          </div>
           <div id="pfs-delete-toolbar" class="delete-toolbar">
             <span id="pfs-delete-count" style="font-size:14px; font-weight:600; color:var(--red)">0 selezionati</span>
             <button class="btn-bulk-delete" onclick="deleteSelectedPfs()" aria-label="Elimina elementi selezionati">Elimina Selezionati</button>
@@ -267,8 +464,11 @@ export async function showPfsDashboard() {
   }
 
   const unsubSigs = onSnapshot(collection(db, 'pfs_segnalati'), (snap) => {
-    signals = snap.docs.map(d => ({ id: d.id, ...d.data() }))
-                    .sort((a,b) => parseOrario(b.orario) - parseOrario(a.orario));
+    signals = snap.docs.map(d => {
+      const data = d.data();
+      if (data.tecnico) recordPfsContribution(data.tecnico, 'signal', d.id);
+      return { id: d.id, ...data };
+    }).sort((a,b) => parseOrario(b.orario) - parseOrario(a.orario));
     signalsLoaded = true;
     renderIfReady();
   }, (e) => {
@@ -277,8 +477,11 @@ export async function showPfsDashboard() {
   });
 
   const unsubLogs = onSnapshot(collection(db, 'pfs_logs'), (snap) => {
-    logs = snap.docs.map(d => ({ id: d.id, ...d.data() }))
-                  .sort((a,b) => parseOrario(b.orario) - parseOrario(a.orario));
+    logs = snap.docs.map(d => {
+      const data = d.data();
+      if (data.tecnico) recordPfsContribution(data.tecnico, 'log', d.id);
+      return { id: d.id, ...data };
+    }).sort((a,b) => parseOrario(b.orario) - parseOrario(a.orario));
     logsLoaded = true;
     renderIfReady();
   }, (e) => {
@@ -286,7 +489,17 @@ export async function showPfsDashboard() {
     content.innerHTML = `<div class="state-box fade-in"><p>Errore caricamento log PFS.</p></div>`;
   });
 
-  _pfsListeners.push(unsubSigs, unsubLogs);
+  const unsubStats = onValue(ref(rtdb, '/pfs_stats'), (snap) => {
+    pfsStatsData = snap.val() || {};
+    statsLoaded = true;
+    renderIfReady();
+  }, (e) => {
+    console.warn("Errore caricamento /pfs_stats RTDB:", e);
+    statsLoaded = true;
+    renderIfReady();
+  });
+
+  _pfsListeners.push(unsubSigs, unsubLogs, unsubStats);
 }
 
 export function toggleAllPfs(type, checked) {

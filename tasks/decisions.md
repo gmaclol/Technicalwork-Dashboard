@@ -153,7 +153,21 @@ Fornire all'amministratore e agli utenti una classifica di produttività e frequ
 - **Ordinamento Predefinito**: L'elenco tecnici Android viene ordinato per default in modo decrescente in base al conteggio di utilizzo (`usage`), posizionando il tecnico con più attività in cima.
 - **UI Podio & Pillole di Ordinamento**: Aggiunto un podio visuale per i primi 3 classificati (🥇 1° oro, 🥈 2° argento, 🥉 3° bronzo) e un gruppo di pulsanti di ordinamento rapido (`🏆 Più Utilizzati`, `🕒 Ultimo Sync`), garantendo una consultazione immediata e intuitiva.
 
+## 2026-09-19 — Classifica Contributi PFS Persistente su RTDB (/pfs_stats)
+
+**Motivazione:**
+Fornire all'amministratore un sistema di ranking visivo e permanente per riconoscere chi contribuisce maggiormente alla funzionalità PFS (segnalazioni nuovi indirizzi e log accessi con precisione GPS), mantenendo invariato l'ordine cronologico delle card e conservando i punti dei tecnici anche in caso di eliminazione delle card dalla dashboard.
+
+**Decisioni Architetturali:**
+- **Posizionamento Dedicato in Alto (Opzione A):** Il widget della classifica viene posizionato in cima alla vista `#pfs-content-container`, all'interno di `.tecnici-panel`, sopra la toolbar eliminazione. L'ordine, la visualizzazione e le card delle sezioni *Nuovi Indirizzi* e *Log Accessi (Accuracy)* rimangono intatti e ordinati per orario più recente.
+- **Persistenza Storica via RTDB a Costo Zero:** Quando un admin ripulisce o elimina card da `pfs_segnalati` o `pfs_logs` su Firestore, le statistiche storiche del tecnico non vanno perse:
+  - Tutti i contributi vengono rispecchiati su Realtime Database nel percorso `/pfs_stats/<tecnico>/signals/<docId> = 1` e `/pfs_stats/<tecnico>/logs/<docId> = 1`.
+  - Operazione idempotente: l'id univoco evita doppi conteggi, e l'unione in-memory tramite `Set` di ID previene sovrascritture.
+  - La quota Spark di RTDB (1 GB storage, 10 GB download/mese gratuiti) è ampiamente sufficiente per memorizzare permanentemente centinaia di migliaia di contributi a costo zero.
+- **UI Podio Olimpico:** Presentazione moderna con 🥇 1° oro al centro (elevato), 🥈 2° argento a sinistra e 🥉 3° bronzo a destra, con breakdown del totale (segnalazioni vs log) e pillole per i successivi classificati.
+
 ## Stack e Vincoli — Dashboard (tchwrk2)
+
 
 Stack:
 - **Build / Packaging:** Vite 8.x + `vite-plugin-pwa` (Service Worker, Workbox).

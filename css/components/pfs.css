@@ -151,3 +151,358 @@
 }
 
 @keyframes slideDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ── PFS RANKING & LEADERBOARD WIDGET ── */
+.pfs-ranking-box {
+  background: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px 24px;
+  margin-bottom: 28px;
+  box-shadow: 0 8px 32px -8px rgba(0, 0, 0, 0.35);
+  position: relative;
+  overflow: hidden;
+  animation: fadeIn 0.4s ease-out;
+}
+
+.pfs-ranking-box::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--accent-gradient);
+  opacity: 0.8;
+}
+
+.pfs-ranking-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.pfs-ranking-title-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pfs-ranking-icon {
+  font-size: 24px;
+  line-height: 1;
+  filter: drop-shadow(0 2px 8px rgba(251, 191, 36, 0.4));
+}
+
+.pfs-ranking-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+.pfs-ranking-subtitle {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.pfs-ranking-stats {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pfs-ranking-stat-pill {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-dark);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  padding: 4px 10px;
+  border-radius: 99px;
+  white-space: nowrap;
+}
+
+.pfs-ranking-empty {
+  text-align: center;
+  padding: 24px 16px;
+  color: var(--text-muted);
+  font-size: 13px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+}
+
+/* Podio Olimpico (3 concorrenti: 2° a sx, 1° al centro, 3° a dx) */
+.pfs-podium {
+  display: grid;
+  grid-template-columns: 1fr 1.08fr 1fr;
+  gap: 14px;
+  align-items: end;
+  margin-top: 10px;
+}
+
+.pfs-ranking-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+  margin-top: 10px;
+}
+
+.pfs-podium-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 18px 14px;
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
+}
+
+.pfs-podium-card:hover {
+  transform: translateY(-3px);
+}
+
+/* 1° Posto: Oro */
+.pfs-podium-1 {
+  background: linear-gradient(180deg, rgba(251, 191, 36, 0.12) 0%, rgba(15, 23, 42, 0.6) 100%);
+  border: 1px solid rgba(251, 191, 36, 0.45);
+  box-shadow: 0 0 25px rgba(251, 191, 36, 0.15);
+  padding: 22px 14px 20px;
+}
+.pfs-podium-1:hover {
+  border-color: rgba(251, 191, 36, 0.7);
+  box-shadow: 0 0 35px rgba(251, 191, 36, 0.25);
+}
+
+/* 2° Posto: Argento */
+.pfs-podium-2 {
+  background: linear-gradient(180deg, rgba(226, 232, 240, 0.08) 0%, rgba(15, 23, 42, 0.5) 100%);
+  border: 1px solid rgba(203, 213, 225, 0.35);
+}
+.pfs-podium-2:hover {
+  border-color: rgba(203, 213, 225, 0.6);
+  box-shadow: 0 0 20px rgba(203, 213, 225, 0.15);
+}
+
+/* 3° Posto: Bronzo */
+.pfs-podium-3 {
+  background: linear-gradient(180deg, rgba(217, 119, 6, 0.08) 0%, rgba(15, 23, 42, 0.5) 100%);
+  border: 1px solid rgba(217, 119, 6, 0.35);
+}
+.pfs-podium-3:hover {
+  border-color: rgba(217, 119, 6, 0.6);
+  box-shadow: 0 0 20px rgba(217, 119, 6, 0.15);
+}
+
+.pfs-podium-badge {
+  position: absolute;
+  top: -10px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  padding: 2px 10px;
+  border-radius: 99px;
+  white-space: nowrap;
+}
+
+.pfs-podium-1 .pfs-podium-badge {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  color: #0f172a;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
+}
+
+.pfs-podium-2 .pfs-podium-badge {
+  background: linear-gradient(135deg, #e2e8f0, #94a3b8);
+  color: #0f172a;
+  box-shadow: 0 2px 8px rgba(148, 163, 184, 0.3);
+}
+
+.pfs-podium-3 .pfs-podium-badge {
+  background: linear-gradient(135deg, #d97706, #b45309);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(180, 83, 9, 0.3);
+}
+
+.pfs-podium-medal {
+  font-size: 26px;
+  line-height: 1;
+  margin-top: 2px;
+  margin-bottom: 6px;
+}
+
+.pfs-podium-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-bottom: 4px;
+}
+
+.pfs-podium-score {
+  font-family: var(--font-mono);
+  font-size: 22px;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.1;
+}
+
+.pfs-podium-1 .pfs-podium-score {
+  color: #fde047;
+  text-shadow: 0 0 12px rgba(253, 224, 71, 0.3);
+}
+
+.pfs-podium-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.pfs-podium-breakdown {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.pfs-breakdown-tag {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.pfs-breakdown-tag.sig {
+  background: rgba(239, 68, 68, 0.15);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.pfs-breakdown-tag.log {
+  background: rgba(99, 102, 241, 0.15);
+  color: #c7d2fe;
+  border: 1px solid rgba(99, 102, 241, 0.25);
+}
+
+/* Altri collaboratori oltre il podio (#4, #5, ...) */
+.pfs-ranking-others {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--border);
+}
+
+.pfs-ranking-others-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-right: 4px;
+}
+
+.pfs-rank-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: 3px 10px;
+  font-size: 12px;
+  transition: all var(--transition-fast);
+}
+
+.pfs-rank-pill:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: var(--border-strong);
+  transform: translateY(-1px);
+}
+
+.pfs-rank-pos {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.pfs-rank-name {
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.pfs-rank-score {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent);
+  background: rgba(99, 102, 241, 0.15);
+  padding: 1px 6px;
+  border-radius: 6px;
+}
+
+/* Light theme support */
+[data-theme="light"] .pfs-ranking-box {
+  background: rgba(255, 255, 255, 0.8);
+  border-color: rgba(0, 0, 0, 0.08);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="light"] .pfs-podium-card {
+  background: rgba(0, 0, 0, 0.02);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .pfs-podium-score {
+  color: #1e293b;
+}
+
+[data-theme="light"] .pfs-podium-1 .pfs-podium-score {
+  color: #b45309;
+}
+
+[data-theme="light"] .pfs-rank-pill {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+/* Mobile Responsiveness for Podium */
+@media (max-width: 640px) {
+  .pfs-podium {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .pfs-podium-2 {
+    order: 2;
+  }
+  .pfs-podium-1 {
+    order: 1;
+  }
+  .pfs-podium-3 {
+    order: 3;
+  }
+}
+
